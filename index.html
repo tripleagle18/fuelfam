@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>FuelFam</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <style>
@@ -462,18 +462,7 @@ function showTab(id, btn) {
 }
 
 // ─── AUTH ──────────────────────────────────────────────────────────────────
-async function doLogin() {
-  const username = document.getElementById('login-user').value.trim().toLowerCase();
-  const password = document.getElementById('login-pass').value;
-  const err = document.getElementById('login-error');
-  err.style.display = 'none';
-  const { data, error } = await supabase.from('profiles').select('*').eq('username', username).single();
-  if (error || !data) { err.textContent = 'User not found.'; err.style.display = 'block'; return; }
-  if (data.password_hash !== btoa(password)) { err.textContent = 'Incorrect password.'; err.style.display = 'block'; return; }
-  currentProfile = data;
-  currentUser = data.id;
-  enterApp();
-}
+
 
 async function doSignup() {
   const name = document.getElementById('su-name').value.trim();
@@ -485,19 +474,45 @@ async function doSignup() {
   const activity = document.getElementById('su-activity').value;
   const goal = document.getElementById('su-goal').value;
   const err = document.getElementById('signup-error');
+  const btn = document.querySelector('#screen-signup .btn-main');
   err.style.display = 'none';
   if (!name || !username || !password || !sex || !weight || !age || !activity || !goal) {
     err.textContent = 'Please fill in all fields.'; err.style.display = 'block'; return;
   }
-  const existing = await supabase.from('profiles').select('id').eq('username', username).single();
-  if (existing.data) { err.textContent = 'Username already taken.'; err.style.display = 'block'; return; }
-  const { data, error } = await supabase.from('profiles').insert({
-    username, name, password_hash: btoa(password),
-    sex, weight, age, activity, goal, wins: 0, is_admin: false
-  }).select().single();
-  if (error) { err.textContent = 'Error creating account. Try again.'; err.style.display = 'block'; return; }
-  currentProfile = data; currentUser = data.id;
-  enterApp();
+  btn.textContent = 'Creating account...'; btn.disabled = true;
+  try {
+    const existing = await supabase.from('profiles').select('id').eq('username', username).maybeSingle();
+    if (existing.data) { err.textContent = 'Username already taken.'; err.style.display = 'block'; btn.textContent = 'Create my account'; btn.disabled = false; return; }
+    const { data, error } = await supabase.from('profiles').insert({
+      username, name, password_hash: btoa(password),
+      sex, weight, age, activity, goal, wins: 0, is_admin: false
+    }).select().single();
+    if (error) { err.textContent = 'Error: ' + error.message; err.style.display = 'block'; btn.textContent = 'Create my account'; btn.disabled = false; return; }
+    currentProfile = data; currentUser = data.id;
+    enterApp();
+  } catch(e) {
+    err.textContent = 'Connection error. Check your internet and try again.';
+    err.style.display = 'block'; btn.textContent = 'Create my account'; btn.disabled = false;
+  }
+}
+
+async function doLogin() {
+  const username = document.getElementById('login-user').value.trim().toLowerCase();
+  const password = document.getElementById('login-pass').value;
+  const err = document.getElementById('login-error');
+  const btn = document.querySelector('#screen-login .btn-main');
+  err.style.display = 'none';
+  btn.textContent = 'Logging in...'; btn.disabled = true;
+  try {
+    const { data, error } = await supabase.from('profiles').select('*').eq('username', username).maybeSingle();
+    if (error || !data) { err.textContent = 'User not found.'; err.style.display = 'block'; btn.textContent = 'Log in'; btn.disabled = false; return; }
+    if (data.password_hash !== btoa(password)) { err.textContent = 'Incorrect password.'; err.style.display = 'block'; btn.textContent = 'Log in'; btn.disabled = false; return; }
+    currentProfile = data; currentUser = data.id;
+    enterApp();
+  } catch(e) {
+    err.textContent = 'Connection error. Check your internet and try again.';
+    err.style.display = 'block'; btn.textContent = 'Log in'; btn.disabled = false;
+  }
 }
 
 function enterApp() {
