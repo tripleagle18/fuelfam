@@ -678,9 +678,10 @@ async function analyzePhoto() {
   const file = fileInput.files[0];
   const b64 = await toBase64(file);
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1000, messages: [{ role: 'user', content: [{ type: 'image', source: { type: 'base64', media_type: file.type || 'image/jpeg', data: b64 } }, { type: 'text', text: 'You are a nutrition expert. Analyze this food image. Respond in this EXACT format:\nFOODS: [foods you see]\nPROTEIN_GRAMS: [number only]\nNOTE: [one sentence on accuracy]' }] }] }) });
+    const resp = await fetch('/api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageData: b64, mediaType: file.type || 'image/jpeg', mode: 'food' }) });
     const data = await resp.json();
-    const text = data.content[0].text;
+    if (data.error) throw new Error(data.error);
+    const text = data.text;
     const pm = text.match(/PROTEIN_GRAMS:\s*(\d+)/);
     const fm = text.match(/FOODS:\s*(.+)/);
     const nm = text.match(/NOTE:\s*(.+)/);
@@ -689,7 +690,7 @@ async function analyzePhoto() {
     pendingAiFood = { name: foodName, protein };
     resultDiv.innerHTML = `<strong>🍽 ${foodName}</strong><br><strong>Estimated protein: ${protein}g</strong><br><em style="font-size:12px;opacity:0.8">${nm ? nm[1] : ''}</em>`;
     addBtns.style.display = 'block';
-  } catch (e) { resultDiv.textContent = 'Error analyzing photo. Please try again.'; }
+  } catch (e) { resultDiv.textContent = 'Error: ' + e.message + '. Please try again.'; }
 }
 
 function addAiFood() { if (!pendingAiFood) return; addFoodToLog(pendingAiFood.name, pendingAiFood.protein); document.getElementById('ai-result').textContent = '✅ Added to your log!'; document.getElementById('ai-add-btns').style.display = 'none'; pendingAiFood = null; }
@@ -862,4 +863,3 @@ function toBase64(file) { return new Promise((res, rej) => { const r = new FileR
 </script>
 </body>
 </html>
-
