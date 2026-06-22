@@ -404,7 +404,7 @@
 // Replace these with your actual Supabase project URL and anon key
 const SUPABASE_URL = 'https://eokpgamynncxflptxjus.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVva3BnYW15bm5jeGZscHR4anVzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxNDk4MTUsImV4cCI6MjA5NzcyNTgxNX0.YKUg7y27nUKX-0arpONacmDoNKMd_MfFasxFvi_tH9c';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let currentUser = null;
 let currentProfile = null;
@@ -481,9 +481,9 @@ async function doSignup() {
   }
   btn.textContent = 'Creating account...'; btn.disabled = true;
   try {
-    const existing = await supabase.from('profiles').select('id').eq('username', username).maybeSingle();
+    const existing = await sb.from('profiles').select('id').eq('username', username).maybeSingle();
     if (existing.data) { err.textContent = 'Username already taken.'; err.style.display = 'block'; btn.textContent = 'Create my account'; btn.disabled = false; return; }
-    const { data, error } = await supabase.from('profiles').insert({
+    const { data, error } = await sb.from('profiles').insert({
       username, name, password_hash: btoa(password),
       sex, weight, age, activity, goal, wins: 0, is_admin: false
     }).select().single();
@@ -504,7 +504,7 @@ async function doLogin() {
   err.style.display = 'none';
   btn.textContent = 'Logging in...'; btn.disabled = true;
   try {
-    const { data, error } = await supabase.from('profiles').select('*').eq('username', username).maybeSingle();
+    const { data, error } = await sb.from('profiles').select('*').eq('username', username).maybeSingle();
     if (error || !data) { err.textContent = 'User not found.'; err.style.display = 'block'; btn.textContent = 'Log in'; btn.disabled = false; return; }
     if (data.password_hash !== btoa(password)) { err.textContent = 'Incorrect password.'; err.style.display = 'block'; btn.textContent = 'Log in'; btn.disabled = false; return; }
     currentProfile = data; currentUser = data.id;
@@ -528,7 +528,7 @@ async function renderHome() {
   if (!currentUser) return;
   const goals = calcGoals(currentProfile);
   const today = getTodayKey();
-  const { data: log } = await supabase.from('daily_logs').select('*').eq('user_id', currentUser).eq('log_date', today).single();
+  const { data: log } = await sb.from('daily_logs').select('*').eq('user_id', currentUser).eq('log_date', today).single();
   const protein = log ? log.protein : 0;
   const water = log ? log.water : 0;
   const foods = log ? (log.foods || []) : [];
@@ -538,8 +538,8 @@ async function renderHome() {
   document.getElementById('home-water-text').textContent = Math.round(water) + ' / ' + goals.water + ' oz';
   document.getElementById('home-water-bar').style.width = pct(water, goals.water) + '%';
 
-  const { data: allLogs } = await supabase.from('daily_logs').select('user_id,protein,water,log_date').gte('log_date', getWeekKey());
-  const { data: allProfiles } = await supabase.from('profiles').select('id,weight,activity,goal');
+  const { data: allLogs } = await sb.from('daily_logs').select('user_id,protein,water,log_date').gte('log_date', getWeekKey());
+  const { data: allProfiles } = await sb.from('profiles').select('id,weight,activity,goal');
   const profileMap = {};
   (allProfiles || []).forEach(p => profileMap[p.id] = p);
   const weekPtsMap = {};
@@ -566,7 +566,7 @@ async function renderHome() {
 }
 
 async function calcStreak() {
-  const { data } = await supabase.from('daily_logs').select('log_date,protein,water').eq('user_id', currentUser).order('log_date', { ascending: false }).limit(30);
+  const { data } = await sb.from('daily_logs').select('log_date,protein,water').eq('user_id', currentUser).order('log_date', { ascending: false }).limit(30);
   if (!data || !data.length) return 0;
   const goals = calcGoals(currentProfile);
   let streak = 0;
@@ -597,18 +597,18 @@ async function logWater() {
 // ─── LOG HELPERS ──────────────────────────────────────────────────────────
 async function upsertLog({ protein_add = 0, water_add = 0, food = null }) {
   const today = getTodayKey();
-  const { data: existing } = await supabase.from('daily_logs').select('*').eq('user_id', currentUser).eq('log_date', today).single();
+  const { data: existing } = await sb.from('daily_logs').select('*').eq('user_id', currentUser).eq('log_date', today).single();
   if (existing) {
     const foods = existing.foods || [];
     if (food) foods.push(food);
-    await supabase.from('daily_logs').update({
+    await sb.from('daily_logs').update({
       protein: (existing.protein || 0) + protein_add,
       water: (existing.water || 0) + water_add,
       foods
     }).eq('id', existing.id);
   } else {
     const foods = food ? [food] : [];
-    await supabase.from('daily_logs').insert({ user_id: currentUser, log_date: today, protein: protein_add, water: water_add, foods });
+    await sb.from('daily_logs').insert({ user_id: currentUser, log_date: today, protein: protein_add, water: water_add, foods });
   }
 }
 
@@ -720,8 +720,8 @@ function addManualFood() {
 async function renderLeaderboard() {
   document.getElementById('leaderboard-list').innerHTML = '<div class="loading"><span class="dot-spin"></span></div>';
   const wk = getWeekKey();
-  const { data: profiles } = await supabase.from('profiles').select('*');
-  const { data: logs } = await supabase.from('daily_logs').select('*').gte('log_date', wk);
+  const { data: profiles } = await sb.from('profiles').select('*');
+  const { data: logs } = await sb.from('daily_logs').select('*').gte('log_date', wk);
   const medals = ['🥇', '🥈', '🥉'];
   const entries = (profiles || []).map(prof => {
     const goals = calcGoals(prof);
@@ -760,10 +760,10 @@ async function renderProfile() {
   const goals = calcGoals(p);
   document.getElementById('profile-avatar').textContent = avatarEmoji(p.name);
   document.getElementById('profile-name').textContent = p.name;
-  const { data: logs } = await supabase.from('daily_logs').select('*').eq('user_id', currentUser).gte('log_date', getWeekKey());
+  const { data: logs } = await sb.from('daily_logs').select('*').eq('user_id', currentUser).gte('log_date', getWeekKey());
   const weekPts = (logs || []).reduce((acc, l) => acc + calcDayPoints(l.protein, l.water, goals), 0);
-  const { data: allProfiles } = await supabase.from('profiles').select('id,weight,activity,goal,wins');
-  const { data: allLogs } = await supabase.from('daily_logs').select('user_id,protein,water').gte('log_date', getWeekKey());
+  const { data: allProfiles } = await sb.from('profiles').select('id,weight,activity,goal,wins');
+  const { data: allLogs } = await sb.from('daily_logs').select('user_id,protein,water').gte('log_date', getWeekKey());
   const ptsMap = {};
   (allLogs || []).forEach(l => { const pr = (allProfiles || []).find(x => x.id === l.user_id); if (!pr) return; ptsMap[l.user_id] = (ptsMap[l.user_id] || 0) + calcDayPoints(l.protein, l.water, calcGoals(pr)); });
   const ranked = Object.entries(ptsMap).sort((a, b) => b[1] - a[1]);
@@ -781,7 +781,7 @@ async function renderProfile() {
   const adminPanel = document.getElementById('admin-panel');
   if (p.is_admin) {
     adminPanel.style.display = 'block';
-    const { data: allUsers } = await supabase.from('profiles').select('*');
+    const { data: allUsers } = await sb.from('profiles').select('*');
     document.getElementById('admin-user-list').innerHTML = (allUsers || []).map(u => `
       <div class="admin-row">
         <div><div style="font-weight:700;">${u.name}</div><div style="font-size:12px;color:var(--muted);">@${u.username}</div></div>
@@ -792,8 +792,8 @@ async function renderProfile() {
 
 async function removeUser(id, name) {
   if (!confirm('Remove ' + name + ' from FuelFam?')) return;
-  await supabase.from('daily_logs').delete().eq('user_id', id);
-  await supabase.from('profiles').delete().eq('id', id);
+  await sb.from('daily_logs').delete().eq('user_id', id);
+  await sb.from('profiles').delete().eq('id', id);
   renderProfile(); renderLeaderboard();
 }
 
