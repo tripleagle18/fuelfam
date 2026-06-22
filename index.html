@@ -322,8 +322,20 @@
           <div class="method-icon" style="background:var(--purple-light);color:var(--purple)"><i class="ti ti-camera"></i></div>
           <div><div class="method-title">AI Photo Analysis <span class="badge-pill badge-ai">AI</span></div><div class="method-sub">Snap your meal — AI estimates protein</div></div>
         </div>
-        <input type="file" id="photo-input" accept="image/*" capture="environment" class="file-inp">
-        <button class="btn-main" style="margin-top:4px;" onclick="analyzePhoto()">Analyze with AI</button>
+        <div style="display:flex;gap:8px;margin-bottom:8px;">
+  <label style="flex:1;padding:12px;background:#EDE9FE;color:#7C3AED;border-radius:12px;text-align:center;font-weight:700;font-size:14px;cursor:pointer;">
+    <i class="ti ti-camera" style="font-size:16px;vertical-align:-2px;margin-right:4px;"></i>Take photo
+    <input type="file" id="photo-input" accept="image/*" capture="environment" style="display:none;" onchange="previewAndAnalyze()">
+  </label>
+  <label style="flex:1;padding:12px;background:#DBEAFE;color:#2563EB;border-radius:12px;text-align:center;font-weight:700;font-size:14px;cursor:pointer;">
+    <i class="ti ti-photo" style="font-size:16px;vertical-align:-2px;margin-right:4px;"></i>Choose photo
+    <input type="file" id="photo-input-gallery" accept="image/*" style="display:none;" onchange="previewAndAnalyzeGallery()">
+  </label>
+</div>
+<div id="photo-preview-wrap" style="display:none;margin-bottom:8px;border-radius:12px;overflow:hidden;">
+  <img id="photo-preview" style="width:100%;max-height:200px;object-fit:cover;display:block;">
+</div>
+        <button class="btn-main" id="analyze-btn" style="display:none;margin-top:4px;" onclick="analyzePhoto()">Analyze with AI</button>
         <div id="ai-result" class="result-box result-box-purple"></div>
         <div id="ai-add-btns" style="display:none;margin-top:10px;display:none;">
           <button class="btn-main" onclick="addAiFood()">Add to my log ✓</button>
@@ -698,11 +710,12 @@ async function addFoodToLog(name, protein) {
 // ─── AI PHOTO ─────────────────────────────────────────────────────────────
 async function analyzePhoto() {
   const fileInput = document.getElementById('photo-input');
+  const galleryInput = document.getElementById('photo-input-gallery');
   const resultDiv = document.getElementById('ai-result');
   const addBtns = document.getElementById('ai-add-btns');
-  if (!fileInput.files || !fileInput.files[0]) { resultDiv.textContent = 'Please select a photo first.'; resultDiv.style.display = 'block'; return; }
+  const file = (fileInput.files && fileInput.files[0]) || (galleryInput.files && galleryInput.files[0]);
+  if (!file) { resultDiv.textContent = 'Please select a photo first.'; resultDiv.style.display = 'block'; return; }
   resultDiv.textContent = '🔍 Analyzing your meal... hang tight!'; resultDiv.style.display = 'block'; addBtns.style.display = 'none';
-  const file = fileInput.files[0];
   const b64 = await toBase64(file);
   try {
     const resp = await fetch('/api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageData: b64, mediaType: file.type || 'image/jpeg', mode: 'food' }) });
@@ -886,6 +899,28 @@ async function removeUser(id, name) {
 
 function doLogout() { currentUser = null; currentProfile = null; pendingAiFood = null; pendingBarcodeFood = null; clearSession(); stopScanner(); showScreen('screen-splash'); }
 
+
+
+function previewAndAnalyze() {
+  const input = document.getElementById('photo-input');
+  if (!input.files || !input.files[0]) return;
+  showPreview(input.files[0]);
+  document.getElementById('analyze-btn').style.display = 'block';
+}
+function previewAndAnalyzeGallery() {
+  const input = document.getElementById('photo-input-gallery');
+  if (!input.files || !input.files[0]) return;
+  showPreview(input.files[0]);
+  document.getElementById('analyze-btn').style.display = 'block';
+}
+function showPreview(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('photo-preview').src = e.target.result;
+    document.getElementById('photo-preview-wrap').style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+}
 
 // ─── AI CHAT ──────────────────────────────────────────────────────────────
 let chatHistory = [];
