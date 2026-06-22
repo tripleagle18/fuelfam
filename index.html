@@ -199,6 +199,20 @@
   .confetti-wrap { text-align: center; padding: 8px 0; }
   .empty-state { text-align: center; padding: 20px; color: var(--muted); font-size: 14px; }
 
+
+  /* AI CHAT */
+  .chat-wrap { display: none; flex-direction: column; gap: 0; margin-top: 12px; max-height: 320px; overflow-y: auto; padding: 4px 0; }
+  .chat-wrap.open { display: flex; }
+  .chat-bubble { max-width: 85%; padding: 10px 14px; border-radius: 18px; font-size: 14px; line-height: 1.5; margin-bottom: 8px; }
+  .chat-bubble.ai { background: #EDE9FE; color: #4C1D95; border-bottom-left-radius: 4px; align-self: flex-start; }
+  .chat-bubble.user { background: linear-gradient(135deg, #7C3AED, #DB2777); color: #fff; border-bottom-right-radius: 4px; align-self: flex-end; }
+  .chat-bubble.typing { background: #EDE9FE; color: #7C3AED; border-bottom-left-radius: 4px; align-self: flex-start; font-style: italic; }
+  .chat-input-row { display: flex; gap: 8px; margin-top: 10px; }
+  .chat-input-row input { flex: 1; padding: 12px 14px; border-radius: 24px; border: 2px solid #EDE9FE; background: #fff; font-size: 15px; color: var(--text); outline: none; }
+  .chat-input-row input:focus { border-color: #7C3AED; }
+  .chat-send-btn { width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, #7C3AED, #DB2777); border: none; color: #fff; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .chat-add-btn { width: 100%; padding: 14px; border-radius: 50px; background: linear-gradient(135deg, #059669, #10B981); color: #fff; border: none; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 10px; display: none; }
+
   .loading { text-align: center; padding: 40px; color: var(--muted); font-size: 15px; }
   .dot-spin { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--purple); animation: pulse 1s infinite; margin: 0 3px; }
   @keyframes pulse { 0%,100%{opacity:0.3;transform:scale(0.8)} 50%{opacity:1;transform:scale(1.2)} }
@@ -314,6 +328,19 @@
         <div id="ai-add-btns" style="display:none;margin-top:10px;display:none;">
           <button class="btn-main" onclick="addAiFood()">Add to my log ✓</button>
         </div>
+      </div>
+
+      <div class="log-method">
+        <div class="method-header">
+          <div class="method-icon" style="background:#FEF3C7;color:#D97706"><i class="ti ti-message-circle"></i></div>
+          <div><div class="method-title">Describe your meal <span class="badge-pill badge-ai">AI</span></div><div class="method-sub">Tell AI what you ate — it'll ask a couple questions</div></div>
+        </div>
+        <div class="chat-wrap" id="chat-wrap"></div>
+        <div class="chat-input-row" id="chat-input-row">
+          <input type="text" id="chat-input" placeholder="e.g. I ate a turkey sandwich..." onkeydown="if(event.key==='Enter')sendChat()">
+          <button class="chat-send-btn" onclick="sendChat()" aria-label="Send"><i class="ti ti-send" style="font-size:18px"></i></button>
+        </div>
+        <button class="chat-add-btn" id="chat-add-btn" onclick="addChatFood()">Add to my log ✓</button>
       </div>
 
       <div class="log-method">
@@ -858,6 +885,83 @@ async function removeUser(id, name) {
 }
 
 function doLogout() { currentUser = null; currentProfile = null; pendingAiFood = null; pendingBarcodeFood = null; clearSession(); stopScanner(); showScreen('screen-splash'); }
+
+
+// ─── AI CHAT ──────────────────────────────────────────────────────────────
+let chatHistory = [];
+let pendingChatFood = null;
+
+function addChatBubble(text, role) {
+  const wrap = document.getElementById('chat-wrap');
+  wrap.classList.add('open');
+  const bubble = document.createElement('div');
+  bubble.className = 'chat-bubble ' + role;
+  bubble.textContent = text;
+  wrap.appendChild(bubble);
+  wrap.scrollTop = wrap.scrollHeight;
+  return bubble;
+}
+
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  input.placeholder = 'Reply...';
+
+  addChatBubble(text, 'user');
+  chatHistory.push({ role: 'user', content: text });
+
+  const typing = addChatBubble('Thinking...', 'typing');
+
+  try {
+    const resp = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: chatHistory })
+    });
+    const data = await resp.json();
+    typing.remove();
+
+    if (data.error) { addChatBubble('Sorry, something went wrong. Try again!', 'ai'); return; }
+
+    const aiText = data.text;
+    chatHistory.push({ role: 'assistant', content: aiText });
+
+    // Check if AI has given a final estimate
+    const estimateMatch = aiText.match(/PROTEIN_ESTIMATE:\s*(\d+)g\s*-\s*(.+)/);
+    if (estimateMatch) {
+      const protein = parseInt(estimateMatch[1]);
+      const foodName = estimateMatch[2].trim();
+      pendingChatFood = { name: foodName, protein };
+      // Show message without the tag line
+      const displayText = aiText.replace(/PROTEIN_ESTIMATE:[^\n]+/, '').trim();
+      addChatBubble(displayText + '\n\n🎯 Estimated protein: ' + protein + 'g for ' + foodName, 'ai');
+      document.getElementById('chat-add-btn').style.display = 'block';
+      document.getElementById('chat-input-row').style.display = 'none';
+    } else {
+      addChatBubble(aiText, 'ai');
+    }
+  } catch (e) {
+    typing.remove();
+    addChatBubble('Connection error. Try again!', 'ai');
+  }
+}
+
+function addChatFood() {
+  if (!pendingChatFood) return;
+  addFoodToLog(pendingChatFood.name, pendingChatFood.protein);
+  // Reset chat
+  chatHistory = [];
+  pendingChatFood = null;
+  document.getElementById('chat-wrap').innerHTML = '';
+  document.getElementById('chat-wrap').classList.remove('open');
+  document.getElementById('chat-input').placeholder = 'e.g. I ate a turkey sandwich...';
+  document.getElementById('chat-add-btn').style.display = 'none';
+  document.getElementById('chat-input-row').style.display = 'flex';
+  addChatBubble('Added! What else did you eat?', 'ai');
+  document.getElementById('chat-wrap').classList.add('open');
+}
 
 function toBase64(file) { return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result.split(',')[1]); r.onerror = () => rej(new Error('Read failed')); r.readAsDataURL(file); }); }
 </script>
