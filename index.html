@@ -749,51 +749,27 @@ function addAiFood() { if (!pendingAiFood) return; addFoodToLog(pendingAiFood.na
 async function scanBarcodePhoto(input) {
   if (!input.files || !input.files[0]) return;
   const file = input.files[0];
-  // Show preview
   const reader = new FileReader();
   reader.onload = e => {
     document.getElementById('barcode-preview').src = e.target.result;
     document.getElementById('barcode-preview-wrap').style.display = 'block';
   };
   reader.readAsDataURL(file);
-  // Show loading status
   const status = document.getElementById('bc-status');
   status.style.display = 'block';
   status.textContent = 'Reading barcode from photo...';
   document.getElementById('bc-result').style.display = 'none';
   document.getElementById('bc-add-btns').style.display = 'none';
-  // Send to AI to read the barcode
   const b64 = await toBase64(file);
   try {
-    const resp = await fetch('/api/analyze', {
+    const resp = await fetch('/api/barcode', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ imageData: b64, mediaType: file.type || 'image/jpeg', mode: 'barcode' })
+      body: JSON.stringify({ imageData: b64, mediaType: file.type || 'image/jpeg' })
     });
     const data = await resp.json();
-    if (data.error) throw new Error(data.error);
-    const text = data.text;
-    const barcodeMatch = text.match(/BARCODE:\s*(\d+)/);
-    const productMatch = text.match(/PRODUCT:\s*(.+)/);
-    const proteinMatch = text.match(/PROTEIN_GRAMS:\s*(\d+)/);
-    const servingMatch = text.match(/SERVING_SIZE:\s*(.+)/);
-    if (barcodeMatch) {
-      status.textContent = 'Barcode found: ' + barcodeMatch[1] + ' — looking up...';
-      await lookupBarcode(barcodeMatch[1]);
-    } else if (proteinMatch && productMatch) {
-      // AI read the label directly
-      const protein = parseInt(proteinMatch[1]);
-      const name = productMatch[1].trim();
-      const serving = servingMatch ? servingMatch[1].trim() : 'per serving';
-      pendingBarcodeFood = { name, protein };
-      status.style.display = 'none';
-      const resultDiv = document.getElementById('bc-result');
-      resultDiv.style.display = 'block';
-      resultDiv.innerHTML = '<strong>📦 ' + name + '</strong><br>Serving: ' + serving + '<br><strong>Protein: ' + protein + 'g per serving</strong>';
-      document.getElementById('bc-add-btns').style.display = 'block';
-    } else {
-      status.textContent = 'Could not read barcode. Try manual entry below.';
-    }
+    if (data.error) { status.textContent = data.error; return; }
+    showBarcodeResult(data, status);
   } catch(e) {
     status.textContent = 'Error reading photo. Try again or use manual entry.';
   }
@@ -813,27 +789,34 @@ function resetBarcodeScanner() {
 function stopScanner() {} // kept for compatibility
 
 async function lookupBarcode(code) {
-  stopScanner();
-  const resultDiv = document.getElementById('bc-result');
-  const addBtns = document.getElementById('bc-add-btns');
-  const status = document.getElementById('scanner-status');
-  status.style.display = 'block'; status.textContent = 'Looking up product...';
+  if (!code || String(code).length < 4) return;
+  const status = document.getElementById('bc-status');
+  status.style.display = 'block';
+  status.textContent = 'Looking up product...';
+  document.getElementById('bc-result').style.display = 'none';
+  document.getElementById('bc-add-btns').style.display = 'none';
   try {
-    const resp = await fetch(`https://world.openfoodfacts.org/api/v0/product/${code}.json`);
+    const resp = await fetch('/api/barcode', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: String(code) })
+    });
     const data = await resp.json();
-    if (data.status === 1 && data.product) {
-      const p = data.product;
-      const name = p.product_name || p.brands || 'Unknown product';
-      const n = p.nutriments || {};
-      const protein = Math.round(n['proteins_serving'] || n['proteins_100g'] || 0);
-      const serving = p.serving_size || 'per 100g';
-      pendingBarcodeFood = { name, protein };
-      status.style.display = 'none';
-      resultDiv.style.display = 'block';
-      resultDiv.innerHTML = `<strong>📦 ${name}</strong><br>Serving: ${serving}<br><strong>Protein: ${protein}g per serving</strong>`;
-      addBtns.style.display = 'block';
-    } else { status.textContent = 'Product not found. Try manual entry.'; setTimeout(() => { status.style.display = 'none'; document.getElementById('scan-btn').style.display = 'block'; }, 2500); }
-  } catch (e) { status.textContent = 'Lookup failed. Check connection.'; setTimeout(() => { status.style.display = 'none'; document.getElementById('scan-btn').style.display = 'block'; }, 2500); }
+    if (data.error) { status.textContent = data.error; return; }
+    showBarcodeResult(data, status);
+  } catch(e) {
+    status.textContent = 'Lookup failed. Check connection and try again.';
+  }
+}
+
+function showBarcodeResult(data, status) {
+  if (!data.found) { status.textContent = data.error || 'Product not found. Try manual food entry.'; return; }
+  pendingBarcodeFood = { name: data.name, protein: data.protein };
+  status.style.display = 'none';
+  const resultDiv = document.getElementById('bc-result');
+  resultDiv.style.display = 'block';
+  resultDiv.innerHTML = '<strong>📦 ' + data.name + '</strong><br>Serving: ' + data.serving + '<br><strong>Protein: ' + data.protein + 'g per serving</strong>';
+  document.getElementById('bc-add-btns').style.display = 'block';
 }
 
 function addBarcodeFood() { if (!pendingBarcodeFood) return; addFoodToLog(pendingBarcodeFood.name, pendingBarcodeFood.protein); document.getElementById('bc-result').textContent = '✅ Added to your log!'; document.getElementById('bc-add-btns').style.display = 'none'; pendingBarcodeFood = null; }
