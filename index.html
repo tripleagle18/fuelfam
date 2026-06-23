@@ -299,7 +299,7 @@
       </div>
 
       <div class="card">
-        <div class="card-title"><div class="card-icon" style="background:var(--green-light);color:var(--green)"><i class="ti ti-clipboard-list"></i></div>Today's food log</div>
+        <div class="card-title"><div class="card-icon" style="background:var(--green-light);color:var(--green)"><i class="ti ti-clipboard-list"></i></div>Today's food log <span style="font-size:11px;color:var(--muted);font-weight:400;margin-left:4px;">tap ✏️ to edit</span></div>
         <div id="food-log-list"><div class="empty-state">Nothing logged yet — tap Log Food!</div></div>
       </div>
     </div>
@@ -653,7 +653,19 @@ async function renderHome() {
   if (!foods.length) {
     fl.innerHTML = '<div class="empty-state">Nothing logged yet — tap Log Food!</div>';
   } else {
-    fl.innerHTML = foods.map(f => `<div class="food-item"><span class="food-name">${f.name}</span><span class="food-protein">${Math.round(f.protein)}g</span></div>`).join('');
+    fl.innerHTML = foods.map((f, i) =>
+      '<div class="food-item">' +
+        '<div style="flex:1;min-width:0;">' +
+          '<div class="food-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + f.name + '</div>' +
+          '<div style="font-size:12px;color:var(--muted);">' + Math.round(f.protein) + 'g protein</div>' +
+        '</div>' +
+        '<div style="display:flex;gap:6px;align-items:center;flex-shrink:0;margin-left:8px;">' +
+          '<span class="food-protein">' + Math.round(f.protein) + 'g</span>' +
+          '<button onclick="editFoodItem(' + i + ')" style="background:#EDE9FE;border:none;border-radius:8px;padding:6px 8px;cursor:pointer;font-size:13px;line-height:1;">✏️</button>' +
+          '<button onclick="deleteFoodItem(' + i + ')" style="background:#FEE2E2;border:none;border-radius:8px;padding:6px 8px;cursor:pointer;font-size:13px;line-height:1;">🗑️</button>' +
+        '</div>' +
+      '</div>'
+    ).join('');
   }
 }
 
