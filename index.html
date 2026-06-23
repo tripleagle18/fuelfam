@@ -313,7 +313,12 @@
       </div>
 
       <div class="card">
-        <div class="card-title"><div class="card-icon" style="background:var(--blue-light);color:var(--blue)"><i class="ti ti-droplet"></i></div>Water today</div>
+        <div class="card-title" style="justify-content:space-between;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div class="card-icon" style="background:var(--blue-light);color:var(--blue)"><i class="ti ti-droplet"></i></div>Water today
+          </div>
+          <button onclick="editWaterForDay()" style="background:var(--blue-light);color:var(--blue);border:none;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;">✏️ Edit</button>
+        </div>
         <div class="prog-label"><span>Daily goal</span><span id="home-water-text">0 / 0 oz</span></div>
         <div class="prog-wrap"><div class="prog-bar" id="home-water-bar" style="width:0%;background:linear-gradient(90deg,var(--blue),#38BDF8)"></div></div>
       </div>
@@ -797,6 +802,22 @@ async function logWater() {
   await upsertLog({ water_add: oz });
   document.getElementById('water-amount').value = '';
   closeWaterModal(); renderHome();
+}
+
+async function editWaterForDay() {
+  const logDate = viewingDate || getTodayKey();
+  const { data: log } = await sb.from('daily_logs').select('*').eq('user_id', currentUser).eq('log_date', logDate).maybeSingle();
+  const current = log ? log.water : 0;
+  const newWater = prompt('Edit total water for this day (oz):', current);
+  if (newWater === null) return;
+  const oz = parseFloat(newWater);
+  if (isNaN(oz) || oz < 0) return;
+  if (log) {
+    await sb.from('daily_logs').update({ water: oz }).eq('id', log.id);
+  } else {
+    await sb.from('daily_logs').insert({ user_id: currentUser, log_date: logDate, protein: 0, water: oz, foods: [] });
+  }
+  renderHome();
 }
 
 // ─── LOG HELPERS ──────────────────────────────────────────────────────────
