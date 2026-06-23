@@ -1008,7 +1008,7 @@ function addChatFood() {
 
 // ─── FOOD LOG EDIT/DELETE ─────────────────────────────────────────────────
 async function editFoodItem(index) {
-  const users = getUsers ? getUsers() : null;
+  
   const today = getTodayKey();
   const { data: log } = await sb.from('daily_logs').select('*').eq('user_id', currentUser).eq('log_date', today).maybeSingle();
   if (!log) return;
