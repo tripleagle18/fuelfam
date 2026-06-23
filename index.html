@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>FuelFam</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.19.1/umd/index.min.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <style>
   :root {
@@ -320,26 +320,29 @@
       <div class="log-method">
         <div class="method-header">
           <div class="method-icon" style="background:var(--purple-light);color:var(--purple)"><i class="ti ti-camera"></i></div>
-          <div><div class="method-title">AI Photo Analysis <span class="badge-pill badge-ai">AI</span></div><div class="method-sub">Snap your meal — AI estimates protein</div></div>
+          <div><div class="method-title">AI Photo Analysis <span class="badge-pill badge-ai">AI</span></div><div class="method-sub">Photo your meal — AI asks questions then estimates</div></div>
         </div>
         <div style="display:flex;gap:8px;margin-bottom:8px;">
-  <label style="flex:1;padding:12px;background:#EDE9FE;color:#7C3AED;border-radius:12px;text-align:center;font-weight:700;font-size:14px;cursor:pointer;">
-    <i class="ti ti-camera" style="font-size:16px;vertical-align:-2px;margin-right:4px;"></i>Take photo
-    <input type="file" id="photo-input" accept="image/*" capture="environment" style="display:none;" onchange="previewAndAnalyze()">
-  </label>
-  <label style="flex:1;padding:12px;background:#DBEAFE;color:#2563EB;border-radius:12px;text-align:center;font-weight:700;font-size:14px;cursor:pointer;">
-    <i class="ti ti-photo" style="font-size:16px;vertical-align:-2px;margin-right:4px;"></i>Choose photo
-    <input type="file" id="photo-input-gallery" accept="image/*" style="display:none;" onchange="previewAndAnalyzeGallery()">
-  </label>
-</div>
-<div id="photo-preview-wrap" style="display:none;margin-bottom:8px;border-radius:12px;overflow:hidden;">
-  <img id="photo-preview" style="width:100%;max-height:200px;object-fit:cover;display:block;">
-</div>
-        <button class="btn-main" id="analyze-btn" style="display:none;margin-top:4px;" onclick="analyzePhoto()">Analyze with AI</button>
-        <div id="ai-result" class="result-box result-box-purple"></div>
-        <div id="ai-add-btns" style="display:none;margin-top:10px;display:none;">
-          <button class="btn-main" onclick="addAiFood()">Add to my log ✓</button>
+          <label style="flex:1;padding:12px;background:#EDE9FE;color:#7C3AED;border-radius:12px;text-align:center;font-weight:700;font-size:14px;cursor:pointer;">
+            <i class="ti ti-camera" style="font-size:16px;vertical-align:-2px;margin-right:4px;"></i>Take photo
+            <input type="file" id="photo-input" accept="image/*" capture="environment" style="display:none;" onchange="startPhotoChat(this)">
+          </label>
+          <label style="flex:1;padding:12px;background:#DBEAFE;color:#2563EB;border-radius:12px;text-align:center;font-weight:700;font-size:14px;cursor:pointer;">
+            <i class="ti ti-photo" style="font-size:16px;vertical-align:-2px;margin-right:4px;"></i>Choose photo
+            <input type="file" id="photo-input-gallery" accept="image/*" style="display:none;" onchange="startPhotoChat(this)">
+          </label>
         </div>
+        <div id="photo-preview-wrap" style="display:none;margin-bottom:8px;border-radius:12px;overflow:hidden;">
+          <img id="photo-preview" style="width:100%;max-height:180px;object-fit:cover;display:block;">
+        </div>
+        <div class="chat-wrap" id="photo-chat-wrap"></div>
+        <div class="chat-input-row" id="photo-chat-input-row" style="display:none;">
+          <input type="text" id="photo-chat-input" placeholder="Answer here..." onkeydown="if(event.key==='Enter')sendPhotoChat()">
+          <button class="chat-send-btn" onclick="sendPhotoChat()"><i class="ti ti-send" style="font-size:18px"></i></button>
+        </div>
+        <div id="photo-food-breakdown" style="display:none;margin-top:12px;"></div>
+        <button class="chat-add-btn" id="photo-add-btn" onclick="addPhotoFoods()" style="display:none;">Add to my log ✓</button>
+        <button class="btn-outline" id="photo-reset-btn" onclick="resetPhotoChat()" style="display:none;margin-top:8px;">Analyze another photo</button>
       </div>
 
       <div class="log-method">
@@ -358,7 +361,7 @@
       <div class="log-method">
         <div class="method-header">
           <div class="method-icon" style="background:var(--green-light);color:var(--green)"><i class="ti ti-barcode"></i></div>
-          <div><div class="method-title">Barcode Scanner <span class="badge-pill badge-free">FREE</span></div><div class="method-sub">Point camera at any barcode</div></div>
+          <div><div class="method-title">Barcode Scanner <span class="badge-pill badge-free">FREE</span></div><div class="method-sub">Scan any packaged food barcode</div></div>
         </div>
         <div id="scanner-wrap">
           <video id="scanner-video" playsinline autoplay muted></video>
@@ -374,10 +377,19 @@
           </div>
         </div>
         <div id="scanner-status"></div>
-        <button class="btn-main" id="scan-btn" onclick="startScanner()"><i class="ti ti-scan" style="margin-right:6px;"></i>Open Camera Scanner</button>
+        <button class="btn-main" id="scan-btn" onclick="startScanner()"><i class="ti ti-scan" style="margin-right:6px;"></i>Scan Barcode with Camera</button>
         <button class="btn-outline" id="stop-scan-btn" style="display:none;" onclick="stopScanner()">Stop Scanner</button>
-        <div id="bc-result" class="result-box result-box-green"></div>
-        <div id="bc-add-btns" style="display:none;">
+        <div style="display:flex;align-items:center;gap:10px;margin:10px 0;">
+          <div style="flex:1;height:1px;background:#E5E7EB;"></div>
+          <div style="font-size:12px;color:var(--muted);font-weight:600;">OR ENTER MANUALLY</div>
+          <div style="flex:1;height:1px;background:#E5E7EB;"></div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <input class="inp" id="barcode-manual-input" placeholder="Type barcode number..." style="flex:1;margin-bottom:0;" type="number">
+          <button onclick="lookupBarcode(document.getElementById('barcode-manual-input').value)" style="padding:12px 16px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-weight:700;cursor:pointer;white-space:nowrap;">Look up</button>
+        </div>
+        <div id="bc-result" class="result-box result-box-green" style="margin-top:10px;"></div>
+        <div id="bc-add-btns" style="display:none;margin-top:10px;">
           <button class="btn-main" onclick="addBarcodeFood()">Add to my log ✓</button>
           <button class="btn-outline" onclick="restartScanner()">Scan another</button>
         </div>
@@ -736,34 +748,45 @@ async function analyzePhoto() {
 function addAiFood() { if (!pendingAiFood) return; addFoodToLog(pendingAiFood.name, pendingAiFood.protein); document.getElementById('ai-result').textContent = '✅ Added to your log!'; document.getElementById('ai-add-btns').style.display = 'none'; pendingAiFood = null; }
 
 // ─── BARCODE ──────────────────────────────────────────────────────────────
-function startScanner() {
+let zxingReader = null;
+
+async function startScanner() {
   if (scannerRunning) return;
   const wrap = document.getElementById('scanner-wrap');
   const status = document.getElementById('scanner-status');
-  wrap.style.display = 'block'; status.style.display = 'block'; status.textContent = 'Scanning... point at barcode';
+  const video = document.getElementById('scanner-video');
+  wrap.style.display = 'block';
+  status.style.display = 'block';
+  status.textContent = 'Starting camera...';
   document.getElementById('scan-btn').style.display = 'none';
   document.getElementById('stop-scan-btn').style.display = 'block';
   document.getElementById('bc-result').style.display = 'none';
   document.getElementById('bc-add-btns').style.display = 'none';
-  if (typeof Quagga === 'undefined') { status.textContent = 'Scanner unavailable. Try manual entry.'; return; }
-  Quagga.init({ inputStream: { name: 'Live', type: 'LiveStream', target: document.getElementById('scanner-video'), constraints: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 320 } } }, decoder: { readers: ['ean_reader', 'ean_8_reader', 'upc_reader', 'upc_e_reader', 'code_128_reader'] }, locate: true }, err => {
-    if (err) { status.textContent = 'Camera unavailable.'; stopScanner(); return; }
-    Quagga.start(); scannerRunning = true;
-  });
-  let lastCode = '', lastTime = 0;
-  Quagga.onDetected(result => {
-    const code = result.codeResult.code;
-    const now = Date.now();
-    if (code === lastCode && now - lastTime < 3000) return;
-    lastCode = code; lastTime = now;
-    document.getElementById('scanner-status').textContent = 'Found: ' + code + ' — looking up...';
-    lookupBarcode(code);
-  });
+
+  try {
+    if (typeof ZXing === 'undefined') throw new Error('Scanner library not loaded');
+    zxingReader = new ZXing.BrowserMultiFormatReader();
+    const devices = await ZXing.BrowserCodeReader.listVideoInputDevices();
+    const backCamera = devices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('rear') || d.label.toLowerCase().includes('environment')) || devices[devices.length - 1];
+    const deviceId = backCamera ? backCamera.deviceId : undefined;
+
+    await zxingReader.decodeFromVideoDevice(deviceId, video, (result, err) => {
+      if (result) {
+        const code = result.getText();
+        status.textContent = 'Found: ' + code + ' — looking up...';
+        lookupBarcode(code);
+      }
+    });
+    scannerRunning = true;
+    status.textContent = 'Point camera at barcode';
+  } catch(e) {
+    status.textContent = 'Camera unavailable. Use manual entry below.';
+    stopScanner();
+  }
 }
 
 function stopScanner() {
-  if (!scannerRunning) return;
-  try { Quagga.stop(); } catch (e) { }
+  if (zxingReader) { try { zxingReader.reset(); } catch(e) {} zxingReader = null; }
   scannerRunning = false;
   document.getElementById('scanner-wrap').style.display = 'none';
   document.getElementById('scanner-status').style.display = 'none';
@@ -771,7 +794,13 @@ function stopScanner() {
   document.getElementById('stop-scan-btn').style.display = 'none';
 }
 
-function restartScanner() { document.getElementById('bc-result').style.display = 'none'; document.getElementById('bc-add-btns').style.display = 'none'; pendingBarcodeFood = null; stopScanner(); setTimeout(startScanner, 300); }
+function restartScanner() {
+  document.getElementById('bc-result').style.display = 'none';
+  document.getElementById('bc-add-btns').style.display = 'none';
+  pendingBarcodeFood = null;
+  stopScanner();
+  setTimeout(startScanner, 300);
+}
 
 async function lookupBarcode(code) {
   stopScanner();
@@ -900,28 +929,6 @@ async function removeUser(id, name) {
 function doLogout() { currentUser = null; currentProfile = null; pendingAiFood = null; pendingBarcodeFood = null; clearSession(); stopScanner(); showScreen('screen-splash'); }
 
 
-
-function previewAndAnalyze() {
-  const input = document.getElementById('photo-input');
-  if (!input.files || !input.files[0]) return;
-  showPreview(input.files[0]);
-  document.getElementById('analyze-btn').style.display = 'block';
-}
-function previewAndAnalyzeGallery() {
-  const input = document.getElementById('photo-input-gallery');
-  if (!input.files || !input.files[0]) return;
-  showPreview(input.files[0]);
-  document.getElementById('analyze-btn').style.display = 'block';
-}
-function showPreview(file) {
-  const reader = new FileReader();
-  reader.onload = e => {
-    document.getElementById('photo-preview').src = e.target.result;
-    document.getElementById('photo-preview-wrap').style.display = 'block';
-  };
-  reader.readAsDataURL(file);
-}
-
 // ─── AI CHAT ──────────────────────────────────────────────────────────────
 let chatHistory = [];
 let pendingChatFood = null;
@@ -996,6 +1003,184 @@ function addChatFood() {
   document.getElementById('chat-input-row').style.display = 'flex';
   addChatBubble('Added! What else did you eat?', 'ai');
   document.getElementById('chat-wrap').classList.add('open');
+}
+
+
+// ─── FOOD LOG EDIT/DELETE ─────────────────────────────────────────────────
+async function editFoodItem(index) {
+  const users = getUsers ? getUsers() : null;
+  const today = getTodayKey();
+  const { data: log } = await sb.from('daily_logs').select('*').eq('user_id', currentUser).eq('log_date', today).maybeSingle();
+  if (!log) return;
+  const foods = log.foods || [];
+  const food = foods[index];
+  if (!food) return;
+  const newName = prompt('Edit food name:', food.name);
+  if (newName === null) return;
+  const newProtein = parseFloat(prompt('Edit protein (grams):', food.protein));
+  if (isNaN(newProtein)) return;
+  const oldProtein = food.protein;
+  foods[index] = { name: newName || food.name, protein: newProtein };
+  const proteinDiff = newProtein - oldProtein;
+  await sb.from('daily_logs').update({ foods, protein: log.protein + proteinDiff }).eq('id', log.id);
+  renderHome();
+}
+
+async function deleteFoodItem(index) {
+  if (!confirm('Remove this food from your log?')) return;
+  const today = getTodayKey();
+  const { data: log } = await sb.from('daily_logs').select('*').eq('user_id', currentUser).eq('log_date', today).maybeSingle();
+  if (!log) return;
+  const foods = log.foods || [];
+  const removed = foods.splice(index, 1)[0];
+  await sb.from('daily_logs').update({ foods, protein: Math.max(0, log.protein - removed.protein) }).eq('id', log.id);
+  renderHome();
+}
+
+// ─── AI PHOTO CHAT ────────────────────────────────────────────────────────
+let photoChatHistory = [];
+let photoChatImageData = null;
+let photoChatMediaType = null;
+let pendingPhotoFoods = [];
+
+function addPhotoChatBubble(text, role) {
+  const wrap = document.getElementById('photo-chat-wrap');
+  wrap.classList.add('open');
+  const bubble = document.createElement('div');
+  bubble.className = 'chat-bubble ' + role;
+  bubble.textContent = text;
+  wrap.appendChild(bubble);
+  wrap.scrollTop = wrap.scrollHeight;
+  return bubble;
+}
+
+async function startPhotoChat(input) {
+  if (!input.files || !input.files[0]) return;
+  const file = input.files[0];
+  // Show preview
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('photo-preview').src = e.target.result;
+    document.getElementById('photo-preview-wrap').style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+  // Reset chat
+  resetPhotoChat(false);
+  photoChatHistory = [];
+  photoChatImageData = await toBase64(file);
+  photoChatMediaType = file.type || 'image/jpeg';
+  const typing = addPhotoChatBubble('Analyzing your photo...', 'typing');
+  try {
+    const resp = await fetch('/api/photo-chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageData: photoChatImageData, mediaType: photoChatMediaType, messages: [] })
+    });
+    const data = await resp.json();
+    typing.remove();
+    if (data.error) { addPhotoChatBubble('Sorry, could not analyze photo. Try again!', 'ai'); return; }
+    handlePhotoChatResponse(data.text);
+  } catch(e) {
+    typing.remove();
+    addPhotoChatBubble('Connection error. Try again!', 'ai');
+  }
+}
+
+async function sendPhotoChat() {
+  const input = document.getElementById('photo-chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  addPhotoChatBubble(text, 'user');
+  photoChatHistory.push({ role: 'user', content: text });
+  const typing = addPhotoChatBubble('Thinking...', 'typing');
+  try {
+    const resp = await fetch('/api/photo-chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: photoChatHistory })
+    });
+    const data = await resp.json();
+    typing.remove();
+    if (data.error) { addPhotoChatBubble('Sorry, something went wrong.', 'ai'); return; }
+    handlePhotoChatResponse(data.text);
+  } catch(e) {
+    typing.remove();
+    addPhotoChatBubble('Connection error. Try again!', 'ai');
+  }
+}
+
+function handlePhotoChatResponse(text) {
+  photoChatHistory.push({ role: 'assistant', content: text });
+  // Check for food breakdown JSON
+  const jsonMatch = text.match(/FOOD_BREAKDOWN_JSON:\s*([\s\S]*?)(?:\n\n|$)/);
+  if (jsonMatch) {
+    try {
+      const foods = JSON.parse(jsonMatch[1].trim());
+      pendingPhotoFoods = foods;
+      const displayText = text.replace(/FOOD_BREAKDOWN_JSON:[\s\S]*/, '').trim();
+      addPhotoChatBubble(displayText || 'Here's what I found! You can adjust the protein amounts below:', 'ai');
+      showFoodBreakdown(foods);
+      document.getElementById('photo-chat-input-row').style.display = 'none';
+      document.getElementById('photo-add-btn').style.display = 'block';
+      document.getElementById('photo-reset-btn').style.display = 'block';
+    } catch(e) {
+      addPhotoChatBubble(text, 'ai');
+      document.getElementById('photo-chat-input-row').style.display = 'flex';
+    }
+  } else {
+    addPhotoChatBubble(text, 'ai');
+    document.getElementById('photo-chat-input-row').style.display = 'flex';
+    document.getElementById('photo-chat-input').focus();
+  }
+}
+
+function showFoodBreakdown(foods) {
+  const wrap = document.getElementById('photo-food-breakdown');
+  wrap.style.display = 'block';
+  wrap.innerHTML = `
+    <div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">Adjust if needed:</div>
+    ${foods.map((f,i) => `
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;background:#F9FAFB;border-radius:10px;padding:10px;">
+        <input value="${f.name}" onchange="pendingPhotoFoods[${i}].name=this.value"
+          style="flex:1;border:1.5px solid #E5E7EB;border-radius:8px;padding:8px;font-size:14px;background:#fff;">
+        <input type="number" value="${f.protein}" onchange="pendingPhotoFoods[${i}].protein=parseFloat(this.value)||0"
+          style="width:60px;border:1.5px solid #7C3AED;border-radius:8px;padding:8px;font-size:14px;font-weight:700;color:#7C3AED;text-align:center;background:#fff;">
+        <span style="font-size:12px;color:var(--muted);">g</span>
+        <button onclick="pendingPhotoFoods.splice(${i},1);showFoodBreakdown(pendingPhotoFoods)"
+          style="background:#FEE2E2;border:none;border-radius:8px;padding:6px 8px;cursor:pointer;color:#991B1B;">🗑️</button>
+      </div>`).join('')}
+    <div style="text-align:right;font-size:14px;font-weight:800;color:#7C3AED;margin-top:4px;">
+      Total: ${foods.reduce((a,f)=>a+(parseFloat(f.protein)||0),0)}g protein
+    </div>`;
+}
+
+async function addPhotoFoods() {
+  for (const food of pendingPhotoFoods) {
+    if (food.protein > 0 || food.name) await addFoodToLog(food.name, food.protein);
+  }
+  resetPhotoChat(true);
+}
+
+function resetPhotoChat(showMsg = false) {
+  photoChatHistory = [];
+  photoChatImageData = null;
+  pendingPhotoFoods = [];
+  const wrap = document.getElementById('photo-chat-wrap');
+  wrap.innerHTML = '';
+  wrap.classList.remove('open');
+  document.getElementById('photo-food-breakdown').style.display = 'none';
+  document.getElementById('photo-food-breakdown').innerHTML = '';
+  document.getElementById('photo-chat-input-row').style.display = 'none';
+  document.getElementById('photo-add-btn').style.display = 'none';
+  document.getElementById('photo-reset-btn').style.display = 'none';
+  document.getElementById('photo-preview-wrap').style.display = 'none';
+  document.getElementById('photo-input').value = '';
+  if (document.getElementById('photo-input-gallery')) document.getElementById('photo-input-gallery').value = '';
+  if (showMsg) {
+    wrap.classList.add('open');
+    addPhotoChatBubble('Added to your log! Take another photo?', 'ai');
+  }
 }
 
 function toBase64(file) { return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result.split(',')[1]); r.onerror = () => rej(new Error('Read failed')); r.readAsDataURL(file); }); }
