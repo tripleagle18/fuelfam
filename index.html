@@ -1119,7 +1119,7 @@ function handlePhotoChatResponse(text) {
       const foods = JSON.parse(jsonMatch[1].trim());
       pendingPhotoFoods = foods;
       const displayText = text.replace(/FOOD_BREAKDOWN_JSON:[\s\S]*/, '').trim();
-      addPhotoChatBubble(displayText || 'Here's what I found! You can adjust the protein amounts below:', 'ai');
+      addPhotoChatBubble(displayText || 'Here is what I found! Adjust protein amounts below:', 'ai');
       showFoodBreakdown(foods);
       document.getElementById('photo-chat-input-row').style.display = 'none';
       document.getElementById('photo-add-btn').style.display = 'block';
