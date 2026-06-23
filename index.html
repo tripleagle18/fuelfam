@@ -278,6 +278,11 @@
         <div><div class="top-greeting" id="main-greeting">Hey there! 👋</div><div class="top-sub" id="main-week">Loading...</div></div>
         <div class="avatar-circle" id="main-avatar">?</div>
       </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;">
+        <button onclick="changeViewDay(-1)" style="background:rgba(255,255,255,0.2);border:none;color:#fff;border-radius:10px;padding:6px 12px;font-size:18px;cursor:pointer;">‹</button>
+        <div id="viewing-date-label" style="font-size:14px;font-weight:700;color:#fff;opacity:0.95;">Today</div>
+        <button id="next-day-btn" onclick="changeViewDay(1)" style="background:rgba(255,255,255,0.2);border:none;color:#fff;border-radius:10px;padding:6px 12px;font-size:18px;cursor:pointer;opacity:0.3;" disabled>›</button>
+      </div>
     </div>
     <div class="stat-pills">
       <div class="stat-pill"><div class="stat-pill-val" id="home-pts" style="color:var(--purple)">0</div><div class="stat-pill-lbl">Week pts</div></div>
@@ -500,6 +505,7 @@ let currentProfile = null;
 let pendingAiFood = null;
 let pendingBarcodeFood = null;
 let scannerRunning = false;
+let viewingDate = null; // null = today
 
 function saveSession(profile) {
   try { localStorage.setItem('ff_session', JSON.stringify(profile)); } catch(e) {}
@@ -642,11 +648,48 @@ async function tryAutoLogin() {
 tryAutoLogin();
 
 // ─── HOME ──────────────────────────────────────────────────────────────────
+
+function formatDateLabel(dateStr) {
+  const d = new Date(dateStr + 'T12:00:00');
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function changeViewDay(delta) {
+  const today = getTodayKey();
+  const base = viewingDate || today;
+  const d = new Date(base + 'T12:00:00');
+  d.setDate(d.getDate() + delta);
+  const newDate = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  // Don't go past today
+  if (newDate > today) return;
+  viewingDate = newDate === today ? null : newDate;
+  renderHome();
+}
+
 async function renderHome() {
   if (!currentUser) return;
   const goals = calcGoals(currentProfile);
   const today = getTodayKey();
-  const { data: log } = await sb.from('daily_logs').select('*').eq('user_id', currentUser).eq('log_date', today).maybeSingle();
+  const displayDate = viewingDate || today;
+  const isToday = displayDate === today;
+
+  // Update date label
+  const dateLabel = document.getElementById('viewing-date-label');
+  const nextBtn = document.getElementById('next-day-btn');
+  if (dateLabel) {
+    if (isToday) {
+      dateLabel.textContent = 'Today — ' + formatDateLabel(today);
+    } else {
+      const d = new Date(displayDate + 'T12:00:00');
+      dateLabel.textContent = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    }
+  }
+  if (nextBtn) {
+    nextBtn.disabled = isToday;
+    nextBtn.style.opacity = isToday ? '0.3' : '1';
+  }
+
+  const { data: log } = await sb.from('daily_logs').select('*').eq('user_id', currentUser).eq('log_date', displayDate).maybeSingle();
   const protein = log ? log.protein : 0;
   const water = log ? log.water : 0;
   const foods = log ? (log.foods || []) : [];
@@ -674,7 +717,13 @@ async function renderHome() {
 
   const streakDays = await calcStreak();
   document.getElementById('home-streak').textContent = streakDays + '🔥';
-  checkWeightBanner();
+  if (isToday) checkWeightBanner();
+
+  // Show/hide log buttons based on whether viewing today
+  const logBtn = document.querySelector('.action-row');
+  if (logBtn) logBtn.style.display = isToday ? 'flex' : 'none';
+  const waterModal = document.getElementById('water-modal');
+  if (waterModal && !isToday) waterModal.style.display = 'none';
 
   const fl = document.getElementById('food-log-list');
   if (!foods.length) {
