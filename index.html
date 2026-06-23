@@ -361,37 +361,35 @@
       <div class="log-method">
         <div class="method-header">
           <div class="method-icon" style="background:var(--green-light);color:var(--green)"><i class="ti ti-barcode"></i></div>
-          <div><div class="method-title">Barcode Scanner <span class="badge-pill badge-free">FREE</span></div><div class="method-sub">Scan any packaged food barcode</div></div>
+          <div><div class="method-title">Barcode Lookup <span class="badge-pill badge-free">FREE</span></div><div class="method-sub">Photo the barcode or type it in</div></div>
         </div>
-        <div id="scanner-wrap">
-          <video id="scanner-video" playsinline autoplay muted></video>
-          <div id="scanner-overlay">
-            <div id="scanner-instruction">Point at barcode</div>
-            <div id="scanner-box">
-              <div id="scanner-corner" class="tl"></div>
-              <div id="scanner-corner" class="tr"></div>
-              <div id="scanner-corner" class="bl"></div>
-              <div id="scanner-corner" class="br"></div>
-              <div id="scanner-line"></div>
-            </div>
-          </div>
+        <div style="display:flex;gap:8px;margin-bottom:10px;">
+          <label style="flex:1;padding:12px;background:#D1FAE5;color:#059669;border-radius:12px;text-align:center;font-weight:700;font-size:14px;cursor:pointer;">
+            <i class="ti ti-camera" style="font-size:16px;vertical-align:-2px;margin-right:4px;"></i>Take photo
+            <input type="file" id="barcode-photo-input" accept="image/*" capture="environment" style="display:none;" onchange="scanBarcodePhoto(this)">
+          </label>
+          <label style="flex:1;padding:12px;background:#ECFDF5;color:#059669;border-radius:12px;text-align:center;font-weight:700;font-size:14px;cursor:pointer;border:2px solid #D1FAE5;">
+            <i class="ti ti-photo" style="font-size:16px;vertical-align:-2px;margin-right:4px;"></i>Choose photo
+            <input type="file" id="barcode-gallery-input" accept="image/*" style="display:none;" onchange="scanBarcodePhoto(this)">
+          </label>
         </div>
-        <div id="scanner-status"></div>
-        <button class="btn-main" id="scan-btn" onclick="startScanner()"><i class="ti ti-scan" style="margin-right:6px;"></i>Scan Barcode with Camera</button>
-        <button class="btn-outline" id="stop-scan-btn" style="display:none;" onclick="stopScanner()">Stop Scanner</button>
+        <div id="barcode-preview-wrap" style="display:none;margin-bottom:10px;border-radius:12px;overflow:hidden;">
+          <img id="barcode-preview" style="width:100%;max-height:160px;object-fit:cover;display:block;">
+        </div>
+        <div id="bc-status" style="display:none;font-size:13px;font-weight:600;color:var(--green);text-align:center;padding:8px;background:var(--green-light);border-radius:10px;margin-bottom:8px;"></div>
         <div style="display:flex;align-items:center;gap:10px;margin:10px 0;">
           <div style="flex:1;height:1px;background:#E5E7EB;"></div>
-          <div style="font-size:12px;color:var(--muted);font-weight:600;">OR ENTER MANUALLY</div>
+          <div style="font-size:12px;color:var(--muted);font-weight:600;">OR TYPE BARCODE NUMBER</div>
           <div style="flex:1;height:1px;background:#E5E7EB;"></div>
         </div>
         <div style="display:flex;gap:8px;">
-          <input class="inp" id="barcode-manual-input" placeholder="Type barcode number..." style="flex:1;margin-bottom:0;" type="number">
+          <input class="inp" id="barcode-manual-input" placeholder="e.g. 012345678901" style="flex:1;margin-bottom:0;" type="number">
           <button onclick="lookupBarcode(document.getElementById('barcode-manual-input').value)" style="padding:12px 16px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-weight:700;cursor:pointer;white-space:nowrap;">Look up</button>
         </div>
         <div id="bc-result" class="result-box result-box-green" style="margin-top:10px;"></div>
         <div id="bc-add-btns" style="display:none;margin-top:10px;">
           <button class="btn-main" onclick="addBarcodeFood()">Add to my log ✓</button>
-          <button class="btn-outline" onclick="restartScanner()">Scan another</button>
+          <button class="btn-outline" onclick="resetBarcodeScanner()">Scan another</button>
         </div>
       </div>
 
@@ -748,86 +746,71 @@ async function analyzePhoto() {
 function addAiFood() { if (!pendingAiFood) return; addFoodToLog(pendingAiFood.name, pendingAiFood.protein); document.getElementById('ai-result').textContent = '✅ Added to your log!'; document.getElementById('ai-add-btns').style.display = 'none'; pendingAiFood = null; }
 
 // ─── BARCODE ──────────────────────────────────────────────────────────────
-let scanStream = null;
-let scanInterval = null;
-let scanCanvas = document.createElement('canvas');
-let scanCtx = scanCanvas.getContext('2d');
-
-async function startScanner() {
-  if (scannerRunning) return;
-  const wrap = document.getElementById('scanner-wrap');
-  const status = document.getElementById('scanner-status');
-  const video = document.getElementById('scanner-video');
-
-  // Check if BarcodeDetector is supported
-  if (!('BarcodeDetector' in window)) {
-    status.style.display = 'block';
-    status.textContent = 'Camera scanner not supported on this browser. Please use manual entry below.';
-    return;
-  }
-
-  wrap.style.display = 'block';
+async function scanBarcodePhoto(input) {
+  if (!input.files || !input.files[0]) return;
+  const file = input.files[0];
+  // Show preview
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('barcode-preview').src = e.target.result;
+    document.getElementById('barcode-preview-wrap').style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+  // Show loading status
+  const status = document.getElementById('bc-status');
   status.style.display = 'block';
-  status.textContent = 'Starting camera...';
-  document.getElementById('scan-btn').style.display = 'none';
-  document.getElementById('stop-scan-btn').style.display = 'block';
+  status.textContent = 'Reading barcode from photo...';
   document.getElementById('bc-result').style.display = 'none';
   document.getElementById('bc-add-btns').style.display = 'none';
-
+  // Send to AI to read the barcode
+  const b64 = await toBase64(file);
   try {
-    scanStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+    const resp = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageData: b64, mediaType: file.type || 'image/jpeg', mode: 'barcode' })
     });
-    video.srcObject = scanStream;
-    await video.play();
-    scannerRunning = true;
-    status.textContent = 'Point at barcode';
-
-    const detector = new BarcodeDetector({ formats: ['ean_13','ean_8','upc_a','upc_e','code_128','code_39','qr_code'] });
-    let lastCode = '', lastTime = 0;
-
-    scanInterval = setInterval(async () => {
-      if (!video.videoWidth) return;
-      scanCanvas.width = video.videoWidth;
-      scanCanvas.height = video.videoHeight;
-      scanCtx.drawImage(video, 0, 0);
-      try {
-        const barcodes = await detector.detect(scanCanvas);
-        if (barcodes.length > 0) {
-          const code = barcodes[0].rawValue;
-          const now = Date.now();
-          if (code === lastCode && now - lastTime < 4000) return;
-          lastCode = code; lastTime = now;
-          status.textContent = 'Found: ' + code + ' — looking up...';
-          stopScanner();
-          lookupBarcode(code);
-        }
-      } catch(e) {}
-    }, 300);
-
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error);
+    const text = data.text;
+    const barcodeMatch = text.match(/BARCODE:\s*(\d+)/);
+    const productMatch = text.match(/PRODUCT:\s*(.+)/);
+    const proteinMatch = text.match(/PROTEIN_GRAMS:\s*(\d+)/);
+    const servingMatch = text.match(/SERVING_SIZE:\s*(.+)/);
+    if (barcodeMatch) {
+      status.textContent = 'Barcode found: ' + barcodeMatch[1] + ' — looking up...';
+      await lookupBarcode(barcodeMatch[1]);
+    } else if (proteinMatch && productMatch) {
+      // AI read the label directly
+      const protein = parseInt(proteinMatch[1]);
+      const name = productMatch[1].trim();
+      const serving = servingMatch ? servingMatch[1].trim() : 'per serving';
+      pendingBarcodeFood = { name, protein };
+      status.style.display = 'none';
+      const resultDiv = document.getElementById('bc-result');
+      resultDiv.style.display = 'block';
+      resultDiv.innerHTML = '<strong>📦 ' + name + '</strong><br>Serving: ' + serving + '<br><strong>Protein: ' + protein + 'g per serving</strong>';
+      document.getElementById('bc-add-btns').style.display = 'block';
+    } else {
+      status.textContent = 'Could not read barcode. Try manual entry below.';
+    }
   } catch(e) {
-    status.textContent = 'Camera access denied. Use manual entry below.';
-    stopScanner();
+    status.textContent = 'Error reading photo. Try again or use manual entry.';
   }
 }
 
-function stopScanner() {
-  if (scanInterval) { clearInterval(scanInterval); scanInterval = null; }
-  if (scanStream) { scanStream.getTracks().forEach(t => t.stop()); scanStream = null; }
-  scannerRunning = false;
-  document.getElementById('scanner-wrap').style.display = 'none';
-  document.getElementById('scanner-status').style.display = 'none';
-  document.getElementById('scan-btn').style.display = 'block';
-  document.getElementById('stop-scan-btn').style.display = 'none';
-}
-
-function restartScanner() {
+function resetBarcodeScanner() {
   document.getElementById('bc-result').style.display = 'none';
   document.getElementById('bc-add-btns').style.display = 'none';
+  document.getElementById('bc-status').style.display = 'none';
+  document.getElementById('barcode-preview-wrap').style.display = 'none';
+  document.getElementById('barcode-photo-input').value = '';
+  document.getElementById('barcode-gallery-input').value = '';
+  document.getElementById('barcode-manual-input').value = '';
   pendingBarcodeFood = null;
-  stopScanner();
-  setTimeout(startScanner, 300);
 }
+
+function stopScanner() {} // kept for compatibility
 
 async function lookupBarcode(code) {
   stopScanner();
