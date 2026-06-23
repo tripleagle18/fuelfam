@@ -731,11 +731,16 @@ async function renderHome() {
   document.getElementById('home-streak').textContent = streakDays + '🔥';
   if (isToday) checkWeightBanner();
 
-  // Show/hide log buttons based on whether viewing today
+  // Always show log/edit buttons regardless of day
   const logBtn = document.querySelector('.action-row');
-  if (logBtn) logBtn.style.display = isToday ? 'flex' : 'none';
-  const waterModal = document.getElementById('water-modal');
-  if (waterModal && !isToday) waterModal.style.display = 'none';
+  if (logBtn) logBtn.style.display = 'flex';
+  // Update Log Food button label
+  const logFoodBtn = document.querySelector('.action-btn-purple');
+  if (logFoodBtn) {
+    logFoodBtn.innerHTML = isToday
+      ? '<i class="ti ti-plus"></i>Log Food'
+      : '<i class="ti ti-plus"></i>Add to ' + new Date(displayDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short' });
+  }
 
   const fl = document.getElementById('food-log-list');
   if (!foods.length) {
@@ -797,7 +802,8 @@ async function logWater() {
 // ─── LOG HELPERS ──────────────────────────────────────────────────────────
 async function upsertLog({ protein_add = 0, water_add = 0, food = null }) {
   const today = getTodayKey();
-  const { data: existing } = await sb.from('daily_logs').select('*').eq('user_id', currentUser).eq('log_date', today).maybeSingle();
+  const logDate = viewingDate || today;
+  const { data: existing } = await sb.from('daily_logs').select('*').eq('user_id', currentUser).eq('log_date', logDate).maybeSingle();
   if (existing) {
     const foods = existing.foods || [];
     if (food) foods.push(food);
@@ -808,7 +814,7 @@ async function upsertLog({ protein_add = 0, water_add = 0, food = null }) {
     }).eq('id', existing.id);
   } else {
     const foods = food ? [food] : [];
-    await sb.from('daily_logs').insert({ user_id: currentUser, log_date: today, protein: protein_add, water: water_add, foods });
+    await sb.from('daily_logs').insert({ user_id: currentUser, log_date: logDate, protein: protein_add, water: water_add, foods });
   }
 }
 
@@ -1296,8 +1302,8 @@ async function editFoodItem(index) {
 
 async function deleteFoodItem(index) {
   if (!confirm('Remove this food from your log?')) return;
-  const today = getTodayKey();
-  const { data: log } = await sb.from('daily_logs').select('*').eq('user_id', currentUser).eq('log_date', today).maybeSingle();
+  const logDate = viewingDate || getTodayKey();
+  const { data: log } = await sb.from('daily_logs').select('*').eq('user_id', currentUser).eq('log_date', logDate).maybeSingle();
   if (!log) return;
   const foods = log.foods || [];
   const removed = foods.splice(index, 1)[0];
