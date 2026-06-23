@@ -518,7 +518,10 @@ function getWeekKey() {
   const m = new Date(n); m.setDate(diff);
   return m.toISOString().slice(0, 10);
 }
-function getTodayKey() { return new Date().toISOString().slice(0, 10); }
+function getTodayKey() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
 
 function calcGoals(p) {
   const ageMult = p.age >= 40 ? 1.1 : 1.0;
@@ -643,7 +646,7 @@ async function renderHome() {
   if (!currentUser) return;
   const goals = calcGoals(currentProfile);
   const today = getTodayKey();
-  const { data: log } = await sb.from('daily_logs').select('*').eq('user_id', currentUser).eq('log_date', today).single();
+  const { data: log } = await sb.from('daily_logs').select('*').eq('user_id', currentUser).eq('log_date', today).maybeSingle();
   const protein = log ? log.protein : 0;
   const water = log ? log.water : 0;
   const foods = log ? (log.foods || []) : [];
@@ -733,7 +736,7 @@ async function logWater() {
 // ─── LOG HELPERS ──────────────────────────────────────────────────────────
 async function upsertLog({ protein_add = 0, water_add = 0, food = null }) {
   const today = getTodayKey();
-  const { data: existing } = await sb.from('daily_logs').select('*').eq('user_id', currentUser).eq('log_date', today).single();
+  const { data: existing } = await sb.from('daily_logs').select('*').eq('user_id', currentUser).eq('log_date', today).maybeSingle();
   if (existing) {
     const foods = existing.foods || [];
     if (food) foods.push(food);
