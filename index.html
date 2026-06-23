@@ -776,6 +776,7 @@ async function scanBarcodePhoto(input) {
 }
 
 function resetBarcodeScanner() {
+  currentServings = 1;
   document.getElementById('bc-result').style.display = 'none';
   document.getElementById('bc-add-btns').style.display = 'none';
   document.getElementById('bc-status').style.display = 'none';
@@ -811,12 +812,35 @@ async function lookupBarcode(code) {
 
 function showBarcodeResult(data, status) {
   if (!data.found) { status.textContent = data.error || 'Product not found. Try manual food entry.'; return; }
-  pendingBarcodeFood = { name: data.name, protein: data.protein };
-  status.style.display = 'none';
+  pendingBarcodeFood = { name: data.name, protein: data.protein, proteinPerServing: data.protein };
+  if (status) status.style.display = 'none';
   const resultDiv = document.getElementById('bc-result');
   resultDiv.style.display = 'block';
-  resultDiv.innerHTML = '<strong>📦 ' + data.name + '</strong><br>Serving: ' + data.serving + '<br><strong>Protein: ' + data.protein + 'g per serving</strong>';
+  resultDiv.innerHTML = `
+    <div style="margin-bottom:10px;">
+      <strong>📦 ${data.name}</strong><br>
+      <span style="font-size:13px;opacity:0.85;">Serving size: ${data.serving} &bull; ${data.protein}g protein per serving</span>
+    </div>
+    <div style="font-size:13px;font-weight:700;margin-bottom:6px;">How many servings did you eat?</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+      <button onclick="changeServings(-0.5)" style="width:36px;height:36px;border-radius:50%;background:rgba(5,150,105,0.15);border:none;font-size:20px;font-weight:700;cursor:pointer;color:#059669;">−</button>
+      <span id="serving-count" style="font-size:22px;font-weight:800;color:#059669;min-width:40px;text-align:center;">1</span>
+      <button onclick="changeServings(0.5)" style="width:36px;height:36px;border-radius:50%;background:rgba(5,150,105,0.15);border:none;font-size:20px;font-weight:700;cursor:pointer;color:#059669;">+</button>
+      <span style="font-size:14px;color:#059669;font-weight:700;">= <span id="serving-protein">${data.protein}</span>g protein</span>
+    </div>`;
   document.getElementById('bc-add-btns').style.display = 'block';
+}
+
+let currentServings = 1;
+function changeServings(delta) {
+  currentServings = Math.max(0.5, Math.round((currentServings + delta) * 2) / 2);
+  document.getElementById('serving-count').textContent = currentServings;
+  const total = Math.round(pendingBarcodeFood.proteinPerServing * currentServings);
+  document.getElementById('serving-protein').textContent = total;
+  pendingBarcodeFood.protein = total;
+  pendingBarcodeFood.name = currentServings !== 1 
+    ? pendingBarcodeFood.name.replace(/ \([\d.]+ servings?\)/, '') + ' (' + currentServings + ' serving' + (currentServings !== 1 ? 's' : '') + ')'
+    : pendingBarcodeFood.name.replace(/ \([\d.]+ servings?\)/, '');
 }
 
 function addBarcodeFood() { if (!pendingBarcodeFood) return; addFoodToLog(pendingBarcodeFood.name, pendingBarcodeFood.protein); document.getElementById('bc-result').textContent = '✅ Added to your log!'; document.getElementById('bc-add-btns').style.display = 'none'; pendingBarcodeFood = null; }
