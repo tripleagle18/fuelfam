@@ -273,6 +273,15 @@
 <div id="screen-main" class="screen">
 
   <div id="tab-home" class="tab-content active">
+    <div id="weight-checkin-banner" style="display:none;margin:12px 16px 0;background:linear-gradient(135deg,#7C3AED,#DB2777);border-radius:16px;padding:14px 16px;color:#fff;">
+      <div style="font-size:15px;font-weight:700;margin-bottom:4px;">⚖️ Weekly weigh-in time!</div>
+      <div style="font-size:13px;opacity:0.9;margin-bottom:10px;">Log your weight so we can keep your protein goal accurate.</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input type="number" id="checkin-weight" placeholder="Your weight (lbs)" style="flex:1;padding:10px 12px;border-radius:10px;border:none;font-size:15px;color:#1E1B4B;">
+        <button onclick="saveWeightCheckin()" style="padding:10px 16px;background:#fff;color:#7C3AED;border:none;border-radius:10px;font-weight:800;font-size:14px;cursor:pointer;">Save</button>
+        <button onclick="dismissWeightBanner()" style="padding:10px;background:rgba(255,255,255,0.2);color:#fff;border:none;border-radius:10px;font-size:13px;cursor:pointer;">Later</button>
+      </div>
+    </div>
     <div class="top-bar">
       <div class="top-bar-row">
         <div><div class="top-greeting" id="main-greeting">Hey there! 👋</div><div class="top-sub" id="main-week">Loading...</div></div>
@@ -430,6 +439,14 @@
       </div>
       <div class="card">
         <div id="profile-info-rows"></div>
+      </div>
+      <div class="card" style="margin-top:0;">
+        <div style="font-size:15px;font-weight:700;margin-bottom:12px;">⚖️ Weight history</div>
+        <div id="weight-graph-wrap">
+          <canvas id="weight-graph" style="width:100%;height:180px;"></canvas>
+        </div>
+        <div id="weight-empty" style="text-align:center;color:var(--muted);font-size:13px;padding:20px 0;display:none;">No weigh-ins logged yet. Check in weekly from your home screen!</div>
+        <div id="weight-list" style="margin-top:10px;"></div>
       </div>
       <button class="btn-logout" onclick="doLogout()">Log out</button>
       <div id="admin-panel" style="display:none;margin-top:20px;">
@@ -648,6 +665,7 @@ async function renderHome() {
 
   const streakDays = await calcStreak();
   document.getElementById('home-streak').textContent = streakDays + '🔥';
+  checkWeightBanner();
 
   const fl = document.getElementById('food-log-list');
   if (!foods.length) {
@@ -936,6 +954,7 @@ async function renderProfile() {
     <div class="info-row"><span class="info-key">Activity</span><span class="info-val">${actLabels[p.activity] || p.activity}</span></div>
     <div class="info-row"><span class="info-key">Daily protein goal</span><span class="info-val" style="color:var(--purple)">${goals.protein}g</span></div>
     <div class="info-row"><span class="info-key">Daily water goal</span><span class="info-val" style="color:var(--blue)">${goals.water} oz</span></div>`;
+  renderWeightGraph();
   const adminPanel = document.getElementById('admin-panel');
   if (p.is_admin) {
     adminPanel.style.display = 'block';
@@ -953,6 +972,156 @@ async function removeUser(id, name) {
   await sb.from('daily_logs').delete().eq('user_id', id);
   await sb.from('profiles').delete().eq('id', id);
   renderProfile(); renderLeaderboard();
+}
+
+
+// ─── WEIGHT TRACKING ──────────────────────────────────────────────────────
+async function checkWeightBanner() {
+  const banner = document.getElementById('weight-checkin-banner');
+  if (!banner) return;
+  // Check if user has logged weight this week
+  const wk = getWeekKey();
+  const { data } = await sb.from('weight_logs').select('id').eq('user_id', currentUser).gte('log_date', wk).maybeSingle();
+  if (!data) {
+    // No weigh-in this week — show banner
+    banner.style.display = 'block';
+  } else {
+    banner.style.display = 'none';
+  }
+}
+
+function dismissWeightBanner() {
+  document.getElementById('weight-checkin-banner').style.display = 'none';
+}
+
+async function saveWeightCheckin() {
+  const input = document.getElementById('checkin-weight');
+  const weight = parseFloat(input.value);
+  if (!weight || weight < 50 || weight > 700) {
+    input.style.border = '2px solid #EF4444';
+    return;
+  }
+  const today = getTodayKey();
+  // Save to weight_logs table
+  await sb.from('weight_logs').upsert({
+    user_id: currentUser,
+    log_date: today,
+    weight: weight
+  }, { onConflict: 'user_id,log_date' });
+  // Update profile weight so protein goal recalculates
+  await sb.from('profiles').update({ weight }).eq('id', currentUser);
+  currentProfile.weight = weight;
+  input.value = '';
+  dismissWeightBanner();
+  renderHome();
+  // Show confirmation
+  const banner = document.getElementById('weight-checkin-banner');
+  banner.style.display = 'block';
+  banner.innerHTML = '<div style="font-size:15px;font-weight:700;">✅ Weight saved! Your protein goal has been updated.</div>';
+  setTimeout(() => { banner.style.display = 'none'; }, 3000);
+}
+
+async function renderWeightGraph() {
+  const { data: logs } = await sb.from('weight_logs')
+    .select('log_date, weight')
+    .eq('user_id', currentUser)
+    .order('log_date', { ascending: true })
+    .limit(12);
+
+  const graphWrap = document.getElementById('weight-graph-wrap');
+  const emptyMsg = document.getElementById('weight-empty');
+  const weightList = document.getElementById('weight-list');
+
+  if (!logs || logs.length === 0) {
+    graphWrap.style.display = 'none';
+    emptyMsg.style.display = 'block';
+    weightList.innerHTML = '';
+    return;
+  }
+
+  emptyMsg.style.display = 'none';
+  graphWrap.style.display = 'block';
+
+  // Draw canvas graph
+  const canvas = document.getElementById('weight-graph');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = 180 * dpr;
+  canvas.style.width = rect.width + 'px';
+  canvas.style.height = '180px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  const W = rect.width, H = 180;
+  const pad = { top: 20, right: 20, bottom: 30, left: 44 };
+  const gW = W - pad.left - pad.right;
+  const gH = H - pad.top - pad.bottom;
+
+  const weights = logs.map(l => l.weight);
+  const minW = Math.min(...weights) - 5;
+  const maxW = Math.max(...weights) + 5;
+  const range = maxW - minW || 10;
+
+  const toX = i => pad.left + (i / (logs.length - 1 || 1)) * gW;
+  const toY = w => pad.top + gH - ((w - minW) / range) * gH;
+
+  // Grid lines
+  ctx.strokeStyle = '#F3F4F6';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.top + (i / 4) * gH;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + gW, y); ctx.stroke();
+    const val = Math.round(maxW - (i / 4) * range);
+    ctx.fillStyle = '#9CA3AF'; ctx.font = '11px sans-serif'; ctx.textAlign = 'right';
+    ctx.fillText(val + 'lb', pad.left - 4, y + 4);
+  }
+
+  // Gradient fill
+  const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + gH);
+  grad.addColorStop(0, 'rgba(124,58,237,0.25)');
+  grad.addColorStop(1, 'rgba(124,58,237,0)');
+  ctx.beginPath();
+  ctx.moveTo(toX(0), toY(logs[0].weight));
+  logs.forEach((l, i) => { if (i > 0) ctx.lineTo(toX(i), toY(l.weight)); });
+  ctx.lineTo(toX(logs.length - 1), pad.top + gH);
+  ctx.lineTo(toX(0), pad.top + gH);
+  ctx.closePath();
+  ctx.fillStyle = grad; ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  ctx.strokeStyle = '#7C3AED'; ctx.lineWidth = 2.5;
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  logs.forEach((l, i) => { i === 0 ? ctx.moveTo(toX(i), toY(l.weight)) : ctx.lineTo(toX(i), toY(l.weight)); });
+  ctx.stroke();
+
+  // Dots
+  logs.forEach((l, i) => {
+    ctx.beginPath();
+    ctx.arc(toX(i), toY(l.weight), 4, 0, Math.PI * 2);
+    ctx.fillStyle = '#7C3AED'; ctx.fill();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+  });
+
+  // Date labels (show first, last, and every 3rd)
+  ctx.fillStyle = '#9CA3AF'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
+  logs.forEach((l, i) => {
+    if (i === 0 || i === logs.length - 1 || i % 3 === 0) {
+      const d = new Date(l.log_date + 'T12:00:00');
+      const label = (d.getMonth() + 1) + '/' + d.getDate();
+      ctx.fillText(label, toX(i), H - 8);
+    }
+  });
+
+  // Weight list
+  weightList.innerHTML = '<div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">Recent weigh-ins</div>' +
+    [...logs].reverse().slice(0, 5).map(l => {
+      const d = new Date(l.log_date + 'T12:00:00');
+      return '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #F3F4F6;font-size:14px;">' +
+        '<span style="color:var(--muted);">' + d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + '</span>' +
+        '<span style="font-weight:700;color:#7C3AED;">' + l.weight + ' lbs</span>' +
+      '</div>';
+    }).join('');
 }
 
 function doLogout() { currentUser = null; currentProfile = null; pendingAiFood = null; pendingBarcodeFood = null; clearSession(); stopScanner(); showScreen('screen-splash'); }
