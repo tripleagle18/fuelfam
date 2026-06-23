@@ -8,9 +8,30 @@ export default async function handler(req, res) {
   const { imageData, mediaType, mode } = req.body;
   if (!imageData) { res.status(400).json({ error: 'No image data provided' }); return; }
 
-  const prompt = mode === 'barcode'
-    ? 'Read the barcode or nutrition label in this image. Respond in this EXACT format:\nPRODUCT: [product name]\nSERVING_SIZE: [serving size]\nPROTEIN_GRAMS: [number only]\nNOTE: [one sentence]'
-    : 'You are a nutrition expert. Analyze this food image. Respond in this EXACT format:\nFOODS: [foods you see]\nPROTEIN_GRAMS: [number only]\nNOTE: [one sentence on accuracy]';
+  let prompt;
+  if (mode === 'barcode') {
+    prompt = `Look at this image carefully. It may show a barcode, a nutrition label, or a packaged food product.
+
+If you can see a barcode number, respond with:
+BARCODE: [the number]
+PRODUCT: [product name if visible]
+PROTEIN_GRAMS: 0
+SERVING_SIZE: unknown
+
+If you can see a nutrition facts label (but no readable barcode), respond with:
+BARCODE: none
+PRODUCT: [product name]
+SERVING_SIZE: [serving size]
+PROTEIN_GRAMS: [protein grams as a number]
+NOTE: [one sentence]
+
+Focus on accuracy - read the exact numbers from the label.`;
+  } else {
+    prompt = `You are a nutrition expert. Analyze this food image. Respond in this EXACT format:
+FOODS: [foods you see]
+PROTEIN_GRAMS: [number only]
+NOTE: [one sentence on accuracy]`;
+  }
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
