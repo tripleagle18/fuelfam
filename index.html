@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>FuelFam</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.19.1/umd/index.min.js"></script>
+
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <style>
   :root {
@@ -748,13 +748,24 @@ async function analyzePhoto() {
 function addAiFood() { if (!pendingAiFood) return; addFoodToLog(pendingAiFood.name, pendingAiFood.protein); document.getElementById('ai-result').textContent = '✅ Added to your log!'; document.getElementById('ai-add-btns').style.display = 'none'; pendingAiFood = null; }
 
 // ─── BARCODE ──────────────────────────────────────────────────────────────
-let zxingReader = null;
+let scanStream = null;
+let scanInterval = null;
+let scanCanvas = document.createElement('canvas');
+let scanCtx = scanCanvas.getContext('2d');
 
 async function startScanner() {
   if (scannerRunning) return;
   const wrap = document.getElementById('scanner-wrap');
   const status = document.getElementById('scanner-status');
   const video = document.getElementById('scanner-video');
+
+  // Check if BarcodeDetector is supported
+  if (!('BarcodeDetector' in window)) {
+    status.style.display = 'block';
+    status.textContent = 'Camera scanner not supported on this browser. Please use manual entry below.';
+    return;
+  }
+
   wrap.style.display = 'block';
   status.style.display = 'block';
   status.textContent = 'Starting camera...';
@@ -764,29 +775,45 @@ async function startScanner() {
   document.getElementById('bc-add-btns').style.display = 'none';
 
   try {
-    if (typeof ZXing === 'undefined') throw new Error('Scanner library not loaded');
-    zxingReader = new ZXing.BrowserMultiFormatReader();
-    const devices = await ZXing.BrowserCodeReader.listVideoInputDevices();
-    const backCamera = devices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('rear') || d.label.toLowerCase().includes('environment')) || devices[devices.length - 1];
-    const deviceId = backCamera ? backCamera.deviceId : undefined;
-
-    await zxingReader.decodeFromVideoDevice(deviceId, video, (result, err) => {
-      if (result) {
-        const code = result.getText();
-        status.textContent = 'Found: ' + code + ' — looking up...';
-        lookupBarcode(code);
-      }
+    scanStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
     });
+    video.srcObject = scanStream;
+    await video.play();
     scannerRunning = true;
-    status.textContent = 'Point camera at barcode';
+    status.textContent = 'Point at barcode';
+
+    const detector = new BarcodeDetector({ formats: ['ean_13','ean_8','upc_a','upc_e','code_128','code_39','qr_code'] });
+    let lastCode = '', lastTime = 0;
+
+    scanInterval = setInterval(async () => {
+      if (!video.videoWidth) return;
+      scanCanvas.width = video.videoWidth;
+      scanCanvas.height = video.videoHeight;
+      scanCtx.drawImage(video, 0, 0);
+      try {
+        const barcodes = await detector.detect(scanCanvas);
+        if (barcodes.length > 0) {
+          const code = barcodes[0].rawValue;
+          const now = Date.now();
+          if (code === lastCode && now - lastTime < 4000) return;
+          lastCode = code; lastTime = now;
+          status.textContent = 'Found: ' + code + ' — looking up...';
+          stopScanner();
+          lookupBarcode(code);
+        }
+      } catch(e) {}
+    }, 300);
+
   } catch(e) {
-    status.textContent = 'Camera unavailable. Use manual entry below.';
+    status.textContent = 'Camera access denied. Use manual entry below.';
     stopScanner();
   }
 }
 
 function stopScanner() {
-  if (zxingReader) { try { zxingReader.reset(); } catch(e) {} zxingReader = null; }
+  if (scanInterval) { clearInterval(scanInterval); scanInterval = null; }
+  if (scanStream) { scanStream.getTracks().forEach(t => t.stop()); scanStream = null; }
   scannerRunning = false;
   document.getElementById('scanner-wrap').style.display = 'none';
   document.getElementById('scanner-status').style.display = 'none';
