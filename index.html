@@ -800,7 +800,7 @@ async function doSignup() {
 }
 
 async function doLogin() {
-  const username = document.getElementById('login-user').value.trim().toLowerCase();
+  const username = document.getElementById('login-user').value.trim().toLowerCase().replace(/\s+/g, ' ');
   const password = document.getElementById('login-pass').value;
   const err = document.getElementById('login-error');
   const btn = document.querySelector('#screen-login .btn-main');
@@ -1958,10 +1958,8 @@ function resetPhotoChat(showMsg = false) {
 }
 
 function toBase64(file) { return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result.split(',')[1]); r.onerror = () => rej(new Error('Read failed')); r.readAsDataURL(file); }); }
-</script>
-</body>
-</html>
-<script>
+
+
 // ─── CONTEST SYSTEM ───────────────────────────────────────────────────────
 let wizardState = {
   step: 0,
@@ -2479,4 +2477,8 @@ function checkJoinCodeInUrl() {
     if (input) { input.value = code; }
   }
 }
+
 </script>
+</body>
+</html>
+
