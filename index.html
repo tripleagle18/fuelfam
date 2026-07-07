@@ -313,35 +313,16 @@
 <div id="screen-main" class="screen">
 
   <div id="tab-home" class="tab-content active">
-    <div class="top-bar">
-      <div class="top-bar-row">
-        <div><div class="top-greeting" id="main-greeting">Hey there! 👋</div><div class="top-sub" id="main-week">Loading...</div></div>
-        <div class="avatar-circle" id="main-avatar">?</div>
+    <!-- ChallengePac Header -->
+    <div style="background:linear-gradient(135deg,#16A34A,#EA580C);padding:max(env(safe-area-inset-top),44px) 20px 24px;text-align:center;">
+      <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:4px;">
+        <span style="font-size:32px;">⚡</span>
+        <span style="font-size:30px;font-weight:900;color:#fff;letter-spacing:-1px;">ChallengePac</span>
       </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;">
-        <button onclick="changeViewDay(-1)" style="background:rgba(255,255,255,0.2);border:none;color:#fff;border-radius:10px;padding:6px 12px;font-size:18px;cursor:pointer;">‹</button>
-        <div id="viewing-date-label" style="font-size:14px;font-weight:700;color:#fff;opacity:0.95;">Today</div>
-        <button id="next-day-btn" onclick="changeViewDay(1)" style="background:rgba(255,255,255,0.2);border:none;color:#fff;border-radius:10px;padding:6px 12px;font-size:18px;cursor:pointer;opacity:0.3;" disabled>›</button>
-      </div>
-    </div>
-    <div class="stat-pills">
-      <div class="stat-pill"><div class="stat-pill-val" id="home-pts" style="color:var(--purple)">0</div><div class="stat-pill-lbl">Week pts</div></div>
-      <div class="stat-pill"><div class="stat-pill-val" id="home-rank" style="color:var(--pink)">#–</div><div class="stat-pill-lbl">Rank</div></div>
-      <div class="stat-pill"><div class="stat-pill-val" id="home-streak" style="color:var(--orange)">0🔥</div><div class="stat-pill-lbl">Streak</div></div>
+      <div style="color:rgba(255,255,255,0.8);font-size:13px;">compete · track · win together</div>
     </div>
 
-    <div class="section" style="padding-bottom:0;margin-top:14px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <div style="font-size:18px;font-weight:800;">My Contests</div>
-        <button onclick="showScreen('screen-create-contest')" style="background:linear-gradient(135deg,#16A34A,#EA580C);color:#fff;border:none;border-radius:20px;padding:7px 14px;font-size:13px;font-weight:700;cursor:pointer;">+ Create</button>
-      </div>
-      <div id="my-contests-list"><div class="loading"><span class="dot-spin"></span></div></div>
-      <div style="margin-bottom:4px;">
-        <input class="inp" id="join-code-input" placeholder="Have a join code? Enter it here..." style="margin-bottom:8px;">
-        <button onclick="joinByCode()" class="btn-outline" style="width:100%;padding:10px;">Join Contest</button>
-      </div>
-    </div>
-
+    <!-- Weight check-in banner -->
     <div id="weight-checkin-banner" style="display:none;margin:14px 16px 0;background:linear-gradient(135deg,#16A34A,#EA580C);border-radius:16px;padding:14px 16px;color:#fff;">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
         <span style="font-size:20px;">⚖️</span>
@@ -352,38 +333,26 @@
       </div>
       <div style="display:flex;gap:8px;align-items:center;">
         <input type="number" id="checkin-weight" placeholder="Weight (lbs)" style="flex:1;padding:10px 12px;border-radius:10px;border:none;font-size:15px;color:#1E1B4B;">
-        <button onclick="saveWeightCheckin()" style="padding:10px 16px;background:#fff;color:#7C3AED;border:none;border-radius:10px;font-weight:800;font-size:14px;cursor:pointer;">Save</button>
+        <button onclick="saveWeightCheckin()" style="padding:10px 16px;background:#fff;color:#16A34A;border:none;border-radius:10px;font-weight:800;font-size:14px;cursor:pointer;">Save</button>
         <button onclick="dismissWeightBanner()" style="padding:8px 12px;background:rgba(255,255,255,0.2);color:#fff;border:none;border-radius:10px;font-size:13px;cursor:pointer;">Later</button>
       </div>
     </div>
 
-    <div class="section" style="margin-top:14px;">
-      <div class="card">
-        <div class="card-title"><div class="card-icon" style="background:var(--purple-light);color:var(--purple)"><i class="ti ti-meat"></i></div>Protein today</div>
-        <div class="prog-label"><span>Daily goal</span><span id="home-protein-text">0 / 0g</span></div>
-        <div class="prog-wrap"><div class="prog-bar" id="home-protein-bar" style="width:0%;background:linear-gradient(90deg,#16A34A,#EA580C)"></div></div>
+    <!-- My Contests -->
+    <div style="padding:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div style="font-size:20px;font-weight:800;color:var(--text);">My Contests</div>
+        <button onclick="showScreen('screen-create-contest')" style="background:linear-gradient(135deg,#16A34A,#EA580C);color:#fff;border:none;border-radius:20px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;">+ Create</button>
       </div>
+      <div id="my-contests-list"><div class="loading"><span class="dot-spin"></span></div></div>
 
-      <div class="card">
-        <div class="card-title" style="justify-content:space-between;">
-          <div style="display:flex;align-items:center;gap:8px;">
-            <div class="card-icon" style="background:var(--blue-light);color:var(--blue)"><i class="ti ti-droplet"></i></div>Water today
-          </div>
-          <button onclick="editWaterForDay()" style="background:var(--blue-light);color:var(--blue);border:none;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;">✏️ Edit</button>
+      <!-- Join by code -->
+      <div style="margin-top:8px;">
+        <div style="display:flex;gap:8px;">
+          <input class="inp" id="join-code-input" placeholder="Have a join code? Enter it here..." style="flex:1;margin-bottom:0;">
+          <button onclick="joinByCode()" style="padding:12px 16px;background:#16A34A;color:#fff;border:none;border-radius:var(--radius-sm);font-weight:700;cursor:pointer;">Join</button>
         </div>
-        <div class="prog-label"><span>Daily goal</span><span id="home-water-text">0 / 0 oz</span></div>
-        <div class="prog-wrap"><div class="prog-bar" id="home-water-bar" style="width:0%;background:linear-gradient(90deg,var(--blue),#38BDF8)"></div></div>
       </div>
-
-      <div class="card">
-        <div class="card-title"><div class="card-icon" style="background:var(--green-light);color:var(--green)"><i class="ti ti-clipboard-list"></i></div>Today's food log <span style="font-size:11px;color:var(--muted);font-weight:400;margin-left:4px;">tap ✏️ to edit</span></div>
-        <div id="food-log-list"><div class="empty-state">Nothing logged yet — tap Log Food!</div></div>
-      </div>
-    </div>
-
-    <div class="action-row">
-      <button class="action-btn action-btn-purple" onclick="showTab('tab-log')"><i class="ti ti-plus"></i>Log Food</button>
-      <button class="action-btn action-btn-blue" onclick="openWaterModal()"><i class="ti ti-droplet"></i>Log Water</button>
     </div>
   </div>
 
@@ -496,14 +465,25 @@
     </div>
   </div>
 
-  <div id="tab-leaderboard" class="tab-content">
-    <div class="top-bar" style="padding-bottom:20px;">
-      <div class="top-greeting">Leaderboard 🏆</div>
-      <div class="top-sub" id="lb-week-label">This week's competition</div>
+  <div id="tab-challenges" class="tab-content">
+    <!-- Horizontal scroll of contests -->
+    <div style="background:linear-gradient(135deg,#16A34A,#EA580C);padding:max(env(safe-area-inset-top),44px) 0 0;">
+      <div style="padding:0 16px 12px;">
+        <div style="font-size:22px;font-weight:900;color:#fff;">Challenges</div>
+        <div style="font-size:13px;color:rgba(255,255,255,0.8);">Track your daily goals</div>
+      </div>
+      <!-- Horizontal contest scroll -->
+      <div id="challenge-tabs-scroll" style="display:flex;gap:10px;padding:0 16px 16px;overflow-x:auto;scrollbar-width:none;">
+        <div onclick="selectChallengeTab('global')" id="ctab-global"
+          style="flex-shrink:0;padding:8px 18px;border-radius:20px;font-size:14px;font-weight:700;cursor:pointer;background:#fff;color:#16A34A;white-space:nowrap;">
+          ⚡ Global
+        </div>
+      </div>
     </div>
-    <div class="section">
-      <div id="leaderboard-list"><div class="loading"><span class="dot-spin"></span></div></div>
-      <div style="font-size:13px;color:var(--muted);text-align:center;margin-top:4px;">Resets every Monday · 10pts within 10g · 5pts within 25g · 2pts within 50g</div>
+
+    <!-- Challenge content area -->
+    <div id="challenge-content" style="padding:16px;">
+      <div class="loading"><span class="dot-spin"></span></div>
     </div>
   </div>
 
@@ -539,8 +519,8 @@
 
   <nav class="bottom-nav">
     <button class="nav-item active" onclick="showTab('tab-home',this)" id="nav-home"><i class="ti ti-home"></i>Home</button>
+    <button class="nav-item" onclick="showTab('tab-challenges',this);loadChallengesTab()"><i class="ti ti-trophy"></i>Challenges</button>
     <button class="nav-item" onclick="showTab('tab-log',this)"><i class="ti ti-plus-circle"></i>Log</button>
-    <button class="nav-item" onclick="showTab('tab-leaderboard',this)"><i class="ti ti-trophy"></i>Ranks</button>
     <button class="nav-item" onclick="showTab('tab-profile',this)"><i class="ti ti-user-circle"></i>Profile</button>
   </nav>
 </div>
@@ -609,6 +589,7 @@
       <div class="field-label" style="margin-top:14px;">Custom goals</div>
       <div id="custom-goals-list"></div>
       <button onclick="addCustomGoalField()" style="width:100%;padding:10px;border:2px dashed #16A34A;background:transparent;color:#16A34A;border-radius:10px;font-weight:700;cursor:pointer;margin-bottom:12px;">+ Add custom goal</button>
+      <div style="font-size:12px;color:var(--muted);text-align:center;">You can set specific targets in the next step</div>
       <button class="btn-main" onclick="wizardNext(1)">Next →</button>
       <button class="btn-outline" onclick="wizardBack(1)">← Back</button>
     </div>
@@ -778,7 +759,7 @@ function showTab(id, btn) {
   document.getElementById(id).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
-  if (id === 'tab-leaderboard') renderLeaderboard();
+  if (id === 'tab-challenges') loadChallengesTab();
   if (id === 'tab-profile') renderProfile();
   if (id === 'tab-home') renderHome();
 }
@@ -1236,6 +1217,213 @@ async function renderLeaderboard() {
       </div>
     </div>`;
   }).join('');
+}
+
+
+// ─── CHALLENGES TAB ───────────────────────────────────────────────────────
+let selectedChallengeTab = 'global';
+let userContestsForChallenges = [];
+
+async function loadChallengesTab() {
+  const scroll = document.getElementById('challenge-tabs-scroll');
+  if (!scroll) return;
+
+  // Load user's contests for the scroll tabs
+  const { data: memberships } = await sb.from('contest_members').select('contest_id').eq('user_id', currentUser);
+  const ids = (memberships||[]).map(m => m.contest_id);
+  let contests = [];
+  if (ids.length > 0) {
+    const { data } = await sb.from('contests').select('*').in('id', ids).eq('status','active');
+    contests = data || [];
+  }
+  userContestsForChallenges = contests;
+
+  // Build scroll tabs
+  scroll.innerHTML = `<div onclick="selectChallengeTab('global')" id="ctab-global"
+    style="flex-shrink:0;padding:8px 18px;border-radius:20px;font-size:14px;font-weight:700;cursor:pointer;background:#fff;color:#16A34A;white-space:nowrap;">
+    ⚡ Global
+  </div>` + contests.map(c =>
+    `<div onclick="selectChallengeTab('${c.id}')" id="ctab-${c.id}"
+      style="flex-shrink:0;padding:8px 18px;border-radius:20px;font-size:14px;font-weight:700;cursor:pointer;background:rgba(255,255,255,0.25);color:#fff;white-space:nowrap;">
+      🏆 ${c.name}
+    </div>`
+  ).join('');
+
+  selectChallengeTab(selectedChallengeTab);
+}
+
+async function selectChallengeTab(tabId) {
+  selectedChallengeTab = tabId;
+  // Update tab styles
+  document.querySelectorAll('[id^="ctab-"]').forEach(el => {
+    el.style.background = 'rgba(255,255,255,0.25)';
+    el.style.color = '#fff';
+  });
+  const activeTab = document.getElementById('ctab-' + tabId);
+  if (activeTab) { activeTab.style.background = '#fff'; activeTab.style.color = '#16A34A'; }
+
+  if (tabId === 'global') {
+    await renderGlobalChallenge();
+  } else {
+    await renderContestChallenge(tabId);
+  }
+}
+
+async function renderGlobalChallenge() {
+  const content = document.getElementById('challenge-content');
+  content.innerHTML = '<div class="loading"><span class="dot-spin"></span></div>';
+  const today = getTodayKey();
+  const wk = getWeekKey();
+  const goals = calcGoals(currentProfile);
+
+  // Get today's log
+  const { data: myLog } = await sb.from('daily_logs').select('*').eq('user_id', currentUser).eq('log_date', today).maybeSingle();
+  const protein = myLog?.protein || 0;
+  const water = myLog?.water || 0;
+  const foods = myLog?.foods || [];
+
+  // Get all users for leaderboard
+  const { data: allProfiles } = await sb.from('profiles').select('id,name,weight,age,activity,goal');
+  const { data: weekLogs } = await sb.from('daily_logs').select('*').gte('log_date', wk);
+
+  // Calculate weekly points for all users
+  const ranked = (allProfiles||[]).map(p => {
+    const g = calcGoals(p);
+    const logs = (weekLogs||[]).filter(l => l.user_id === p.id);
+    let pts = 0;
+    logs.forEach(l => pts += calcDayPoints(l.protein, l.water, g));
+    return { ...p, pts, goals: g };
+  }).sort((a,b) => b.pts - a.pts);
+
+  const myRank = ranked.findIndex(p => p.id === currentUser) + 1;
+  const myPts = ranked.find(p => p.id === currentUser)?.pts || 0;
+  const medals = ['🥇','🥈','🥉'];
+  const pPct = Math.min(100, Math.round(protein/goals.protein*100));
+  const wPct = Math.min(100, Math.round(water/goals.water*100));
+
+  content.innerHTML = `
+    <!-- Today's progress -->
+    <div class="card" style="margin-bottom:14px;">
+      <div style="font-size:15px;font-weight:800;margin-bottom:12px;">Today's Progress</div>
+      <div style="margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:4px;">
+          <span style="font-weight:600;">🥩 Protein</span>
+          <span style="font-weight:800;color:#16A34A;">${Math.round(protein)} / ${goals.protein}g</span>
+        </div>
+        <div style="background:#F3F4F6;border-radius:20px;height:12px;overflow:hidden;">
+          <div style="width:${pPct}%;height:100%;border-radius:20px;background:linear-gradient(90deg,#16A34A,#EA580C);transition:width 0.5s;"></div>
+        </div>
+      </div>
+      <div style="margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:4px;">
+          <span style="font-weight:600;">💧 Water</span>
+          <span style="font-weight:800;color:#2563EB;">${Math.round(water)} / ${goals.water}oz</span>
+        </div>
+        <div style="background:#F3F4F6;border-radius:20px;height:12px;overflow:hidden;">
+          <div style="width:${wPct}%;height:100%;border-radius:20px;background:linear-gradient(90deg,#2563EB,#38BDF8);transition:width 0.5s;"></div>
+        </div>
+      </div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:8px;">Food logged today:</div>
+      ${foods.length === 0
+        ? '<div style="font-size:13px;color:var(--muted);font-style:italic;">Nothing yet — tap Log to add food</div>'
+        : foods.map(f => `<div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0;border-bottom:1px solid #F3F4F6;"><span>${f.name}</span><span style="font-weight:700;color:#16A34A;">${Math.round(f.protein)}g</span></div>`).join('')
+      }
+    </div>
+
+    <!-- Quick log buttons -->
+    <div style="display:flex;gap:10px;margin-bottom:14px;">
+      <button onclick="showTab('tab-log',document.querySelector('.nav-item:nth-child(3)'))" style="flex:1;padding:14px;background:#DCFCE7;color:#16A34A;border:none;border-radius:var(--radius-sm);font-weight:700;font-size:14px;cursor:pointer;">+ Log Food</button>
+      <button onclick="openWaterModal()" style="flex:1;padding:14px;background:#DBEAFE;color:#2563EB;border:none;border-radius:var(--radius-sm);font-weight:700;font-size:14px;cursor:pointer;">💧 Log Water</button>
+    </div>
+
+    <!-- Weekly Leaderboard -->
+    <div class="card">
+      <div style="font-size:15px;font-weight:800;margin-bottom:4px;">⚡ Global Leaderboard</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">Week of ${formatDateLabel(wk)} · Resets Monday</div>
+      ${ranked.map((p,i) => `
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #F3F4F6;${p.id===currentUser?'background:#F0FDF4;margin:0 -16px;padding:10px 16px;':''}">
+          <div style="font-size:20px;min-width:28px;">${medals[i]||'#'+(i+1)}</div>
+          <div style="flex:1;">
+            <div style="font-weight:700;font-size:14px;">${p.name}${p.id===currentUser?' (you)':''}</div>
+          </div>
+          <div style="font-size:16px;font-weight:800;color:#16A34A;">${p.pts} pts</div>
+        </div>`).join('')}
+    </div>`;
+}
+
+async function renderContestChallenge(contestId) {
+  const content = document.getElementById('challenge-content');
+  content.innerHTML = '<div class="loading"><span class="dot-spin"></span></div>';
+  const contest = userContestsForChallenges.find(c => c.id === contestId);
+  if (!contest) { content.innerHTML = '<div class="empty-state">Contest not found.</div>'; return; }
+
+  const today = getTodayKey();
+  const { data: myLogs } = await sb.from('contest_logs').select('*').eq('contest_id', contestId).eq('user_id', currentUser);
+  const myTotals = {};
+  (myLogs||[]).forEach(l => myTotals[l.goal_name] = (myTotals[l.goal_name]||0) + l.amount);
+
+  content.innerHTML = `
+    <!-- Contest goals progress -->
+    <div class="card" style="margin-bottom:14px;">
+      <div style="font-size:15px;font-weight:800;margin-bottom:12px;">My Progress</div>
+      ${(contest.goals||[]).map((g,i) => {
+        const logged = myTotals[g.name] || 0;
+        const pct = g.target > 0 ? Math.min(100, Math.round(logged/g.target*100)) : 0;
+        return `<div style="margin-bottom:12px;">
+          <div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:4px;">
+            <span style="font-weight:600;">${g.name}</span>
+            <span style="font-weight:800;color:#16A34A;">${logged} / ${g.target} ${g.unit}</span>
+          </div>
+          <div style="background:#F3F4F6;border-radius:20px;height:12px;overflow:hidden;">
+            <div style="width:${pct}%;height:100%;border-radius:20px;background:linear-gradient(90deg,#16A34A,#EA580C);"></div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <input type="number" id="clog-${i}" placeholder="Log ${g.name}..." class="inp" style="flex:1;margin-bottom:0;padding:8px 12px;">
+            <button onclick="logContestGoal('${contestId}','${g.name}',${i},'${g.unit}')" style="padding:8px 14px;background:#16A34A;color:#fff;border:none;border-radius:10px;font-weight:700;cursor:pointer;">Log</button>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+
+    <!-- Contest leaderboard -->
+    <div id="contest-challenge-lb"></div>`;
+
+  // Load leaderboard
+  const { data: members } = await sb.from('contest_members').select('user_id').eq('contest_id', contestId);
+  const memberIds = (members||[]).map(m => m.user_id);
+  const { data: allLogs } = await sb.from('contest_logs').select('*').eq('contest_id', contestId);
+  const { data: profiles } = await sb.from('profiles').select('id,name').in('id', memberIds);
+  const medals = ['🥇','🥈','🥉'];
+
+  const scored = (profiles||[]).map(p => {
+    const logs = (allLogs||[]).filter(l => l.user_id === p.id);
+    const totals = {};
+    logs.forEach(l => totals[l.goal_name] = (totals[l.goal_name]||0) + l.amount);
+    let score = 0;
+    (contest.goals||[]).forEach(g => {
+      const logged = totals[g.name] || 0;
+      if (contest.scoring_method === 'points') {
+        const pct = g.target > 0 ? logged/g.target : 0;
+        if (pct >= 1) score += contest.points_hit||10;
+        else if (pct >= 0.9) score += contest.points_close||5;
+        else if (pct >= 0.75) score += contest.points_partial||2;
+      } else if (contest.scoring_method === 'percentage') {
+        score += g.target > 0 ? Math.min(100, Math.round(logged/g.target*100)) : 0;
+      } else { score += logged; }
+    });
+    return { ...p, score };
+  }).sort((a,b) => b.score - a.score);
+
+  const unit = contest.scoring_method === 'points' ? 'pts' : contest.scoring_method === 'percentage' ? '%' : '';
+  document.getElementById('contest-challenge-lb').innerHTML = `<div class="card">
+    <div style="font-size:15px;font-weight:800;margin-bottom:12px;">🏆 Leaderboard</div>
+    ${scored.map((p,i) => `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #F3F4F6;${p.id===currentUser?'background:#F0FDF4;margin:0 -16px;padding:10px 16px;':''}">
+        <div style="font-size:20px;min-width:28px;">${medals[i]||'#'+(i+1)}</div>
+        <div style="flex:1;font-weight:700;font-size:14px;">${p.name}${p.id===currentUser?' (you)':''}</div>
+        <div style="font-size:16px;font-weight:800;color:#16A34A;">${Math.round(p.score)}${unit}</div>
+      </div>`).join('')}
+  </div>`;
 }
 
 // ─── PROFILE ──────────────────────────────────────────────────────────────
@@ -1814,9 +2002,18 @@ function wizardNext(step) {
     wizardState.endDate = end;
   }
   if (step === 1) {
-    const customs = [...document.querySelectorAll('.custom-goal-input')].map(i => i.value.trim()).filter(Boolean);
+    const customRows = [...document.querySelectorAll('#custom-goals-list > div')];
+    const customs = customRows.map(row => {
+      const name = row.querySelector('.custom-goal-input')?.value?.trim();
+      const num = row.querySelector('.custom-goal-freq-num')?.value || '1';
+      const period = row.querySelector('.custom-goal-freq-period')?.value || 'day';
+      return name ? { name, freqNum: parseInt(num)||1, freqPeriod: period } : null;
+    }).filter(Boolean);
     wizardState.customGoals = customs;
-    wizardState.allGoals = [...wizardState.presetGoals.map(g => ({ type: g, name: g, isPreset: true })), ...customs.map(g => ({ type: 'custom', name: g, isPreset: false }))];
+    wizardState.allGoals = [
+      ...wizardState.presetGoals.map(g => ({ type: g, name: g.charAt(0).toUpperCase()+g.slice(1), isPreset: true, freqNum: 1, freqPeriod: 'day' })),
+      ...customs.map(g => ({ type: 'custom', name: g.name, isPreset: false, freqNum: g.freqNum, freqPeriod: g.freqPeriod }))
+    ];
     if (wizardState.allGoals.length === 0) { alert('Please add at least one goal'); return; }
     buildGoalDetails();
   }
@@ -1866,10 +2063,25 @@ function togglePresetGoal(btn, goal) {
 
 function addCustomGoalField() {
   const list = document.getElementById('custom-goals-list');
+  const idx = list.children.length;
   const div = document.createElement('div');
-  div.className = 'custom-goal-row';
-  div.innerHTML = '<input class="inp custom-goal-input" placeholder="e.g. No sugar, Meditate 10 min..." style="flex:1;margin-bottom:0;">' +
-    '<button onclick="this.parentElement.remove()" style="padding:10px;background:#FEE2E2;border:none;border-radius:8px;cursor:pointer;color:#991B1B;font-size:16px;flex-shrink:0;">✕</button>';
+  div.style.cssText = 'background:#F9FAFB;border-radius:12px;padding:12px;margin-bottom:10px;';
+  div.innerHTML = `
+    <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center;">
+      <input class="inp custom-goal-input" placeholder="e.g. No sugar, Walk 30 min, Read..." style="flex:1;margin-bottom:0;">
+      <button onclick="this.closest('div[style]').remove()" style="padding:8px;background:#FEE2E2;border:none;border-radius:8px;cursor:pointer;color:#991B1B;font-size:14px;flex-shrink:0;">✕</button>
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:6px;font-weight:600;">How often should contestants hit this goal?</div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <input type="number" class="inp custom-goal-freq-num" placeholder="1" min="1" style="width:64px;margin-bottom:0;text-align:center;">
+      <span style="font-size:14px;color:var(--muted);">time(s) per</span>
+      <select class="inp custom-goal-freq-period" style="flex:1;margin-bottom:0;">
+        <option value="day">Day</option>
+        <option value="week">Week</option>
+        <option value="month">Month</option>
+        <option value="contest">Contest (total)</option>
+      </select>
+    </div>`;
   list.appendChild(div);
 }
 
@@ -1883,26 +2095,21 @@ function buildGoalDetails() {
   };
   list.innerHTML = wizardState.allGoals.map((g, i) => {
     const cfg = presetConfig[g.type] || { label: g.name, unit: '', defaultTarget: '' };
+    const freqLabel = g.freqNum && g.freqPeriod ? `${g.freqNum}x per ${g.freqPeriod}` : '';
     return `<div class="goal-detail-row card" style="margin-bottom:10px;">
-      <div style="font-size:15px;font-weight:700;margin-bottom:10px;">${g.name}</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-        <div>
-          <div class="field-label">Target amount</div>
-          <input class="inp goal-target" type="number" placeholder="${cfg.defaultTarget}" value="${cfg.defaultTarget}" style="margin-bottom:0;">
-        </div>
-        <div>
-          <div class="field-label">Unit</div>
-          <input class="inp goal-unit" placeholder="${cfg.unit}" value="${cfg.unit}" style="margin-bottom:0;">
-        </div>
+      <div style="font-size:15px;font-weight:700;margin-bottom:4px;">${g.name}</div>
+      ${freqLabel ? `<div style="font-size:12px;color:#16A34A;font-weight:600;margin-bottom:10px;">Goal: ${freqLabel}</div>` : ''}
+      <div class="field-label">${g.isPreset ? 'Daily target' : 'Target amount per session'}</div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+        <input class="inp goal-target" type="number" placeholder="${cfg.defaultTarget||'Enter target'}" value="${cfg.defaultTarget||''}" style="flex:1;margin-bottom:0;">
+        <input class="inp goal-unit" placeholder="${cfg.unit||'unit (e.g. mins, reps)'}" value="${cfg.unit||''}" style="flex:1;margin-bottom:0;">
       </div>
-      <div style="margin-top:8px;">
-        <div class="field-label">Goal frequency</div>
-        <select class="inp goal-freq" style="margin-bottom:0;">
-          <option value="daily">Daily goal</option>
-          <option value="weekly">Weekly goal</option>
-          <option value="contest">Contest total goal</option>
-        </select>
-      </div>
+      ${g.isPreset ? `<div class="field-label">Frequency</div>
+      <select class="inp goal-freq" style="margin-bottom:0;">
+        <option value="daily">Daily goal</option>
+        <option value="weekly">Weekly goal</option>
+        <option value="contest">Contest total goal</option>
+      </select>` : `<input type="hidden" class="goal-freq" value="${g.freqPeriod||'day'}">`}
     </div>`;
   }).join('');
 }
@@ -1974,7 +2181,7 @@ async function renderMyContests() {
   try {
     const { data: memberships } = await sb.from('contest_members').select('contest_id, role').eq('user_id', currentUser);
     if (!memberships || memberships.length === 0) {
-      list.innerHTML = '<div class="empty-state" style="padding:16px 0;">No contests yet — create one or join with a code!</div>';
+      list.innerHTML = '<div class="empty-state" style="padding:16px 0;color:var(--muted);font-size:14px;text-align:center;">No contests yet!<br>Create one or join with a code below.</div>';
       return;
     }
     const ids = memberships.map(m => m.contest_id);
@@ -1983,26 +2190,85 @@ async function renderMyContests() {
     const { data: contests } = await sb.from('contests').select('*').in('id', ids).order('created_at', { ascending: false });
     if (!contests || contests.length === 0) { list.innerHTML = '<div class="empty-state">No contests found.</div>'; return; }
     const now = new Date();
-    list.innerHTML = contests.map(c => {
-      const start = new Date(c.start_date + 'T12:00:00');
+
+    // For each contest, get rank and points
+    const cards = await Promise.all(contests.map(async c => {
       const end = new Date(c.end_date + 'T12:00:00');
+      const start = new Date(c.start_date + 'T12:00:00');
       const daysLeft = Math.ceil((end - now) / (1000*60*60*24));
       const isEnded = end < now;
       const isAdmin = roleMap[c.id] === 'admin';
-      return `<div class="contest-card${isEnded?' ended':''}" onclick="showContestDetail('${c.id}')">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-          <div class="contest-title">${c.name}</div>
-          ${isAdmin ? '<span style="background:#DCFCE7;color:#16A34A;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;">Admin</span>' : ''}
+
+      // Get all members and logs for ranking
+      const { data: members } = await sb.from('contest_members').select('user_id').eq('contest_id', c.id);
+      const memberIds = (members||[]).map(m => m.user_id);
+      const { data: logs } = await sb.from('contest_logs').select('*').eq('contest_id', c.id);
+
+      // Calculate my score
+      const myLogs = (logs||[]).filter(l => l.user_id === currentUser);
+      const myTotals = {};
+      myLogs.forEach(l => myTotals[l.goal_name] = (myTotals[l.goal_name]||0) + l.amount);
+      let myScore = 0;
+      (c.goals||[]).forEach(g => {
+        const logged = myTotals[g.name] || 0;
+        if (c.scoring_method === 'points') {
+          const pct = g.target > 0 ? logged/g.target : 0;
+          if (pct >= 1) myScore += c.points_hit||10;
+          else if (pct >= 0.9) myScore += c.points_close||5;
+          else if (pct >= 0.75) myScore += c.points_partial||2;
+        } else if (c.scoring_method === 'percentage') {
+          myScore += g.target > 0 ? Math.min(100, Math.round(logged/g.target*100)) : 0;
+        } else { myScore += logged; }
+      });
+
+      // Calculate rank
+      const allScores = await Promise.all(memberIds.map(async uid => {
+        const uLogs = (logs||[]).filter(l => l.user_id === uid);
+        const uTotals = {};
+        uLogs.forEach(l => uTotals[l.goal_name] = (uTotals[l.goal_name]||0) + l.amount);
+        let uScore = 0;
+        (c.goals||[]).forEach(g => {
+          const logged = uTotals[g.name] || 0;
+          if (c.scoring_method === 'points') {
+            const pct = g.target > 0 ? logged/g.target : 0;
+            if (pct >= 1) uScore += c.points_hit||10;
+            else if (pct >= 0.9) uScore += c.points_close||5;
+            else if (pct >= 0.75) uScore += c.points_partial||2;
+          } else if (c.scoring_method === 'percentage') {
+            uScore += g.target > 0 ? Math.min(100, Math.round(logged/g.target*100)) : 0;
+          } else { uScore += logged; }
+        });
+        return uScore;
+      }));
+      const rank = allScores.filter(s => s > myScore).length + 1;
+      const rankLabel = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '#' + rank;
+      const unit = c.scoring_method === 'points' ? 'pts' : c.scoring_method === 'percentage' ? '%' : '';
+
+      return `<div style="background:#fff;border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;box-shadow:0 2px 12px rgba(22,163,74,0.08);border-left:4px solid ${isEnded?'#9CA3AF':'#16A34A'};cursor:pointer;${isEnded?'opacity:0.7':''}" onclick="showContestDetail('${c.id}')">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+          <div>
+            <div style="font-size:16px;font-weight:800;">${c.name}</div>
+            <div style="font-size:12px;color:var(--muted);">${start.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${end.toLocaleDateString('en-US',{month:'short',day:'numeric'})} · ${isEnded?'Ended':daysLeft+' days left'}</div>
+          </div>
+          ${isAdmin?'<span style="background:#DCFCE7;color:#16A34A;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;">Admin</span>':''}
         </div>
-        <div class="contest-meta">
-          ${start.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${end.toLocaleDateString('en-US',{month:'short',day:'numeric'})}
-          ${isEnded ? ' · Ended' : ` · ${daysLeft} day${daysLeft!==1?'s':''} left`}
-        </div>
-        <div class="contest-goals">
-          ${(c.goals||[]).map(g => `<span class="goal-chip">${g.name}</span>`).join('')}
+        <div style="display:flex;gap:10px;">
+          <div style="flex:1;background:#F0FDF4;border-radius:10px;padding:10px;text-align:center;">
+            <div style="font-size:22px;font-weight:900;color:#16A34A;">${rankLabel}</div>
+            <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;">Rank</div>
+          </div>
+          <div style="flex:1;background:#FFF7ED;border-radius:10px;padding:10px;text-align:center;">
+            <div style="font-size:22px;font-weight:900;color:#EA580C;">${Math.round(myScore)}${unit}</div>
+            <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;">Score</div>
+          </div>
+          <div style="flex:1;background:#F9FAFB;border-radius:10px;padding:10px;text-align:center;">
+            <div style="font-size:22px;font-weight:900;color:var(--text);">${memberIds.length}</div>
+            <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;">Players</div>
+          </div>
         </div>
       </div>`;
-    }).join('');
+    }));
+    list.innerHTML = cards.join('');
   } catch(e) {
     list.innerHTML = '<div class="empty-state">Could not load contests.</div>';
   }
