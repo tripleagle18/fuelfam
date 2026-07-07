@@ -5,32 +5,33 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>FuelFam</title>
+<title>ChallengePac</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <style>
   :root {
-    --purple: #7C3AED;
-    --purple-light: #EDE9FE;
-    --purple-mid: #A78BFA;
-    --green: #059669;
-    --green-light: #D1FAE5;
+    --purple: #16A34A;
+    --purple-light: #DCFCE7;
+    --purple-mid: #4ADE80;
+    --green: #16A34A;
+    --green-light: #DCFCE7;
     --blue: #2563EB;
     --blue-light: #DBEAFE;
     --orange: #EA580C;
     --orange-light: #FFEDD5;
-    --pink: #DB2777;
-    --pink-light: #FCE7F3;
+    --pink: #EA580C;
+    --pink-light: #FFEDD5;
     --yellow: #D97706;
     --yellow-light: #FEF3C7;
-    --bg: #F5F3FF;
+    --bg: #F0FDF4;
     --card: #FFFFFF;
     --text: #1E1B4B;
     --muted: #6B7280;
-    --border: rgba(124,58,237,0.15);
+    --border: rgba(22,163,74,0.15);
     --radius: 16px;
     --radius-sm: 10px;
+    --accent: #EA580C;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
@@ -38,7 +39,7 @@
   .screen.active { display: flex; flex-direction: column; }
 
   /* SPLASH */
-  #screen-splash { background: linear-gradient(160deg, #7C3AED 0%, #DB2777 60%, #EA580C 100%); align-items: center; justify-content: center; text-align: center; padding: 60px 32px 32px; }
+  #screen-splash { background: linear-gradient(160deg, #16A34A 0%, #15803D 50%, #EA580C 100%); align-items: center; justify-content: center; text-align: center; padding: 60px 32px 32px; }
   .splash-logo { font-size: 72px; margin-bottom: 8px; }
   .splash-title { font-size: 42px; font-weight: 800; color: #fff; letter-spacing: -1px; margin-bottom: 6px; }
   .splash-sub { font-size: 16px; color: rgba(255,255,255,0.8); margin-bottom: 48px; }
@@ -66,7 +67,7 @@
   .btn-main {
     width: 100%; padding: 16px; border-radius: 50px; border: none;
     font-size: 17px; font-weight: 700; cursor: pointer;
-    background: linear-gradient(135deg, var(--purple), var(--pink));
+    background: linear-gradient(135deg, #16A34A, #EA580C);
     color: #fff; margin-bottom: 12px; transition: transform 0.1s, opacity 0.2s;
   }
   .btn-main:active { transform: scale(0.98); }
@@ -79,7 +80,7 @@
 
   /* MAIN APP */
   #screen-main { background: var(--bg); padding-bottom: 72px; }
-  .top-bar { background: linear-gradient(135deg, var(--purple), var(--pink)); padding: 56px 20px 28px; color: #fff; position: relative; }
+  .top-bar { background: linear-gradient(135deg, #16A34A, #EA580C); padding: 56px 20px 28px; color: #fff; position: relative; }
   .top-bar-row { display: flex; justify-content: space-between; align-items: center; }
   .top-greeting { font-size: 22px; font-weight: 800; }
   .top-sub { font-size: 13px; opacity: 0.8; margin-top: 2px; }
@@ -175,7 +176,7 @@
   .nav-item.active { color: var(--purple); }
 
   /* PROFILE */
-  .profile-hero { background: linear-gradient(135deg, var(--purple), var(--pink)); border-radius: var(--radius); padding: 20px; text-align: center; color: #fff; margin-bottom: 14px; }
+  .profile-hero { background: linear-gradient(135deg, #16A34A, #EA580C); border-radius: var(--radius); padding: 20px; text-align: center; color: #fff; margin-bottom: 14px; }
   .profile-avatar { width: 64px; height: 64px; border-radius: 50%; background: rgba(255,255,255,0.25); display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 800; color: #fff; margin: 0 auto 10px; border: 3px solid rgba(255,255,255,0.5); }
   .profile-name { font-size: 20px; font-weight: 800; }
   .profile-stat-row { display: flex; gap: 10px; margin-top: 14px; }
@@ -205,13 +206,52 @@
   .chat-wrap.open { display: flex; }
   .chat-bubble { max-width: 85%; padding: 10px 14px; border-radius: 18px; font-size: 14px; line-height: 1.5; margin-bottom: 8px; }
   .chat-bubble.ai { background: #EDE9FE; color: #4C1D95; border-bottom-left-radius: 4px; align-self: flex-start; }
-  .chat-bubble.user { background: linear-gradient(135deg, #7C3AED, #DB2777); color: #fff; border-bottom-right-radius: 4px; align-self: flex-end; }
+  .chat-bubble.user { background: linear-gradient(135deg, #16A34A, #EA580C); color: #fff; border-bottom-right-radius: 4px; align-self: flex-end; }
   .chat-bubble.typing { background: #EDE9FE; color: #7C3AED; border-bottom-left-radius: 4px; align-self: flex-start; font-style: italic; }
   .chat-input-row { display: flex; gap: 8px; margin-top: 10px; }
   .chat-input-row input { flex: 1; padding: 12px 14px; border-radius: 24px; border: 2px solid #EDE9FE; background: #fff; font-size: 15px; color: var(--text); outline: none; }
   .chat-input-row input:focus { border-color: #7C3AED; }
-  .chat-send-btn { width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, #7C3AED, #DB2777); border: none; color: #fff; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .chat-send-btn { width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, #16A34A, #EA580C); border: none; color: #fff; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
   .chat-add-btn { width: 100%; padding: 14px; border-radius: 50px; background: linear-gradient(135deg, #059669, #10B981); color: #fff; border: none; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 10px; display: none; }
+
+
+  /* CONTESTS */
+  .contest-card { background:#fff; border-radius:var(--radius); padding:16px; margin-bottom:12px; box-shadow:0 2px 12px rgba(22,163,74,0.08); border-left:4px solid #16A34A; }
+  .contest-card.orange { border-left-color:#EA580C; }
+  .contest-card.ended { border-left-color:#9CA3AF; opacity:0.7; }
+  .contest-title { font-size:16px; font-weight:800; color:var(--text); margin-bottom:2px; }
+  .contest-meta { font-size:12px; color:var(--muted); margin-bottom:10px; }
+  .contest-goals { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+  .goal-chip { padding:4px 10px; border-radius:20px; font-size:12px; font-weight:600; background:#DCFCE7; color:#16A34A; }
+  .goal-chip.orange { background:#FFEDD5; color:#EA580C; }
+  .contest-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:10px; }
+  .contest-stat { text-align:center; background:#F9FAFB; border-radius:10px; padding:8px; }
+  .contest-stat-val { font-size:18px; font-weight:800; color:#16A34A; }
+  .contest-stat-lbl { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:0.3px; }
+  .create-contest-btn { width:100%; padding:16px; border-radius:50px; border:2px dashed #16A34A; background:transparent; color:#16A34A; font-size:16px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:16px; transition:all 0.2s; }
+  .create-contest-btn:active { background:#DCFCE7; }
+  
+  /* CONTEST WIZARD */
+  .wizard-step { display:none; }
+  .wizard-step.active { display:block; }
+  .wizard-header { text-align:center; margin-bottom:24px; }
+  .wizard-emoji { font-size:48px; margin-bottom:8px; }
+  .wizard-title { font-size:22px; font-weight:800; color:var(--text); }
+  .wizard-sub { font-size:14px; color:var(--muted); margin-top:4px; }
+  .wizard-progress { display:flex; gap:6px; justify-content:center; margin-bottom:24px; }
+  .wizard-dot { width:8px; height:8px; border-radius:50%; background:#E5E7EB; transition:background 0.2s; }
+  .wizard-dot.active { background:#16A34A; }
+  .wizard-dot.done { background:#EA580C; }
+  .goal-type-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin:12px 0; }
+  .goal-type-btn { padding:14px 10px; border-radius:12px; border:2px solid #E5E7EB; background:#fff; cursor:pointer; text-align:center; font-size:13px; font-weight:600; color:var(--text); transition:all 0.2s; }
+  .goal-type-btn.selected { border-color:#16A34A; background:#DCFCE7; color:#16A34A; }
+  .custom-goal-row { display:flex; gap:8px; margin-bottom:8px; align-items:center; }
+  .scoring-option { padding:14px 16px; border-radius:12px; border:2px solid #E5E7EB; background:#fff; cursor:pointer; margin-bottom:10px; }
+  .scoring-option.selected { border-color:#EA580C; background:#FFEDD5; }
+  .scoring-option-title { font-size:15px; font-weight:700; }
+  .scoring-option-sub { font-size:12px; color:var(--muted); margin-top:2px; }
+  .invite-box { background:#F0FDF4; border-radius:12px; padding:14px; margin-bottom:12px; }
+  .join-code-display { font-size:32px; font-weight:900; letter-spacing:6px; color:#16A34A; text-align:center; padding:16px; background:#DCFCE7; border-radius:12px; margin:10px 0; }
 
   .loading { text-align: center; padding: 40px; color: var(--muted); font-size: 15px; }
   .dot-spin { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--purple); animation: pulse 1s infinite; margin: 0 3px; }
@@ -223,8 +263,8 @@
 <!-- SPLASH -->
 <div id="screen-splash" class="screen active">
   <div class="splash-logo">⚡</div>
-  <div class="splash-title">FuelFam</div>
-  <div class="splash-sub">compete · fuel · win together</div>
+  <div class="splash-title">ChallengePac</div>
+  <div class="splash-sub">compete · track · win together</div>
   <button class="splash-btn splash-btn-primary" onclick="showScreen('screen-login')">Log in</button>
   <button class="splash-btn splash-btn-secondary" onclick="showScreen('screen-signup')">Create account</button>
   <div style="color:rgba(255,255,255,0.5);font-size:12px;margin-top:24px;">Track protein & water. Crush your family.</div>
@@ -290,7 +330,19 @@
       <div class="stat-pill"><div class="stat-pill-val" id="home-streak" style="color:var(--orange)">0🔥</div><div class="stat-pill-lbl">Streak</div></div>
     </div>
 
-    <div id="weight-checkin-banner" style="display:none;margin:14px 16px 0;background:linear-gradient(135deg,#7C3AED,#DB2777);border-radius:16px;padding:14px 16px;color:#fff;">
+    <div class="section" style="padding-bottom:0;margin-top:14px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div style="font-size:18px;font-weight:800;">My Contests</div>
+        <button onclick="showScreen('screen-create-contest')" style="background:linear-gradient(135deg,#16A34A,#EA580C);color:#fff;border:none;border-radius:20px;padding:7px 14px;font-size:13px;font-weight:700;cursor:pointer;">+ Create</button>
+      </div>
+      <div id="my-contests-list"><div class="loading"><span class="dot-spin"></span></div></div>
+      <div style="margin-bottom:4px;">
+        <input class="inp" id="join-code-input" placeholder="Have a join code? Enter it here..." style="margin-bottom:8px;">
+        <button onclick="joinByCode()" class="btn-outline" style="width:100%;padding:10px;">Join Contest</button>
+      </div>
+    </div>
+
+    <div id="weight-checkin-banner" style="display:none;margin:14px 16px 0;background:linear-gradient(135deg,#16A34A,#EA580C);border-radius:16px;padding:14px 16px;color:#fff;">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
         <span style="font-size:20px;">⚖️</span>
         <div>
@@ -309,7 +361,7 @@
       <div class="card">
         <div class="card-title"><div class="card-icon" style="background:var(--purple-light);color:var(--purple)"><i class="ti ti-meat"></i></div>Protein today</div>
         <div class="prog-label"><span>Daily goal</span><span id="home-protein-text">0 / 0g</span></div>
-        <div class="prog-wrap"><div class="prog-bar" id="home-protein-bar" style="width:0%;background:linear-gradient(90deg,var(--purple),var(--pink))"></div></div>
+        <div class="prog-wrap"><div class="prog-bar" id="home-protein-bar" style="width:0%;background:linear-gradient(90deg,#16A34A,#EA580C)"></div></div>
       </div>
 
       <div class="card">
@@ -493,6 +545,149 @@
   </nav>
 </div>
 
+<!-- CREATE CONTEST SCREEN -->
+<div id="screen-create-contest" class="screen" style="padding:0;overflow-y:auto;">
+  <div style="background:linear-gradient(135deg,#16A34A,#EA580C);padding:max(env(safe-area-inset-top),20px) 20px 24px;">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <button onclick="showScreen('screen-main')" style="background:rgba(255,255,255,0.2);border:none;color:#fff;border-radius:10px;padding:8px 12px;font-size:18px;cursor:pointer;">←</button>
+      <div style="color:#fff;font-size:20px;font-weight:800;">Create a Contest</div>
+    </div>
+  </div>
+  <div style="padding:20px;">
+
+    <!-- Progress dots -->
+    <div class="wizard-progress" id="wizard-dots">
+      <div class="wizard-dot active" id="dot-0"></div>
+      <div class="wizard-dot" id="dot-1"></div>
+      <div class="wizard-dot" id="dot-2"></div>
+      <div class="wizard-dot" id="dot-3"></div>
+      <div class="wizard-dot" id="dot-4"></div>
+    </div>
+
+    <!-- Step 1: Name & Duration -->
+    <div class="wizard-step active" id="wizard-step-0">
+      <div class="wizard-header">
+        <div class="wizard-emoji">🏆</div>
+        <div class="wizard-title">Name your contest</div>
+        <div class="wizard-sub">Give it a name people will remember</div>
+      </div>
+      <div class="field-wrap">
+        <div class="field-label">Contest name</div>
+        <input class="inp" id="contest-name" placeholder="e.g. Summer Protein Challenge">
+      </div>
+      <div class="field-wrap">
+        <div class="field-label">Description (optional)</div>
+        <input class="inp" id="contest-desc" placeholder="What's this contest about?">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="field-wrap">
+          <div class="field-label">Start date</div>
+          <input class="inp" id="contest-start" type="date">
+        </div>
+        <div class="field-wrap">
+          <div class="field-label">End date</div>
+          <input class="inp" id="contest-end" type="date">
+        </div>
+      </div>
+      <button class="btn-main" onclick="wizardNext(0)">Next →</button>
+    </div>
+
+    <!-- Step 2: Goals -->
+    <div class="wizard-step" id="wizard-step-1">
+      <div class="wizard-header">
+        <div class="wizard-emoji">🎯</div>
+        <div class="wizard-title">Set the goals</div>
+        <div class="wizard-sub">What will participants track?</div>
+      </div>
+      <div class="field-label">Pick preset goals (optional)</div>
+      <div class="goal-type-grid" id="preset-goals-grid">
+        <button class="goal-type-btn" onclick="togglePresetGoal(this,'protein')" data-goal="protein">🥩 Protein intake</button>
+        <button class="goal-type-btn" onclick="togglePresetGoal(this,'water')" data-goal="water">💧 Water intake</button>
+        <button class="goal-type-btn" onclick="togglePresetGoal(this,'weight')" data-goal="weight">⚖️ Weight loss</button>
+        <button class="goal-type-btn" onclick="togglePresetGoal(this,'steps')" data-goal="steps">👟 Steps/Activity</button>
+      </div>
+      <div class="field-label" style="margin-top:14px;">Custom goals</div>
+      <div id="custom-goals-list"></div>
+      <button onclick="addCustomGoalField()" style="width:100%;padding:10px;border:2px dashed #16A34A;background:transparent;color:#16A34A;border-radius:10px;font-weight:700;cursor:pointer;margin-bottom:12px;">+ Add custom goal</button>
+      <button class="btn-main" onclick="wizardNext(1)">Next →</button>
+      <button class="btn-outline" onclick="wizardBack(1)">← Back</button>
+    </div>
+
+    <!-- Step 3: Goal Details -->
+    <div class="wizard-step" id="wizard-step-2">
+      <div class="wizard-header">
+        <div class="wizard-emoji">📋</div>
+        <div class="wizard-title">Goal details</div>
+        <div class="wizard-sub">Set targets and frequency</div>
+      </div>
+      <div id="goal-details-list"></div>
+      <button class="btn-main" onclick="wizardNext(2)">Next →</button>
+      <button class="btn-outline" onclick="wizardBack(2)">← Back</button>
+    </div>
+
+    <!-- Step 4: Scoring -->
+    <div class="wizard-step" id="wizard-step-3">
+      <div class="wizard-header">
+        <div class="wizard-emoji">⭐</div>
+        <div class="wizard-title">Scoring method</div>
+        <div class="wizard-sub">How will winners be determined?</div>
+      </div>
+      <div onclick="selectScoring('points')" class="scoring-option" id="scoring-points">
+        <div class="scoring-option-title">🏅 Points system</div>
+        <div class="scoring-option-sub">Hit your goal = points. Miss = 0. Most points wins.</div>
+      </div>
+      <div onclick="selectScoring('percentage')" class="scoring-option" id="scoring-percentage">
+        <div class="scoring-option-title">📊 Percentage based</div>
+        <div class="scoring-option-sub">Scored by how close to goal (%). Levels the playing field.</div>
+      </div>
+      <div onclick="selectScoring('totals')" class="scoring-option" id="scoring-totals">
+        <div class="scoring-option-title">📈 Raw totals</div>
+        <div class="scoring-option-sub">Just track the numbers. Most total wins.</div>
+      </div>
+      <div id="points-config" style="display:none;background:#F0FDF4;border-radius:12px;padding:14px;margin-top:10px;">
+        <div class="field-label">Points for hitting goal exactly</div>
+        <input class="inp" id="points-hit" type="number" value="10" placeholder="10">
+        <div class="field-label">Points for coming close (within 10%)</div>
+        <input class="inp" id="points-close" type="number" value="5" placeholder="5">
+        <div class="field-label">Points for partial effort (within 25%)</div>
+        <input class="inp" id="points-partial" type="number" value="2" placeholder="2">
+      </div>
+      <button class="btn-main" style="margin-top:14px;" onclick="wizardNext(3)">Next →</button>
+      <button class="btn-outline" onclick="wizardBack(3)">← Back</button>
+    </div>
+
+    <!-- Step 5: Review & Create -->
+    <div class="wizard-step" id="wizard-step-4">
+      <div class="wizard-header">
+        <div class="wizard-emoji">🚀</div>
+        <div class="wizard-title">Ready to launch!</div>
+        <div class="wizard-sub">Review your contest</div>
+      </div>
+      <div class="contest-card" id="contest-preview"></div>
+      <button class="btn-main" onclick="createContest()" id="create-btn">Launch Contest 🚀</button>
+      <button class="btn-outline" onclick="wizardBack(4)">← Back</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- CONTEST DETAIL SCREEN -->
+<div id="screen-contest-detail" class="screen" style="padding:0;overflow-y:auto;padding-bottom:20px;">
+  <div style="background:linear-gradient(135deg,#16A34A,#EA580C);padding:max(env(safe-area-inset-top),20px) 20px 24px;">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+      <button onclick="showScreen('screen-main')" style="background:rgba(255,255,255,0.2);border:none;color:#fff;border-radius:10px;padding:8px 12px;font-size:18px;cursor:pointer;">←</button>
+      <div style="color:#fff;font-size:20px;font-weight:800;" id="detail-contest-name">Contest</div>
+    </div>
+    <div style="color:rgba(255,255,255,0.85);font-size:13px;" id="detail-contest-dates"></div>
+  </div>
+  <div style="padding:16px;">
+    <div id="detail-leaderboard"></div>
+    <div id="detail-goals" style="margin-top:16px;"></div>
+    <div id="detail-log-section" style="margin-top:16px;"></div>
+    <div id="detail-admin-section" style="display:none;margin-top:16px;"></div>
+  </div>
+</div>
+
 <!-- WATER MODAL -->
 <div class="modal-overlay" id="water-modal">
   <div class="modal-sheet">
@@ -651,6 +846,7 @@ function enterApp() {
   document.getElementById('main-avatar').textContent = avatarEmoji(currentProfile.name);
   showScreen('screen-main');
   renderHome();
+  checkJoinCodeInUrl();
 }
 
 async function tryAutoLogin() {
@@ -748,6 +944,8 @@ async function renderHome() {
   const streakDays = await calcStreak();
   document.getElementById('home-streak').textContent = streakDays + '🔥';
   if (isToday) checkWeightBanner();
+  renderMyContests();
+  checkJoinCodeInUrl();
 
   // Always show log/edit buttons regardless of day
   const logBtn = document.querySelector('.action-row');
@@ -1032,7 +1230,7 @@ async function renderLeaderboard() {
       </div>
       <div>
         <div style="font-size:12px;color:var(--muted);margin-bottom:3px;">Protein: ${Math.round(u.todayLog.protein)}/${u.goals.protein}g</div>
-        <div class="prog-wrap" style="height:10px;"><div class="prog-bar" style="width:${pp}%;background:linear-gradient(90deg,var(--purple),var(--pink))"></div></div>
+        <div class="prog-wrap" style="height:10px;"><div class="prog-bar" style="width:${pp}%;background:linear-gradient(90deg,#16A34A,#EA580C)"></div></div>
         <div style="font-size:12px;color:var(--muted);margin-bottom:3px;margin-top:6px;">Water: ${Math.round(u.todayLog.water)}/${u.goals.water}oz</div>
         <div class="prog-wrap" style="height:10px;"><div class="prog-bar" style="width:${wp}%;background:linear-gradient(90deg,var(--blue),#38BDF8)"></div></div>
       </div>
@@ -1295,7 +1493,7 @@ function selectFoodResult(index) {
         '<span style="font-size:14px;color:var(--muted);">grams protein per ' + food.serving + '</span>' +
       '</div>' +
       '<div style="display:flex;gap:8px;">' +
-        '<button onclick="addSearchedFood()" style="flex:1;padding:12px;background:linear-gradient(135deg,#7C3AED,#DB2777);color:#fff;border:none;border-radius:10px;font-weight:700;font-size:15px;cursor:pointer;">Add to log ✓</button>' +
+        '<button onclick="addSearchedFood()" style="flex:1;padding:12px;background:linear-gradient(135deg,#16A34A,#EA580C);color:#fff;border:none;border-radius:10px;font-weight:700;font-size:15px;cursor:pointer;">Add to log ✓</button>' +
         '<button onclick="clearFoodSearch()" style="padding:12px 16px;background:#F3F4F6;border:none;border-radius:10px;font-size:13px;cursor:pointer;">Cancel</button>' +
       '</div>' +
     '</div>';
@@ -1575,3 +1773,444 @@ function toBase64(file) { return new Promise((res, rej) => { const r = new FileR
 </script>
 </body>
 </html>
+<script>
+// ─── CONTEST SYSTEM ───────────────────────────────────────────────────────
+let wizardState = {
+  step: 0,
+  name: '',
+  desc: '',
+  startDate: '',
+  endDate: '',
+  presetGoals: [],
+  customGoals: [],
+  allGoals: [],
+  scoring: 'points',
+  pointsHit: 10,
+  pointsClose: 5,
+  pointsPartial: 2
+};
+
+let currentContestId = null;
+
+function generateJoinCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return code;
+}
+
+// ─── WIZARD ───────────────────────────────────────────────────────────────
+function wizardNext(step) {
+  if (step === 0) {
+    const name = document.getElementById('contest-name').value.trim();
+    const start = document.getElementById('contest-start').value;
+    const end = document.getElementById('contest-end').value;
+    if (!name) { alert('Please enter a contest name'); return; }
+    if (!start || !end) { alert('Please set start and end dates'); return; }
+    if (end <= start) { alert('End date must be after start date'); return; }
+    wizardState.name = name;
+    wizardState.desc = document.getElementById('contest-desc').value.trim();
+    wizardState.startDate = start;
+    wizardState.endDate = end;
+  }
+  if (step === 1) {
+    const customs = [...document.querySelectorAll('.custom-goal-input')].map(i => i.value.trim()).filter(Boolean);
+    wizardState.customGoals = customs;
+    wizardState.allGoals = [...wizardState.presetGoals.map(g => ({ type: g, name: g, isPreset: true })), ...customs.map(g => ({ type: 'custom', name: g, isPreset: false }))];
+    if (wizardState.allGoals.length === 0) { alert('Please add at least one goal'); return; }
+    buildGoalDetails();
+  }
+  if (step === 2) {
+    const details = [...document.querySelectorAll('.goal-detail-row')];
+    details.forEach((row, i) => {
+      const target = row.querySelector('.goal-target')?.value;
+      const freq = row.querySelector('.goal-freq')?.value;
+      if (wizardState.allGoals[i]) {
+        wizardState.allGoals[i].target = parseFloat(target) || 0;
+        wizardState.allGoals[i].unit = row.querySelector('.goal-unit')?.value || '';
+        wizardState.allGoals[i].frequency = freq || 'daily';
+      }
+    });
+  }
+  if (step === 3) {
+    if (!wizardState.scoring) { alert('Please select a scoring method'); return; }
+    if (wizardState.scoring === 'points') {
+      wizardState.pointsHit = parseInt(document.getElementById('points-hit').value) || 10;
+      wizardState.pointsClose = parseInt(document.getElementById('points-close').value) || 5;
+      wizardState.pointsPartial = parseInt(document.getElementById('points-partial').value) || 2;
+    }
+    buildContestPreview();
+  }
+  goToWizardStep(step + 1);
+}
+
+function wizardBack(step) { goToWizardStep(step - 1); }
+
+function goToWizardStep(step) {
+  document.querySelectorAll('.wizard-step').forEach(s => s.classList.remove('active'));
+  document.getElementById('wizard-step-' + step).classList.add('active');
+  document.querySelectorAll('.wizard-dot').forEach((d, i) => {
+    d.className = 'wizard-dot' + (i < step ? ' done' : i === step ? ' active' : '');
+  });
+  wizardState.step = step;
+}
+
+function togglePresetGoal(btn, goal) {
+  btn.classList.toggle('selected');
+  if (wizardState.presetGoals.includes(goal)) {
+    wizardState.presetGoals = wizardState.presetGoals.filter(g => g !== goal);
+  } else {
+    wizardState.presetGoals.push(goal);
+  }
+}
+
+function addCustomGoalField() {
+  const list = document.getElementById('custom-goals-list');
+  const div = document.createElement('div');
+  div.className = 'custom-goal-row';
+  div.innerHTML = '<input class="inp custom-goal-input" placeholder="e.g. No sugar, Meditate 10 min..." style="flex:1;margin-bottom:0;">' +
+    '<button onclick="this.parentElement.remove()" style="padding:10px;background:#FEE2E2;border:none;border-radius:8px;cursor:pointer;color:#991B1B;font-size:16px;flex-shrink:0;">✕</button>';
+  list.appendChild(div);
+}
+
+function buildGoalDetails() {
+  const list = document.getElementById('goal-details-list');
+  const presetConfig = {
+    protein: { label: 'Protein', unit: 'grams', defaultTarget: 150 },
+    water: { label: 'Water intake', unit: 'oz', defaultTarget: 100 },
+    weight: { label: 'Weight loss', unit: 'lbs', defaultTarget: 5 },
+    steps: { label: 'Steps', unit: 'steps', defaultTarget: 10000 }
+  };
+  list.innerHTML = wizardState.allGoals.map((g, i) => {
+    const cfg = presetConfig[g.type] || { label: g.name, unit: '', defaultTarget: '' };
+    return `<div class="goal-detail-row card" style="margin-bottom:10px;">
+      <div style="font-size:15px;font-weight:700;margin-bottom:10px;">${g.name}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div>
+          <div class="field-label">Target amount</div>
+          <input class="inp goal-target" type="number" placeholder="${cfg.defaultTarget}" value="${cfg.defaultTarget}" style="margin-bottom:0;">
+        </div>
+        <div>
+          <div class="field-label">Unit</div>
+          <input class="inp goal-unit" placeholder="${cfg.unit}" value="${cfg.unit}" style="margin-bottom:0;">
+        </div>
+      </div>
+      <div style="margin-top:8px;">
+        <div class="field-label">Goal frequency</div>
+        <select class="inp goal-freq" style="margin-bottom:0;">
+          <option value="daily">Daily goal</option>
+          <option value="weekly">Weekly goal</option>
+          <option value="contest">Contest total goal</option>
+        </select>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function selectScoring(type) {
+  document.querySelectorAll('.scoring-option').forEach(o => o.classList.remove('selected'));
+  document.getElementById('scoring-' + type).classList.add('selected');
+  wizardState.scoring = type;
+  document.getElementById('points-config').style.display = type === 'points' ? 'block' : 'none';
+}
+
+function buildContestPreview() {
+  const start = new Date(wizardState.startDate + 'T12:00:00');
+  const end = new Date(wizardState.endDate + 'T12:00:00');
+  const days = Math.round((end - start) / (1000 * 60 * 60 * 24));
+  document.getElementById('contest-preview').innerHTML = `
+    <div class="contest-title">${wizardState.name}</div>
+    ${wizardState.desc ? `<div style="font-size:13px;color:var(--muted);margin-bottom:8px;">${wizardState.desc}</div>` : ''}
+    <div class="contest-meta">${start.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${end.toLocaleDateString('en-US',{month:'short',day:'numeric'})} · ${days} days</div>
+    <div class="contest-goals">
+      ${wizardState.allGoals.map(g => `<span class="goal-chip">${g.name}: ${g.target} ${g.unit} ${g.frequency}</span>`).join('')}
+    </div>
+    <div style="font-size:13px;color:var(--muted);">Scoring: ${wizardState.scoring}</div>`;
+}
+
+async function createContest() {
+  const btn = document.getElementById('create-btn');
+  btn.textContent = 'Creating...'; btn.disabled = true;
+  const joinCode = generateJoinCode();
+  try {
+    const { data, error } = await sb.from('contests').insert({
+      name: wizardState.name,
+      description: wizardState.desc,
+      creator_id: currentUser,
+      start_date: wizardState.startDate,
+      end_date: wizardState.endDate,
+      scoring_method: wizardState.scoring,
+      points_hit: wizardState.pointsHit,
+      points_close: wizardState.pointsClose,
+      points_partial: wizardState.pointsPartial,
+      join_code: joinCode,
+      goals: wizardState.allGoals,
+      status: 'active'
+    }).select().single();
+    if (error) throw error;
+    // Auto-join creator
+    await sb.from('contest_members').insert({ contest_id: data.id, user_id: currentUser, role: 'admin' });
+    // Reset wizard
+    wizardState = { step:0, name:'', desc:'', startDate:'', endDate:'', presetGoals:[], customGoals:[], allGoals:[], scoring:'points', pointsHit:10, pointsClose:5, pointsPartial:2 };
+    document.querySelectorAll('.wizard-step').forEach(s => s.classList.remove('active'));
+    document.getElementById('wizard-step-0').classList.add('active');
+    document.getElementById('contest-name').value = '';
+    document.getElementById('contest-desc').value = '';
+    document.getElementById('contest-start').value = '';
+    document.getElementById('contest-end').value = '';
+    document.querySelectorAll('.goal-type-btn').forEach(b => b.classList.remove('selected'));
+    document.getElementById('custom-goals-list').innerHTML = '';
+    showContestDetail(data.id);
+  } catch(e) {
+    alert('Error creating contest: ' + e.message);
+    btn.textContent = 'Launch Contest 🚀'; btn.disabled = false;
+  }
+}
+
+// ─── CONTESTS LIST ────────────────────────────────────────────────────────
+async function renderMyContests() {
+  const list = document.getElementById('my-contests-list');
+  if (!list) return;
+  try {
+    const { data: memberships } = await sb.from('contest_members').select('contest_id, role').eq('user_id', currentUser);
+    if (!memberships || memberships.length === 0) {
+      list.innerHTML = '<div class="empty-state" style="padding:16px 0;">No contests yet — create one or join with a code!</div>';
+      return;
+    }
+    const ids = memberships.map(m => m.contest_id);
+    const roleMap = {};
+    memberships.forEach(m => roleMap[m.contest_id] = m.role);
+    const { data: contests } = await sb.from('contests').select('*').in('id', ids).order('created_at', { ascending: false });
+    if (!contests || contests.length === 0) { list.innerHTML = '<div class="empty-state">No contests found.</div>'; return; }
+    const now = new Date();
+    list.innerHTML = contests.map(c => {
+      const start = new Date(c.start_date + 'T12:00:00');
+      const end = new Date(c.end_date + 'T12:00:00');
+      const daysLeft = Math.ceil((end - now) / (1000*60*60*24));
+      const isEnded = end < now;
+      const isAdmin = roleMap[c.id] === 'admin';
+      return `<div class="contest-card${isEnded?' ended':''}" onclick="showContestDetail('${c.id}')">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div class="contest-title">${c.name}</div>
+          ${isAdmin ? '<span style="background:#DCFCE7;color:#16A34A;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;">Admin</span>' : ''}
+        </div>
+        <div class="contest-meta">
+          ${start.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${end.toLocaleDateString('en-US',{month:'short',day:'numeric'})}
+          ${isEnded ? ' · Ended' : ` · ${daysLeft} day${daysLeft!==1?'s':''} left`}
+        </div>
+        <div class="contest-goals">
+          ${(c.goals||[]).map(g => `<span class="goal-chip">${g.name}</span>`).join('')}
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    list.innerHTML = '<div class="empty-state">Could not load contests.</div>';
+  }
+}
+
+async function joinByCode() {
+  const code = document.getElementById('join-code-input').value.trim().toUpperCase();
+  if (!code || code.length < 4) { alert('Please enter a valid join code'); return; }
+  const { data: contest } = await sb.from('contests').select('*').eq('join_code', code).maybeSingle();
+  if (!contest) { alert('Contest not found. Check the code and try again.'); return; }
+  const { data: existing } = await sb.from('contest_members').select('id').eq('contest_id', contest.id).eq('user_id', currentUser).maybeSingle();
+  if (existing) { alert('You are already in this contest!'); showContestDetail(contest.id); return; }
+  await sb.from('contest_members').insert({ contest_id: contest.id, user_id: currentUser, role: 'member' });
+  document.getElementById('join-code-input').value = '';
+  alert('Joined "' + contest.name + '" successfully!');
+  renderMyContests();
+  showContestDetail(contest.id);
+}
+
+// ─── CONTEST DETAIL ───────────────────────────────────────────────────────
+async function showContestDetail(contestId) {
+  currentContestId = contestId;
+  showScreen('screen-contest-detail');
+  const { data: contest } = await sb.from('contests').select('*').eq('id', contestId).single();
+  if (!contest) return;
+  document.getElementById('detail-contest-name').textContent = contest.name;
+  const start = new Date(contest.start_date + 'T12:00:00');
+  const end = new Date(contest.end_date + 'T12:00:00');
+  document.getElementById('detail-contest-dates').textContent =
+    start.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}) + ' – ' +
+    end.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+
+  // Check if admin
+  const { data: membership } = await sb.from('contest_members').select('role').eq('contest_id', contestId).eq('user_id', currentUser).maybeSingle();
+  const isAdmin = membership?.role === 'admin';
+
+  // Render goals
+  const goalDiv = document.getElementById('detail-goals');
+  goalDiv.innerHTML = `<div class="card">
+    <div style="font-size:15px;font-weight:700;margin-bottom:10px;">Contest Goals</div>
+    ${(contest.goals||[]).map(g => `
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #F3F4F6;font-size:14px;">
+        <span>${g.name}</span>
+        <span style="font-weight:700;color:#16A34A;">${g.target} ${g.unit} <span style="color:var(--muted);font-weight:400;">${g.frequency}</span></span>
+      </div>`).join('')}
+    <div style="font-size:12px;color:var(--muted);margin-top:8px;">Scoring: ${contest.scoring_method}${contest.scoring_method==='points'?` · Hit=${contest.points_hit}pts · Close=${contest.points_close}pts · Partial=${contest.points_partial}pts`:''}</div>
+  </div>`;
+
+  // Render log section
+  const logDiv = document.getElementById('detail-log-section');
+  logDiv.innerHTML = `<div class="card">
+    <div style="font-size:15px;font-weight:700;margin-bottom:10px;">Log Progress</div>
+    ${(contest.goals||[]).map((g,i) => `
+      <div style="margin-bottom:10px;">
+        <div class="field-label">${g.name} (${g.unit})</div>
+        <div style="display:flex;gap:8px;">
+          <input class="inp" id="contest-log-${i}" type="number" placeholder="Enter amount..." style="flex:1;margin-bottom:0;">
+          <button onclick="logContestGoal('${contestId}','${g.name}',${i},'${g.unit}')" style="padding:10px 14px;background:#16A34A;color:#fff;border:none;border-radius:10px;font-weight:700;cursor:pointer;">Log</button>
+        </div>
+      </div>`).join('')}
+  </div>`;
+
+  // Render leaderboard
+  await renderContestLeaderboard(contest);
+
+  // Admin panel
+  const adminDiv = document.getElementById('detail-admin-section');
+  if (isAdmin) {
+    adminDiv.style.display = 'block';
+    const { data: members } = await sb.from('contest_members').select('user_id').eq('contest_id', contestId);
+    const memberIds = (members||[]).map(m => m.user_id);
+    const { data: profiles } = await sb.from('profiles').select('id,name,username').in('id', memberIds);
+    adminDiv.innerHTML = `<div class="card">
+      <div style="font-size:15px;font-weight:700;margin-bottom:12px;">⚙️ Admin Controls</div>
+      <div class="invite-box">
+        <div style="font-size:13px;font-weight:700;margin-bottom:4px;">Join Code</div>
+        <div class="join-code-display">${contest.join_code}</div>
+        <button onclick="copyJoinCode('${contest.join_code}')" style="width:100%;padding:10px;background:#16A34A;color:#fff;border:none;border-radius:10px;font-weight:700;cursor:pointer;margin-bottom:8px;">📋 Copy join code</button>
+      </div>
+      <div class="invite-box" style="margin-top:10px;">
+        <div style="font-size:13px;font-weight:700;margin-bottom:8px;">📧 Invite by email</div>
+        <input class="inp" id="invite-email" placeholder="friend@email.com" type="email" style="margin-bottom:8px;">
+        <button onclick="sendContestInvite('${contestId}','${contest.name}','${contest.join_code}')" style="width:100%;padding:10px;background:linear-gradient(135deg,#16A34A,#EA580C);color:#fff;border:none;border-radius:10px;font-weight:700;cursor:pointer;">Send Invite Email</button>
+      </div>
+      <div style="margin-top:14px;">
+        <div style="font-size:13px;font-weight:700;margin-bottom:8px;">Members (${profiles?.length||0})</div>
+        ${(profiles||[]).map(p => `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #F3F4F6;">
+            <div>
+              <div style="font-weight:600;">${p.name}</div>
+              <div style="font-size:12px;color:var(--muted);">@${p.username}</div>
+            </div>
+            ${p.id !== currentUser ? `<button onclick="removeMemberFromContest('${contestId}','${p.id}','${p.name}')" style="background:#FEE2E2;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;color:#991B1B;cursor:pointer;">Remove</button>` : '<span style="font-size:12px;color:#16A34A;font-weight:700;">You (Admin)</span>'}
+          </div>`).join('')}
+      </div>
+      <button onclick="endContest('${contestId}')" style="width:100%;margin-top:14px;padding:12px;background:#FEE2E2;color:#991B1B;border:none;border-radius:10px;font-weight:700;cursor:pointer;">End Contest Early</button>
+    </div>`;
+  } else {
+    adminDiv.style.display = 'none';
+  }
+}
+
+async function renderContestLeaderboard(contest) {
+  const lbDiv = document.getElementById('detail-leaderboard');
+  lbDiv.innerHTML = '<div class="loading"><span class="dot-spin"></span></div>';
+  const { data: members } = await sb.from('contest_members').select('user_id').eq('contest_id', contest.id);
+  const memberIds = (members||[]).map(m => m.user_id);
+  if (!memberIds.length) { lbDiv.innerHTML = '<div class="empty-state">No members yet.</div>'; return; }
+  const { data: profiles } = await sb.from('profiles').select('id,name').in('id', memberIds);
+  const { data: logs } = await sb.from('contest_logs').select('*').eq('contest_id', contest.id);
+  const medals = ['🥇','🥈','🥉'];
+  const scored = (profiles||[]).map(p => {
+    const userLogs = (logs||[]).filter(l => l.user_id === p.id);
+    let score = 0;
+    const goalTotals = {};
+    userLogs.forEach(l => { goalTotals[l.goal_name] = (goalTotals[l.goal_name]||0) + l.amount; });
+    (contest.goals||[]).forEach(g => {
+      const logged = goalTotals[g.name] || 0;
+      if (contest.scoring_method === 'points') {
+        const pct = g.target > 0 ? logged / g.target : 0;
+        if (pct >= 1) score += contest.points_hit || 10;
+        else if (pct >= 0.9) score += contest.points_close || 5;
+        else if (pct >= 0.75) score += contest.points_partial || 2;
+      } else if (contest.scoring_method === 'percentage') {
+        score += g.target > 0 ? Math.min(100, Math.round(logged/g.target*100)) : 0;
+      } else {
+        score += logged;
+      }
+    });
+    return { ...p, score, goalTotals };
+  }).sort((a,b) => b.score - a.score);
+
+  const unit = contest.scoring_method === 'points' ? 'pts' : contest.scoring_method === 'percentage' ? '%' : '';
+  lbDiv.innerHTML = `<div class="card">
+    <div style="font-size:15px;font-weight:700;margin-bottom:12px;">🏆 Leaderboard</div>
+    ${scored.map((p,i) => `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #F3F4F6;${p.id===currentUser?'background:#F0FDF4;margin:0 -16px;padding:10px 16px;':''}">
+        <div style="font-size:22px;min-width:32px;">${medals[i]||'#'+(i+1)}</div>
+        <div style="flex:1;">
+          <div style="font-weight:700;">${p.name}${p.id===currentUser?' (you)':''}</div>
+          <div style="font-size:12px;color:var(--muted);">
+            ${(contest.goals||[]).map(g => g.name + ': ' + (p.goalTotals[g.name]||0) + ' ' + g.unit).join(' · ')}
+          </div>
+        </div>
+        <div style="font-size:18px;font-weight:800;color:#16A34A;">${Math.round(p.score)}${unit}</div>
+      </div>`).join('')}
+  </div>`;
+}
+
+async function logContestGoal(contestId, goalName, index, unit) {
+  const amount = parseFloat(document.getElementById('contest-log-' + index)?.value);
+  if (!amount || amount <= 0) { alert('Please enter an amount'); return; }
+  await sb.from('contest_logs').insert({ contest_id: contestId, user_id: currentUser, goal_name: goalName, amount, log_date: getTodayKey() });
+  document.getElementById('contest-log-' + index).value = '';
+  const { data: contest } = await sb.from('contests').select('*').eq('id', contestId).single();
+  await renderContestLeaderboard(contest);
+  alert('Logged ' + amount + ' ' + unit + ' for ' + goalName + '!');
+}
+
+function copyJoinCode(code) {
+  navigator.clipboard.writeText(code).then(() => alert('Join code copied: ' + code)).catch(() => alert('Join code: ' + code));
+}
+
+async function sendContestInvite(contestId, contestName, joinCode) {
+  const email = document.getElementById('invite-email').value.trim();
+  if (!email) { alert('Please enter an email address'); return; }
+  try {
+    await fetch('/api/contest', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'send_invite',
+        contest_id: contestId,
+        contest_name: contestName,
+        inviter_name: currentProfile.name,
+        email,
+        join_code: joinCode,
+        base_url: window.location.origin + window.location.pathname
+      })
+    });
+    document.getElementById('invite-email').value = '';
+    alert('Invite sent to ' + email + '!\n\nAlso share the join code: ' + joinCode);
+  } catch(e) {
+    alert('Could not send email. Share join code manually: ' + joinCode);
+  }
+}
+
+async function removeMemberFromContest(contestId, userId, name) {
+  if (!confirm('Remove ' + name + ' from this contest?')) return;
+  await sb.from('contest_logs').delete().eq('contest_id', contestId).eq('user_id', userId);
+  await sb.from('contest_members').delete().eq('contest_id', contestId).eq('user_id', userId);
+  showContestDetail(contestId);
+}
+
+async function endContest(contestId) {
+  if (!confirm('End this contest early? This cannot be undone.')) return;
+  await sb.from('contests').update({ status: 'ended', end_date: getTodayKey() }).eq('id', contestId);
+  showScreen('screen-main');
+  renderMyContests();
+}
+
+// Check for join code in URL on load
+function checkJoinCodeInUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('join');
+  if (code) {
+    const input = document.getElementById('join-code-input');
+    if (input) { input.value = code; }
+  }
+}
+</script>
