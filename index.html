@@ -820,11 +820,6 @@ async function doLogin() {
 
 function enterApp() {
   saveSession(currentProfile);
-  document.getElementById('main-greeting').textContent = 'Hey, ' + currentProfile.name + '! ' + avatarEmoji(currentProfile.name);
-  const wkDate = new Date(getWeekKey() + 'T12:00:00');
-  const wkLabel = wkDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-  document.getElementById('main-week').textContent = 'Week of ' + wkLabel;
-  document.getElementById('main-avatar').textContent = avatarEmoji(currentProfile.name);
   showScreen('screen-main');
   renderHome();
   checkJoinCodeInUrl();
@@ -869,32 +864,9 @@ async function renderHome() {
   const today = getTodayKey();
   const displayDate = viewingDate || today;
   const isToday = displayDate === today;
-  const titleEl = document.getElementById('food-log-title');
-  if (titleEl) {
-    if (isToday) {
-      titleEl.textContent = "Today's food log";
-    } else {
-      const d = new Date(displayDate + 'T12:00:00');
-      const dayName = d.toLocaleDateString('en-US', { weekday: 'long' });
-      titleEl.textContent = dayName + "'s food log";
-    }
-  }
+  // food-log-title element removed from new design
 
-  // Update date label
-  const dateLabel = document.getElementById('viewing-date-label');
-  const nextBtn = document.getElementById('next-day-btn');
-  if (dateLabel) {
-    if (isToday) {
-      dateLabel.textContent = 'Today — ' + formatDateLabel(today);
-    } else {
-      const d = new Date(displayDate + 'T12:00:00');
-      dateLabel.textContent = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-    }
-  }
-  if (nextBtn) {
-    nextBtn.disabled = isToday;
-    nextBtn.style.opacity = isToday ? '0.3' : '1';
-  }
+  // date nav elements removed from new design
 
   const { data: log } = await sb.from('daily_logs').select('*').eq('user_id', currentUser).eq('log_date', displayDate).maybeSingle();
   const protein = log ? log.protein : 0;
@@ -919,11 +891,10 @@ async function renderHome() {
   const myPts = weekPtsMap[currentUser] || 0;
   const ranked = Object.entries(weekPtsMap).sort((a, b) => b[1] - a[1]);
   const myRank = ranked.findIndex(([id]) => id === currentUser) + 1;
-  document.getElementById('home-pts').textContent = myPts;
-  document.getElementById('home-rank').textContent = '#' + (myRank || 1);
+  // home-pts and home-rank removed from new design
 
   const streakDays = await calcStreak();
-  document.getElementById('home-streak').textContent = streakDays + '🔥';
+  // home-streak removed from new design
   if (isToday) checkWeightBanner();
   renderMyContests();
   checkJoinCodeInUrl();
