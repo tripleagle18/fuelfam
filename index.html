@@ -541,7 +541,6 @@
       <div class="wizard-dot" id="dot-1"></div>
       <div class="wizard-dot" id="dot-2"></div>
       <div class="wizard-dot" id="dot-3"></div>
-      <div class="wizard-dot" id="dot-4"></div>
     </div>
 
     <!-- Step 1: Name & Duration -->
@@ -579,66 +578,62 @@
         <div class="wizard-title">Set the goals</div>
         <div class="wizard-sub">What will participants track?</div>
       </div>
-      <div class="field-label">Pick preset goals (optional)</div>
+      <div class="field-label">Preset goals</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">These auto-calculate from each user's profile — no setup needed!</div>
       <div class="goal-type-grid" id="preset-goals-grid">
-        <button class="goal-type-btn" onclick="togglePresetGoal(this,'protein')" data-goal="protein">🥩 Protein intake</button>
-        <button class="goal-type-btn" onclick="togglePresetGoal(this,'water')" data-goal="water">💧 Water intake</button>
-        <button class="goal-type-btn" onclick="togglePresetGoal(this,'weight')" data-goal="weight">⚖️ Weight loss</button>
-        <button class="goal-type-btn" onclick="togglePresetGoal(this,'steps')" data-goal="steps">👟 Steps/Activity</button>
+        <button class="goal-type-btn" onclick="togglePresetGoal(this,'protein')" data-goal="protein">🥩 Protein<br><span style="font-size:11px;font-weight:400;">Auto from profile</span></button>
+        <button class="goal-type-btn" onclick="togglePresetGoal(this,'water')" data-goal="water">💧 Water<br><span style="font-size:11px;font-weight:400;">Auto from profile</span></button>
+        <button class="goal-type-btn" onclick="togglePresetGoal(this,'weight')" data-goal="weight">⚖️ Weight loss<br><span style="font-size:11px;font-weight:400;">You define target</span></button>
+        <button class="goal-type-btn" onclick="togglePresetGoal(this,'steps')" data-goal="steps">👟 Steps<br><span style="font-size:11px;font-weight:400;">You define target</span></button>
       </div>
-      <div class="field-label" style="margin-top:14px;">Custom goals</div>
+
+      <!-- Weight goal config - shown when weight is selected -->
+      <div id="weight-goal-config" style="display:none;background:#F0FDF4;border-radius:12px;padding:14px;margin-top:10px;">
+        <div style="font-size:14px;font-weight:700;margin-bottom:10px;">⚖️ Weight loss goal type</div>
+        <div onclick="selectWeightGoalType('percent')" id="wgt-percent" class="scoring-option" style="margin-bottom:8px;">
+          <div class="scoring-option-title">% of body weight</div>
+          <div class="scoring-option-sub">e.g. lose 5% of starting weight</div>
+        </div>
+        <div onclick="selectWeightGoalType('pounds')" id="wgt-pounds" class="scoring-option">
+          <div class="scoring-option-title">Pounds to lose</div>
+          <div class="scoring-option-sub">e.g. lose 10 lbs total</div>
+        </div>
+        <div style="margin-top:10px;display:flex;gap:8px;align-items:center;">
+          <input class="inp" id="weight-goal-amount" type="number" placeholder="e.g. 5" style="flex:1;margin-bottom:0;">
+          <span id="weight-goal-unit" style="font-size:14px;color:var(--muted);white-space:nowrap;">% of body weight</span>
+        </div>
+      </div>
+
+      <div class="field-label" style="margin-top:16px;">Custom goals</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Add anything — workouts, habits, challenges</div>
       <div id="custom-goals-list"></div>
       <button onclick="addCustomGoalField()" style="width:100%;padding:10px;border:2px dashed #16A34A;background:transparent;color:#16A34A;border-radius:10px;font-weight:700;cursor:pointer;margin-bottom:12px;">+ Add custom goal</button>
-      <div style="font-size:12px;color:var(--muted);text-align:center;">You can set specific targets in the next step</div>
       <button class="btn-main" onclick="wizardNext(1)">Next →</button>
       <button class="btn-outline" onclick="wizardBack(1)">← Back</button>
     </div>
 
-    <!-- Step 3: Goal Details -->
+    <!-- Step 3: Scoring (replaces old goal details) -->
     <div class="wizard-step" id="wizard-step-2">
-      <div class="wizard-header">
-        <div class="wizard-emoji">📋</div>
-        <div class="wizard-title">Goal details</div>
-        <div class="wizard-sub">Set targets and frequency</div>
-      </div>
-      <div id="goal-details-list"></div>
-      <button class="btn-main" onclick="wizardNext(2)">Next →</button>
-      <button class="btn-outline" onclick="wizardBack(2)">← Back</button>
-    </div>
-
-    <!-- Step 4: Scoring -->
-    <div class="wizard-step" id="wizard-step-3">
       <div class="wizard-header">
         <div class="wizard-emoji">⭐</div>
         <div class="wizard-title">Scoring method</div>
-        <div class="wizard-sub">How will winners be determined?</div>
+        <div class="wizard-sub">Define how points are awarded</div>
       </div>
-      <div onclick="selectScoring('points')" class="scoring-option" id="scoring-points">
-        <div class="scoring-option-title">🏅 Points system</div>
-        <div class="scoring-option-sub">Hit your goal = points. Miss = 0. Most points wins.</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:12px;">Add as many tiers as you want. Points are awarded when a contestant hits that % of their goal.</div>
+      <div id="scoring-tiers-list"></div>
+      <button onclick="addScoringTier()" style="width:100%;padding:10px;border:2px dashed #EA580C;background:transparent;color:#EA580C;border-radius:10px;font-weight:700;cursor:pointer;margin-bottom:16px;">+ Add scoring tier</button>
+      <div style="background:#F0FDF4;border-radius:12px;padding:12px;font-size:13px;color:var(--muted);">
+        💡 <strong>Example:</strong> 10 pts for 100% of goal, 7 pts for 90%, 3 pts for 75%
       </div>
-      <div onclick="selectScoring('percentage')" class="scoring-option" id="scoring-percentage">
-        <div class="scoring-option-title">📊 Percentage based</div>
-        <div class="scoring-option-sub">Scored by how close to goal (%). Levels the playing field.</div>
-      </div>
-      <div onclick="selectScoring('totals')" class="scoring-option" id="scoring-totals">
-        <div class="scoring-option-title">📈 Raw totals</div>
-        <div class="scoring-option-sub">Just track the numbers. Most total wins.</div>
-      </div>
-      <div id="points-config" style="display:none;background:#F0FDF4;border-radius:12px;padding:14px;margin-top:10px;">
-        <div class="field-label">Points for hitting goal exactly</div>
-        <input class="inp" id="points-hit" type="number" value="10" placeholder="10">
-        <div class="field-label">Points for coming close (within 10%)</div>
-        <input class="inp" id="points-close" type="number" value="5" placeholder="5">
-        <div class="field-label">Points for partial effort (within 25%)</div>
-        <input class="inp" id="points-partial" type="number" value="2" placeholder="2">
-      </div>
-      <button class="btn-main" style="margin-top:14px;" onclick="wizardNext(3)">Next →</button>
-      <button class="btn-outline" onclick="wizardBack(3)">← Back</button>
+      <button class="btn-main" style="margin-top:14px;" onclick="wizardNext(2)">Next →</button>
+      <button class="btn-outline" onclick="wizardBack(2)">← Back</button>
     </div>
 
-    <!-- Step 5: Review & Create -->
-    <div class="wizard-step" id="wizard-step-4">
+    <!-- Step 4: empty - skip to review -->
+    <div class="wizard-step" id="wizard-step-3" style="display:none!important;"></div>
+
+    <!-- Step 4: Review & Create -->
+    <div class="wizard-step" id="wizard-step-3b">
       <div class="wizard-header">
         <div class="wizard-emoji">🚀</div>
         <div class="wizard-title">Ready to launch!</div>
@@ -646,7 +641,7 @@
       </div>
       <div class="contest-card" id="contest-preview"></div>
       <button class="btn-main" onclick="createContest()" id="create-btn">Launch Contest 🚀</button>
-      <button class="btn-outline" onclick="wizardBack(4)">← Back</button>
+      <button class="btn-outline" onclick="wizardBack(3)">← Back</button>
     </div>
 
   </div>
@@ -1941,10 +1936,8 @@ let wizardState = {
   presetGoals: [],
   customGoals: [],
   allGoals: [],
-  scoring: 'points',
-  pointsHit: 10,
-  pointsClose: 5,
-  pointsPartial: 2
+  scoringTiers: [],
+  weightGoalType: 'percent'
 };
 
 let currentContestId = null;
@@ -1969,54 +1962,70 @@ function wizardNext(step) {
     wizardState.desc = document.getElementById('contest-desc').value.trim();
     wizardState.startDate = start;
     wizardState.endDate = end;
-  }
-  if (step === 1) {
+    goToWizardStep(1);
+  } else if (step === 1) {
+    // Collect custom goals
     const customRows = [...document.querySelectorAll('#custom-goals-list > div')];
     const customs = customRows.map(row => {
       const name = row.querySelector('.custom-goal-input')?.value?.trim();
-      const num = row.querySelector('.custom-goal-freq-num')?.value || '1';
+      const num = parseInt(row.querySelector('.custom-goal-freq-num')?.value) || 1;
       const period = row.querySelector('.custom-goal-freq-period')?.value || 'day';
-      return name ? { name, freqNum: parseInt(num)||1, freqPeriod: period } : null;
+      return name ? { type:'custom', name, isPreset:false, freqNum:num, freqPeriod:period } : null;
     }).filter(Boolean);
-    wizardState.customGoals = customs;
-    wizardState.allGoals = [
-      ...wizardState.presetGoals.map(g => ({ type: g, name: g.charAt(0).toUpperCase()+g.slice(1), isPreset: true, freqNum: 1, freqPeriod: 'day' })),
-      ...customs.map(g => ({ type: 'custom', name: g.name, isPreset: false, freqNum: g.freqNum, freqPeriod: g.freqPeriod }))
-    ];
-    if (wizardState.allGoals.length === 0) { alert('Please add at least one goal'); return; }
-    buildGoalDetails();
-  }
-  if (step === 2) {
-    const details = [...document.querySelectorAll('.goal-detail-row')];
-    details.forEach((row, i) => {
-      const target = row.querySelector('.goal-target')?.value;
-      const freq = row.querySelector('.goal-freq')?.value;
-      if (wizardState.allGoals[i]) {
-        wizardState.allGoals[i].target = parseFloat(target) || 0;
-        wizardState.allGoals[i].unit = row.querySelector('.goal-unit')?.value || '';
-        wizardState.allGoals[i].frequency = freq || 'daily';
+
+    // Build preset goals - no target needed for protein/water (auto from profile)
+    const presets = wizardState.presetGoals.map(g => {
+      if (g === 'protein') return { type:'protein', name:'Protein', isPreset:true, autoFromProfile:true, unit:'g', freqPeriod:'day' };
+      if (g === 'water') return { type:'water', name:'Water', isPreset:true, autoFromProfile:true, unit:'oz', freqPeriod:'day' };
+      if (g === 'weight') {
+        const amt = parseFloat(document.getElementById('weight-goal-amount')?.value) || 5;
+        const wType = wizardState.weightGoalType || 'percent';
+        return { type:'weight', name:'Weight Loss', isPreset:true, weightGoalType:wType, target:amt, unit: wType==='percent'?'% of body weight':'lbs', freqPeriod:'contest' };
       }
-    });
-  }
-  if (step === 3) {
-    if (!wizardState.scoring) { alert('Please select a scoring method'); return; }
-    if (wizardState.scoring === 'points') {
-      wizardState.pointsHit = parseInt(document.getElementById('points-hit').value) || 10;
-      wizardState.pointsClose = parseInt(document.getElementById('points-close').value) || 5;
-      wizardState.pointsPartial = parseInt(document.getElementById('points-partial').value) || 2;
+      if (g === 'steps') return { type:'steps', name:'Steps', isPreset:true, target:10000, unit:'steps', freqPeriod:'day' };
+      return null;
+    }).filter(Boolean);
+
+    wizardState.allGoals = [...presets, ...customs];
+    if (wizardState.allGoals.length === 0) { alert('Please add at least one goal'); return; }
+
+    // Init scoring tiers
+    if (wizardState.scoringTiers.length === 0) {
+      wizardState.scoringTiers = [
+        { points: 10, pct: 100 },
+        { points: 7, pct: 90 },
+        { points: 3, pct: 75 }
+      ];
     }
+    buildScoringTiers();
+    goToWizardStep(2);
+  } else if (step === 2) {
+    // Collect scoring tiers
+    const rows = [...document.querySelectorAll('.scoring-tier-row')];
+    wizardState.scoringTiers = rows.map(row => ({
+      points: parseInt(row.querySelector('.tier-points')?.value) || 0,
+      pct: parseInt(row.querySelector('.tier-pct')?.value) || 0
+    })).filter(t => t.points > 0 && t.pct > 0);
+    if (wizardState.scoringTiers.length === 0) { alert('Please add at least one scoring tier'); return; }
+    wizardState.scoringTiers.sort((a,b) => b.pct - a.pct);
     buildContestPreview();
+    goToWizardStep('3b');
   }
-  goToWizardStep(step + 1);
 }
 
-function wizardBack(step) { goToWizardStep(step - 1); }
+function wizardBack(step) {
+  if (step === 2) goToWizardStep(1);
+  else if (step === 3) goToWizardStep(2);
+  else goToWizardStep(step - 1);
+}
 
 function goToWizardStep(step) {
   document.querySelectorAll('.wizard-step').forEach(s => s.classList.remove('active'));
-  document.getElementById('wizard-step-' + step).classList.add('active');
+  const el = document.getElementById('wizard-step-' + step);
+  if (el) el.classList.add('active');
+  const stepNum = step === '3b' ? 3 : parseInt(step);
   document.querySelectorAll('.wizard-dot').forEach((d, i) => {
-    d.className = 'wizard-dot' + (i < step ? ' done' : i === step ? ' active' : '');
+    d.className = 'wizard-dot' + (i < stepNum ? ' done' : i === stepNum ? ' active' : '');
   });
   wizardState.step = step;
 }
@@ -2028,80 +2037,81 @@ function togglePresetGoal(btn, goal) {
   } else {
     wizardState.presetGoals.push(goal);
   }
+  // Show/hide weight config
+  const wc = document.getElementById('weight-goal-config');
+  if (wc) wc.style.display = wizardState.presetGoals.includes('weight') ? 'block' : 'none';
 }
+
+function selectWeightGoalType(type) {
+  wizardState.weightGoalType = type;
+  document.getElementById('wgt-percent').classList.toggle('selected', type === 'percent');
+  document.getElementById('wgt-pounds').classList.toggle('selected', type === 'pounds');
+  document.getElementById('weight-goal-unit').textContent = type === 'percent' ? '% of body weight' : 'lbs to lose';
+}
+
+function removeCustomGoal(btn) { btn.closest("div[style]").remove(); }
 
 function addCustomGoalField() {
   const list = document.getElementById('custom-goals-list');
-  const idx = list.children.length;
   const div = document.createElement('div');
   div.style.cssText = 'background:#F9FAFB;border-radius:12px;padding:12px;margin-bottom:10px;';
-  div.innerHTML = `
-    <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center;">
-      <input class="inp custom-goal-input" placeholder="e.g. No sugar, Walk 30 min, Read..." style="flex:1;margin-bottom:0;">
-      <button onclick="this.closest('div[style]').remove()" style="padding:8px;background:#FEE2E2;border:none;border-radius:8px;cursor:pointer;color:#991B1B;font-size:14px;flex-shrink:0;">✕</button>
-    </div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:6px;font-weight:600;">How often should contestants hit this goal?</div>
-    <div style="display:flex;gap:8px;align-items:center;">
-      <input type="number" class="inp custom-goal-freq-num" placeholder="1" min="1" style="width:64px;margin-bottom:0;text-align:center;">
-      <span style="font-size:14px;color:var(--muted);">time(s) per</span>
-      <select class="inp custom-goal-freq-period" style="flex:1;margin-bottom:0;">
-        <option value="day">Day</option>
-        <option value="week">Week</option>
-        <option value="month">Month</option>
-        <option value="contest">Contest (total)</option>
-      </select>
-    </div>`;
+  div.innerHTML =
+    '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px;">Name of goal:</div>' +
+    '<div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;">' +
+      '<input class="inp custom-goal-input" placeholder="e.g. No sugar, Walk 30 min..." style="flex:1;margin-bottom:0;">' +
+      '<button onclick="removeCustomGoal(this)" style="padding:8px;background:#FEE2E2;border:none;border-radius:8px;cursor:pointer;color:#991B1B;font-size:14px;flex-shrink:0;">✕</button>' +
+    '</div>' +
+    '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px;">How often should contestants achieve this goal?</div>' +
+    '<div style="display:flex;gap:8px;align-items:center;">' +
+      '<input type="number" class="inp custom-goal-freq-num" placeholder="1" min="1" style="width:64px;margin-bottom:0;text-align:center;font-size:16px;font-weight:700;">' +
+      '<span style="font-size:13px;color:var(--muted);">time(s) per</span>' +
+      '<select class="inp custom-goal-freq-period" style="flex:1;margin-bottom:0;">' +
+        '<option value="day">Day</option>' +
+        '<option value="week">Week</option>' +
+        '<option value="month">Month</option>' +
+        '<option value="contest">Contest (total)</option>' +
+      '</select>' +
+    '</div>';
   list.appendChild(div);
 }
 
-function buildGoalDetails() {
-  const list = document.getElementById('goal-details-list');
-  const presetConfig = {
-    protein: { label: 'Protein', unit: 'grams', defaultTarget: 150 },
-    water: { label: 'Water intake', unit: 'oz', defaultTarget: 100 },
-    weight: { label: 'Weight loss', unit: 'lbs', defaultTarget: 5 },
-    steps: { label: 'Steps', unit: 'steps', defaultTarget: 10000 }
-  };
-  list.innerHTML = wizardState.allGoals.map((g, i) => {
-    const cfg = presetConfig[g.type] || { label: g.name, unit: '', defaultTarget: '' };
-    const freqLabel = g.freqNum && g.freqPeriod ? `${g.freqNum}x per ${g.freqPeriod}` : '';
-    return `<div class="goal-detail-row card" style="margin-bottom:10px;">
-      <div style="font-size:15px;font-weight:700;margin-bottom:4px;">${g.name}</div>
-      ${freqLabel ? `<div style="font-size:12px;color:#16A34A;font-weight:600;margin-bottom:10px;">Goal: ${freqLabel}</div>` : ''}
-      <div class="field-label">${g.isPreset ? 'Daily target' : 'Target amount per session'}</div>
-      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
-        <input class="inp goal-target" type="number" placeholder="${cfg.defaultTarget||'Enter target'}" value="${cfg.defaultTarget||''}" style="flex:1;margin-bottom:0;">
-        <input class="inp goal-unit" placeholder="${cfg.unit||'unit (e.g. mins, reps)'}" value="${cfg.unit||''}" style="flex:1;margin-bottom:0;">
-      </div>
-      ${g.isPreset ? `<div class="field-label">Frequency</div>
-      <select class="inp goal-freq" style="margin-bottom:0;">
-        <option value="daily">Daily goal</option>
-        <option value="weekly">Weekly goal</option>
-        <option value="contest">Contest total goal</option>
-      </select>` : `<input type="hidden" class="goal-freq" value="${g.freqPeriod||'day'}">`}
-    </div>`;
-  }).join('');
+function buildScoringTiers() {
+  const list = document.getElementById('scoring-tiers-list');
+  list.innerHTML = wizardState.scoringTiers.map((t, i) =>
+    '<div class="scoring-tier-row" style="display:flex;gap:8px;align-items:center;margin-bottom:10px;background:#F9FAFB;border-radius:10px;padding:10px;">' +
+      '<input type="number" class="inp tier-points" value="' + t.points + '" placeholder="pts" style="width:70px;margin-bottom:0;text-align:center;font-size:16px;font-weight:800;color:#EA580C;">' +
+      '<span style="font-size:13px;color:var(--muted);white-space:nowrap;">pts for</span>' +
+      '<input type="number" class="inp tier-pct" value="' + t.pct + '" placeholder="%" min="1" max="100" style="width:70px;margin-bottom:0;text-align:center;font-size:16px;font-weight:800;color:#16A34A;">' +
+      '<span style="font-size:13px;color:var(--muted);">% of goal</span>' +
+      '<button onclick="removeScoringTier(this)" style="padding:6px 10px;background:#FEE2E2;border:none;border-radius:8px;cursor:pointer;color:#991B1B;font-size:14px;flex-shrink:0;">✕</button>' +
+    '</div>'
+  ).join('');
 }
 
-function selectScoring(type) {
-  document.querySelectorAll('.scoring-option').forEach(o => o.classList.remove('selected'));
-  document.getElementById('scoring-' + type).classList.add('selected');
-  wizardState.scoring = type;
-  document.getElementById('points-config').style.display = type === 'points' ? 'block' : 'none';
+function removeScoringTier(btn) { btn.closest(".scoring-tier-row").remove(); }
+
+function addScoringTier() {
+  wizardState.scoringTiers.push({ points: 0, pct: 0 });
+  buildScoringTiers();
 }
 
 function buildContestPreview() {
   const start = new Date(wizardState.startDate + 'T12:00:00');
   const end = new Date(wizardState.endDate + 'T12:00:00');
   const days = Math.round((end - start) / (1000 * 60 * 60 * 24));
-  document.getElementById('contest-preview').innerHTML = `
-    <div class="contest-title">${wizardState.name}</div>
-    ${wizardState.desc ? `<div style="font-size:13px;color:var(--muted);margin-bottom:8px;">${wizardState.desc}</div>` : ''}
-    <div class="contest-meta">${start.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${end.toLocaleDateString('en-US',{month:'short',day:'numeric'})} · ${days} days</div>
-    <div class="contest-goals">
-      ${wizardState.allGoals.map(g => `<span class="goal-chip">${g.name}: ${g.target} ${g.unit} ${g.frequency}</span>`).join('')}
-    </div>
-    <div style="font-size:13px;color:var(--muted);">Scoring: ${wizardState.scoring}</div>`;
+  document.getElementById('contest-preview').innerHTML =
+    '<div class="contest-title">' + wizardState.name + '</div>' +
+    (wizardState.desc ? '<div style="font-size:13px;color:var(--muted);margin-bottom:8px;">' + wizardState.desc + '</div>' : '') +
+    '<div class="contest-meta">' + start.toLocaleDateString('en-US',{month:'short',day:'numeric'}) + ' – ' + end.toLocaleDateString('en-US',{month:'short',day:'numeric'}) + ' · ' + days + ' days</div>' +
+    '<div class="contest-goals" style="margin-bottom:10px;">' +
+      wizardState.allGoals.map(g =>
+        '<span class="goal-chip">' + g.name + (g.autoFromProfile ? ' (auto)' : g.target ? ': ' + g.target + ' ' + g.unit : '') + '</span>'
+      ).join('') +
+    '</div>' +
+    '<div style="font-size:13px;font-weight:700;margin-bottom:6px;">Scoring tiers:</div>' +
+    wizardState.scoringTiers.map(t =>
+      '<div style="font-size:13px;color:var(--muted);">· ' + t.points + ' pts for ' + t.pct + '% of goal</div>'
+    ).join('');
 }
 
 async function createContest() {
@@ -2115,10 +2125,8 @@ async function createContest() {
       creator_id: currentUser,
       start_date: wizardState.startDate,
       end_date: wizardState.endDate,
-      scoring_method: wizardState.scoring,
-      points_hit: wizardState.pointsHit,
-      points_close: wizardState.pointsClose,
-      points_partial: wizardState.pointsPartial,
+      scoring_method: 'tiers',
+      scoring_tiers: wizardState.scoringTiers,
       join_code: joinCode,
       goals: wizardState.allGoals,
       status: 'active'
@@ -2127,7 +2135,7 @@ async function createContest() {
     // Auto-join creator
     await sb.from('contest_members').insert({ contest_id: data.id, user_id: currentUser, role: 'admin' });
     // Reset wizard
-    wizardState = { step:0, name:'', desc:'', startDate:'', endDate:'', presetGoals:[], customGoals:[], allGoals:[], scoring:'points', pointsHit:10, pointsClose:5, pointsPartial:2 };
+    wizardState = { step:0, name:'', desc:'', startDate:'', endDate:'', presetGoals:[], customGoals:[], allGoals:[], scoringTiers:[], weightGoalType:'percent' };
     document.querySelectorAll('.wizard-step').forEach(s => s.classList.remove('active'));
     document.getElementById('wizard-step-0').classList.add('active');
     document.getElementById('contest-name').value = '';
@@ -2180,14 +2188,10 @@ async function renderMyContests() {
       let myScore = 0;
       (c.goals||[]).forEach(g => {
         const logged = myTotals[g.name] || 0;
-        if (c.scoring_method === 'points') {
-          const pct = g.target > 0 ? logged/g.target : 0;
-          if (pct >= 1) myScore += c.points_hit||10;
-          else if (pct >= 0.9) myScore += c.points_close||5;
-          else if (pct >= 0.75) myScore += c.points_partial||2;
-        } else if (c.scoring_method === 'percentage') {
-          myScore += g.target > 0 ? Math.min(100, Math.round(logged/g.target*100)) : 0;
-        } else { myScore += logged; }
+        const tiers3 = c.scoring_tiers || [{points:10,pct:100},{points:5,pct:90},{points:2,pct:75}];
+        const pct3 = g.target > 0 ? (logged/g.target)*100 : 0;
+        const tier3 = tiers3.sort((a,b) => b.pct-a.pct).find(t => pct3 >= t.pct);
+        if (tier3) myScore += tier3.points;
       });
 
       // Calculate rank
@@ -2333,7 +2337,7 @@ async function showContestDetail(contestId) {
             ${p.id !== currentUser ? `<button onclick="removeMemberFromContest('${contestId}','${p.id}','${p.name}')" style="background:#FEE2E2;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;color:#991B1B;cursor:pointer;">Remove</button>` : '<span style="font-size:12px;color:#16A34A;font-weight:700;">You (Admin)</span>'}
           </div>`).join('')}
       </div>
-      <button onclick="endContest('${contestId}')" style="width:100%;margin-top:14px;padding:12px;background:#FEE2E2;color:#991B1B;border:none;border-radius:10px;font-weight:700;cursor:pointer;">End Contest Early</button>
+      <button onclick="endContest('${contestId}')" style="width:100%;margin-top:14px;padding:12px;background:#FEE2E2;color:#991B1B;border:none;border-radius:10px;font-weight:700;cursor:pointer;">End Contest Early</button><button onclick="deleteContest('${contestId}','${contest.name}')" style="width:100%;margin-top:8px;padding:12px;background:#7F1D1D;color:#fff;border:none;border-radius:10px;font-weight:700;cursor:pointer;">🗑️ Delete Contest Forever</button>
     </div>`;
   } else {
     adminDiv.style.display = 'none';
@@ -2356,16 +2360,10 @@ async function renderContestLeaderboard(contest) {
     userLogs.forEach(l => { goalTotals[l.goal_name] = (goalTotals[l.goal_name]||0) + l.amount; });
     (contest.goals||[]).forEach(g => {
       const logged = goalTotals[g.name] || 0;
-      if (contest.scoring_method === 'points') {
-        const pct = g.target > 0 ? logged / g.target : 0;
-        if (pct >= 1) score += contest.points_hit || 10;
-        else if (pct >= 0.9) score += contest.points_close || 5;
-        else if (pct >= 0.75) score += contest.points_partial || 2;
-      } else if (contest.scoring_method === 'percentage') {
-        score += g.target > 0 ? Math.min(100, Math.round(logged/g.target*100)) : 0;
-      } else {
-        score += logged;
-      }
+      const tiers = contest.scoring_tiers || [{points:10,pct:100},{points:5,pct:90},{points:2,pct:75}];
+      const pct = g.target > 0 ? (logged / g.target) * 100 : 0;
+      const matchedTier = tiers.sort((a,b) => b.pct-a.pct).find(t => pct >= t.pct);
+      if (matchedTier) score += matchedTier.points;
     });
     return { ...p, score, goalTotals };
   }).sort((a,b) => b.score - a.score);
@@ -2437,6 +2435,21 @@ async function endContest(contestId) {
   await sb.from('contests').update({ status: 'ended', end_date: getTodayKey() }).eq('id', contestId);
   showScreen('screen-main');
   renderMyContests();
+}
+
+async function deleteContest(contestId, contestName) {
+  if (!confirm('Delete "' + contestName + '"?\n\nThis will permanently delete the contest and ALL logged data. This cannot be undone!')) return;
+  if (!confirm('Are you absolutely sure? All contest data will be lost forever.')) return;
+  try {
+    await sb.from('contest_logs').delete().eq('contest_id', contestId);
+    await sb.from('contest_members').delete().eq('contest_id', contestId);
+    await sb.from('contests').delete().eq('id', contestId);
+    showScreen('screen-main');
+    renderMyContests();
+    alert('Contest deleted.');
+  } catch(e) {
+    alert('Error deleting contest: ' + e.message);
+  }
 }
 
 // Check for join code in URL on load
