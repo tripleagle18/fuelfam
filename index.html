@@ -1343,7 +1343,8 @@ async function renderGlobalChallenge() {
   }).sort((a,b) => b.pts - a.pts);
   const medals = ['🥇','🥈','🥉'];
 
-  function macroRow(emoji, label, logged, goal, score, color, gradient) {
+  function macroRow(emoji, label, logged, goal, score, color, gradient, unit) {
+    unit = unit || 'g';
     const barPct = Math.min(100, Math.round(logged/goal*100));
     return '<div style="background:#fff;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">' +
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
@@ -1353,11 +1354,11 @@ async function renderGlobalChallenge() {
       '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;text-align:center;">' +
         '<div style="background:#F9FAFB;border-radius:10px;padding:8px;">' +
           '<div style="font-size:11px;color:#6B7280;font-weight:600;text-transform:uppercase;">Goal</div>' +
-          '<div style="font-size:16px;font-weight:800;">' + goal + 'g</div>' +
+          '<div style="font-size:16px;font-weight:800;">' + goal + unit + '</div>' +
         '</div>' +
         '<div style="background:#F9FAFB;border-radius:10px;padding:8px;">' +
           '<div style="font-size:11px;color:#6B7280;font-weight:600;text-transform:uppercase;">Logged</div>' +
-          '<div style="font-size:16px;font-weight:800;color:' + color + ';">' + Math.round(logged) + 'g</div>' +
+          '<div style="font-size:16px;font-weight:800;color:' + color + ';">' + Math.round(logged) + unit + '</div>' +
         '</div>' +
         '<div style="background:#F9FAFB;border-radius:10px;padding:8px;">' +
           '<div style="font-size:11px;color:#6B7280;font-weight:600;text-transform:uppercase;">% of Goal</div>' +
@@ -1386,16 +1387,36 @@ async function renderGlobalChallenge() {
     macroRow('🥩','Protein', protein, goals.protein, proteinScore, '#16A34A', 'linear-gradient(90deg,#16A34A,#EA580C)') +
     macroRow('🧈','Fat', fat, goals.fat||70, fatScore, '#D97706', 'linear-gradient(90deg,#D97706,#F59E0B)') +
     macroRow('🌾','Carbs', carbs, goals.carbs||200, carbScore, '#7C3AED', 'linear-gradient(90deg,#7C3AED,#A78BFA)') +
-    macroRow('💧','Water (oz)', water, goals.water, waterScore, '#2563EB', 'linear-gradient(90deg,#2563EB,#38BDF8)') +
+    macroRow('💧','Water (oz)', water, goals.water, waterScore, '#2563EB', 'linear-gradient(90deg,#2563EB,#38BDF8)', 'oz') +
 
-    // Food log
-    (foods.length > 0 ? '<div style="background:#fff;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">' +
+    // Food log with edit/delete
+    '<div style="background:#fff;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">' +
       '<div style="font-size:14px;font-weight:700;margin-bottom:8px;">Food logged</div>' +
-      foods.map(f => '<div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid #F3F4F6;">' +
-        '<span>' + f.name + '</span>' +
-        '<span style="font-weight:700;color:#16A34A;">' + Math.round(f.protein||0) + 'g P</span>' +
-      '</div>').join('') +
-    '</div>' : '') +
+      (foods.length === 0
+        ? '<div style="font-size:13px;color:#9CA3AF;font-style:italic;">Nothing logged yet</div>'
+        : foods.map((f,i) =>
+          '<div style="padding:8px 0;border-bottom:1px solid #F3F4F6;">' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+              '<span style="font-size:13px;font-weight:600;flex:1;">' + f.name + '</span>' +
+              '<div style="display:flex;gap:6px;align-items:center;">' +
+                '<span style="font-size:12px;color:#16A34A;font-weight:700;">' + Math.round(f.protein||0) + 'P</span>' +
+                '<span style="font-size:12px;color:#D97706;font-weight:700;">' + Math.round(f.fat||0) + 'F</span>' +
+                '<span style="font-size:12px;color:#7C3AED;font-weight:700;">' + Math.round(f.carbs||0) + 'C</span>' +
+                '<button onclick="editFoodInChallenge(' + i + ')" style="background:#DCFCE7;border:none;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:12px;">✏️</button>' +
+                '<button onclick="deleteFoodInChallenge(' + i + ')" style="background:#FEE2E2;border:none;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:12px;">🗑️</button>' +
+              '</div>' +
+            '</div>' +
+          '</div>'
+        ).join('')
+      ) +
+      '<div style="margin-top:10px;">' +
+        '<div style="font-size:11px;color:#9CA3AF;margin-bottom:6px;">Edit water for this day:</div>' +
+        '<div style="display:flex;gap:8px;">' +
+          '<input type="number" id="challenge-water-edit" placeholder="oz" value="' + Math.round(water) + '" style="width:80px;padding:6px 8px;border:1.5px solid #2563EB;border-radius:8px;font-size:14px;text-align:center;">' +
+          '<button onclick="updateWaterInChallenge()" style="padding:6px 12px;background:#2563EB;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">Update 💧</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
 
     // Quick log buttons (today only)
     (isToday ? '<div style="display:flex;gap:10px;margin-bottom:14px;">' +
@@ -1421,6 +1442,91 @@ async function renderGlobalChallenge() {
       }).join('') +
     '</div>';
 }
+
+
+// ─── CHALLENGE DAY EDITING ────────────────────────────────────────────────
+async function editFoodInChallenge(index) {
+  const displayDate = globalViewingDate || getTodayKey();
+  const { data: log } = await sb.from('daily_logs').select('*').eq('user_id', currentUser).eq('log_date', displayDate).maybeSingle();
+  if (!log) return;
+  const foods = log.foods || [];
+  const food = foods[index];
+  if (!food) return;
+
+  // Show inline edit modal
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;display:flex;align-items:flex-end;justify-content:center;';
+  modal.innerHTML =
+    '<div style="background:#fff;border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:480px;">' +
+      '<div style="font-size:16px;font-weight:800;margin-bottom:14px;">Edit: ' + food.name + '</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;">' +
+        '<div><div style="font-size:11px;color:#6B7280;font-weight:600;margin-bottom:4px;">PROTEIN (g)</div>' +
+        '<input type="number" id="edit-challenge-protein" value="' + (food.protein||0) + '" style="width:100%;padding:10px;border:1.5px solid #16A34A;border-radius:8px;font-size:16px;font-weight:700;color:#16A34A;text-align:center;"></div>' +
+        '<div><div style="font-size:11px;color:#6B7280;font-weight:600;margin-bottom:4px;">FAT (g)</div>' +
+        '<input type="number" id="edit-challenge-fat" value="' + (food.fat||0) + '" style="width:100%;padding:10px;border:1.5px solid #D97706;border-radius:8px;font-size:16px;font-weight:700;color:#D97706;text-align:center;"></div>' +
+        '<div><div style="font-size:11px;color:#6B7280;font-weight:600;margin-bottom:4px;">CARBS (g)</div>' +
+        '<input type="number" id="edit-challenge-carbs" value="' + (food.carbs||0) + '" style="width:100%;padding:10px;border:1.5px solid #7C3AED;border-radius:8px;font-size:16px;font-weight:700;color:#7C3AED;text-align:center;"></div>' +
+      '</div>' +
+      '<div style="display:flex;gap:8px;">' +
+        '<button onclick="saveFoodEditChallenge(' + index + ')" style="flex:1;padding:14px;background:linear-gradient(135deg,#16A34A,#EA580C);color:#fff;border:none;border-radius:12px;font-weight:700;font-size:15px;cursor:pointer;">Save</button>' +
+        '<button onclick="closeEditModal()" style="padding:14px 20px;background:#F3F4F6;border:none;border-radius:12px;font-size:14px;cursor:pointer;">Cancel</button>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(modal);
+}
+
+async function saveFoodEditChallenge(index) {
+  const displayDate = globalViewingDate || getTodayKey();
+  const newProtein = parseFloat(document.getElementById('edit-challenge-protein').value) || 0;
+  const newFat = parseFloat(document.getElementById('edit-challenge-fat').value) || 0;
+  const newCarbs = parseFloat(document.getElementById('edit-challenge-carbs').value) || 0;
+  const { data: log } = await sb.from('daily_logs').select('*').eq('user_id', currentUser).eq('log_date', displayDate).maybeSingle();
+  if (!log) return;
+  const foods = log.foods || [];
+  const old = foods[index] || {};
+  foods[index] = { ...old, protein: newProtein, fat: newFat, carbs: newCarbs };
+  const proteinDiff = newProtein - (old.protein||0);
+  const fatDiff = newFat - (old.fat||0);
+  const carbsDiff = newCarbs - (old.carbs||0);
+  await sb.from('daily_logs').update({
+    foods,
+    protein: Math.max(0, (log.protein||0) + proteinDiff),
+    fat: Math.max(0, (log.fat||0) + fatDiff),
+    carbs: Math.max(0, (log.carbs||0) + carbsDiff)
+  }).eq('id', log.id);
+  document.querySelector('div[style*="position:fixed"][style*="z-index:200"]')?.remove();
+  renderGlobalChallenge();
+}
+
+async function deleteFoodInChallenge(index) {
+  if (!confirm('Delete this food item?')) return;
+  const displayDate = globalViewingDate || getTodayKey();
+  const { data: log } = await sb.from('daily_logs').select('*').eq('user_id', currentUser).eq('log_date', displayDate).maybeSingle();
+  if (!log) return;
+  const foods = log.foods || [];
+  const removed = foods.splice(index, 1)[0] || {};
+  await sb.from('daily_logs').update({
+    foods,
+    protein: Math.max(0, (log.protein||0) - (removed.protein||0)),
+    fat: Math.max(0, (log.fat||0) - (removed.fat||0)),
+    carbs: Math.max(0, (log.carbs||0) - (removed.carbs||0))
+  }).eq('id', log.id);
+  renderGlobalChallenge();
+}
+
+async function updateWaterInChallenge() {
+  const oz = parseFloat(document.getElementById('challenge-water-edit')?.value) || 0;
+  const displayDate = globalViewingDate || getTodayKey();
+  const { data: log } = await sb.from('daily_logs').select('*').eq('user_id', currentUser).eq('log_date', displayDate).maybeSingle();
+  if (log) {
+    await sb.from('daily_logs').update({ water: oz }).eq('id', log.id);
+  } else {
+    await sb.from('daily_logs').insert({ user_id: currentUser, log_date: displayDate, protein: 0, water: oz, fat: 0, carbs: 0, foods: [] });
+  }
+  renderGlobalChallenge();
+}
+
+function closeEditModal() { document.querySelector('div[style*="position:fixed"][style*="z-index:200"]')?.remove(); }
 
 function changeGlobalDay(delta) {
   const today = getTodayKey();
