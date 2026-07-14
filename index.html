@@ -405,6 +405,115 @@
   </div>
 
 
+  <div id="tab-log" class="tab-content">
+    <div style="background:linear-gradient(135deg,#16A34A,#EA580C);padding:max(env(safe-area-inset-top),44px) 20px 20px;">
+      <div style="font-size:22px;font-weight:900;color:#fff;">Log Food 🍗</div>
+      <div style="font-size:13px;color:rgba(255,255,255,0.8);">Add what you ate today</div>
+    </div>
+    <div style="padding:16px;padding-bottom:80px;">
+
+      <div class="log-method">
+        <div class="method-header">
+          <div class="method-icon" style="background:var(--purple-light);color:var(--purple)"><i class="ti ti-camera"></i></div>
+          <div><div class="method-title">AI Photo Analysis <span class="badge-pill badge-ai">AI</span></div><div class="method-sub">Photo your meal — AI asks questions then estimates</div></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:8px;">
+          <label style="flex:1;padding:12px;background:#DCFCE7;color:#16A34A;border-radius:12px;text-align:center;font-weight:700;font-size:14px;cursor:pointer;">
+            <i class="ti ti-camera" style="font-size:16px;vertical-align:-2px;margin-right:4px;"></i>Take photo
+            <input type="file" id="photo-input" accept="image/*" capture="environment" style="display:none;" onchange="startPhotoChat(this)">
+          </label>
+          <label style="flex:1;padding:12px;background:#DBEAFE;color:#2563EB;border-radius:12px;text-align:center;font-weight:700;font-size:14px;cursor:pointer;">
+            <i class="ti ti-photo" style="font-size:16px;vertical-align:-2px;margin-right:4px;"></i>Choose photo
+            <input type="file" id="photo-input-gallery" accept="image/*" style="display:none;" onchange="startPhotoChat(this)">
+          </label>
+        </div>
+        <div id="photo-preview-wrap" style="display:none;margin-bottom:8px;border-radius:12px;overflow:hidden;">
+          <img id="photo-preview" style="width:100%;max-height:180px;object-fit:cover;display:block;">
+        </div>
+        <div class="chat-wrap" id="photo-chat-wrap"></div>
+        <div class="chat-input-row" id="photo-chat-input-row" style="display:none;">
+          <input type="text" id="photo-chat-input" placeholder="Answer here..." onkeydown="if(event.key==='Enter')sendPhotoChat()">
+          <button class="chat-send-btn" onclick="sendPhotoChat()"><i class="ti ti-send" style="font-size:18px"></i></button>
+        </div>
+        <div id="photo-food-breakdown" style="display:none;margin-top:12px;"></div>
+        <button class="chat-add-btn" id="photo-add-btn" onclick="addPhotoFoods()" style="display:none;">Add to my log ✓</button>
+        <button class="btn-outline" id="photo-reset-btn" onclick="resetPhotoChat()" style="display:none;margin-top:8px;">Analyze another photo</button>
+      </div>
+
+      <div class="log-method">
+        <div class="method-header">
+          <div class="method-icon" style="background:var(--green-light);color:var(--green)"><i class="ti ti-barcode"></i></div>
+          <div><div class="method-title">Barcode Lookup <span class="badge-pill badge-free">FREE</span></div><div class="method-sub">Photo the barcode or type it in</div></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:10px;">
+          <label style="flex:1;padding:12px;background:#D1FAE5;color:#059669;border-radius:12px;text-align:center;font-weight:700;font-size:14px;cursor:pointer;">
+            <i class="ti ti-camera" style="font-size:16px;vertical-align:-2px;margin-right:4px;"></i>Take photo
+            <input type="file" id="barcode-photo-input" accept="image/*" capture="environment" style="display:none;" onchange="scanBarcodePhoto(this)">
+          </label>
+          <label style="flex:1;padding:12px;background:#ECFDF5;color:#059669;border-radius:12px;text-align:center;font-weight:700;font-size:14px;cursor:pointer;border:2px solid #D1FAE5;">
+            <i class="ti ti-photo" style="font-size:16px;vertical-align:-2px;margin-right:4px;"></i>Choose photo
+            <input type="file" id="barcode-gallery-input" accept="image/*" style="display:none;" onchange="scanBarcodePhoto(this)">
+          </label>
+        </div>
+        <div id="barcode-preview-wrap" style="display:none;margin-bottom:10px;border-radius:12px;overflow:hidden;">
+          <img id="barcode-preview" style="width:100%;max-height:160px;object-fit:cover;display:block;">
+        </div>
+        <div id="bc-status" style="display:none;font-size:13px;font-weight:600;color:var(--green);text-align:center;padding:8px;background:var(--green-light);border-radius:10px;margin-bottom:8px;"></div>
+        <div style="display:flex;align-items:center;gap:10px;margin:10px 0;">
+          <div style="flex:1;height:1px;background:#E5E7EB;"></div>
+          <div style="font-size:12px;color:var(--muted);font-weight:600;">OR TYPE BARCODE NUMBER</div>
+          <div style="flex:1;height:1px;background:#E5E7EB;"></div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <input class="inp" id="barcode-manual-input" placeholder="e.g. 012345678901" style="flex:1;margin-bottom:0;" type="number">
+          <button onclick="lookupBarcode(document.getElementById('barcode-manual-input').value)" style="padding:12px 16px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-weight:700;cursor:pointer;white-space:nowrap;">Look up</button>
+        </div>
+        <div id="bc-result" class="result-box result-box-green" style="margin-top:10px;"></div>
+        <div id="bc-add-btns" style="display:none;margin-top:10px;">
+          <button class="btn-main" onclick="addBarcodeFood()">Add to my log ✓</button>
+          <button class="btn-outline" onclick="resetBarcodeScanner()">Scan another</button>
+        </div>
+      </div>
+
+      <div class="log-method">
+        <div class="method-header">
+          <div class="method-icon" style="background:#FEF3C7;color:#D97706"><i class="ti ti-building-store"></i></div>
+          <div><div class="method-title">Restaurant &amp; Food Search <span class="badge-pill badge-free">FREE</span></div><div class="method-sub">Search millions of foods &amp; restaurant items</div></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <input class="inp" id="food-search-input" placeholder="e.g. McDonald&#39;s Big Mac..." style="flex:1;margin-bottom:0;" onkeydown="if(event.key===&#39;Enter&#39;)searchFood()">
+          <button onclick="searchFood()" style="padding:12px 16px;background:#D97706;color:#fff;border:none;border-radius:var(--radius-sm);font-weight:700;cursor:pointer;white-space:nowrap;"><i class="ti ti-search"></i></button>
+        </div>
+        <div id="food-search-status" style="display:none;font-size:13px;color:var(--muted);text-align:center;padding:8px;margin-top:8px;"></div>
+        <div id="food-search-results" style="display:none;max-height:320px;overflow-y:auto;margin-top:10px;border:1px solid #E5E7EB;border-radius:12px;"></div>
+      </div>
+
+      <div class="log-method">
+        <div class="method-header">
+          <div class="method-icon" style="background:#FEF3C7;color:#D97706"><i class="ti ti-message-circle"></i></div>
+          <div><div class="method-title">Describe your meal <span class="badge-pill badge-ai">AI</span></div><div class="method-sub">Tell AI what you ate — it&#39;ll ask a couple questions</div></div>
+        </div>
+        <div class="chat-wrap" id="chat-wrap"></div>
+        <div class="chat-input-row" id="chat-input-row">
+          <input type="text" id="chat-input" placeholder="e.g. I ate a turkey sandwich..." onkeydown="if(event.key===&#39;Enter&#39;)sendChat()">
+          <button class="chat-send-btn" onclick="sendChat()" aria-label="Send"><i class="ti ti-send" style="font-size:18px"></i></button>
+        </div>
+        <button class="chat-add-btn" id="chat-add-btn" onclick="addChatFood()">Add to my log ✓</button>
+      </div>
+
+      <div class="log-method">
+        <div class="method-header">
+          <div class="method-icon" style="background:var(--orange-light);color:var(--orange)"><i class="ti ti-pencil"></i></div>
+          <div><div class="method-title">Manual Entry</div><div class="method-sub">Type it in yourself</div></div>
+        </div>
+        <div class="field-wrap" style="margin-top:10px;"><input class="inp" id="manual-food" placeholder="Food name (e.g. Chicken breast)"></div>
+        <div class="field-wrap"><input class="inp" id="manual-protein" type="number" placeholder="Protein in grams"></div>
+        <button class="btn-main" onclick="addManualFood()">Add to log</button>
+      </div>
+
+    </div>
+  </div>
+
   <div id="tab-challenges" class="tab-content">
     <!-- Horizontal scroll of contests -->
     <div style="background:linear-gradient(135deg,#16A34A,#EA580C);padding:max(env(safe-area-inset-top),44px) 0 0;">
