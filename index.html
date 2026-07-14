@@ -1455,6 +1455,7 @@ async function editFoodInChallenge(index) {
 
   // Show inline edit modal
   const modal = document.createElement('div');
+  modal.id = 'food-edit-modal';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;display:flex;align-items:flex-end;justify-content:center;';
   modal.innerHTML =
     '<div style="background:#fff;border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:480px;">' +
@@ -1494,7 +1495,7 @@ async function saveFoodEditChallenge(index) {
     fat: Math.max(0, (log.fat||0) + fatDiff),
     carbs: Math.max(0, (log.carbs||0) + carbsDiff)
   }).eq('id', log.id);
-  document.querySelector('div[style*="position:fixed"][style*="z-index:200"]')?.remove();
+  closeEditModal();
   renderGlobalChallenge();
 }
 
@@ -1526,7 +1527,7 @@ async function updateWaterInChallenge() {
   renderGlobalChallenge();
 }
 
-function closeEditModal() { document.querySelector('div[style*="position:fixed"][style*="z-index:200"]')?.remove(); }
+function closeEditModal() { const m = document.getElementById('food-edit-modal'); if (m) m.remove(); }
 
 function changeGlobalDay(delta) {
   const today = getTodayKey();
