@@ -2185,6 +2185,8 @@ function wizardNext(step) {
     const presets = wizardState.presetGoals.map(g => {
       if (g === 'protein') return { type:'protein', name:'Protein', isPreset:true, autoFromProfile:true, unit:'g', freqPeriod:'day' };
       if (g === 'water') return { type:'water', name:'Water', isPreset:true, autoFromProfile:true, unit:'oz', freqPeriod:'day' };
+      if (g === 'fat') return { type:'fat', name:'Fat', isPreset:true, autoFromProfile:true, unit:'g', freqPeriod:'day' };
+      if (g === 'carbs') return { type:'carbs', name:'Carbs', isPreset:true, autoFromProfile:true, unit:'g', freqPeriod:'day' };
       if (g === 'weight') {
         const amt = parseFloat(document.getElementById('weight-goal-amount')?.value) || 5;
         const wType = wizardState.weightGoalType || 'percent';
