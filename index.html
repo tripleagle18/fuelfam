@@ -939,10 +939,6 @@ function changeViewDay(delta) {
 
 async function renderHome() {
   if (!currentUser) return;
-  const goals = calcGoals(currentProfile);
-  const today = getTodayKey();
-  const displayDate = viewingDate || today;
-  const isToday = displayDate === today;
 
   // Update header
   const dateEl = document.getElementById('home-date-label');
@@ -950,75 +946,17 @@ async function renderHome() {
   const avatarEl = document.getElementById('home-avatar-circle');
   if (avatarEl) avatarEl.textContent = avatarEmoji(currentProfile.name);
 
-  // Load activity feed
-  renderActivityFeed();
-  // Load quick stats
-  renderQuickStats();
-  // food-log-title element removed from new design
-
-  // date nav elements removed from new design
-
-  const { data: log } = await sb.from('daily_logs').select('*').eq('user_id', currentUser).eq('log_date', displayDate).maybeSingle();
-  const protein = log ? log.protein : 0;
-  const water = log ? log.water : 0;
-  const foods = log ? (log.foods || []) : [];
-  const pct = (v, g) => Math.min(100, Math.round(v / g * 100));
-  document.getElementById('home-protein-text').textContent = Math.round(protein) + ' / ' + goals.protein + 'g';
-  document.getElementById('home-protein-bar').style.width = pct(protein, goals.protein) + '%';
-  document.getElementById('home-water-text').textContent = Math.round(water) + ' / ' + goals.water + ' oz';
-  document.getElementById('home-water-bar').style.width = pct(water, goals.water) + '%';
-
-  const { data: allLogs } = await sb.from('daily_logs').select('user_id,protein,water,log_date').gte('log_date', getWeekKey());
-  const { data: allProfiles } = await sb.from('profiles').select('id,weight,activity,goal');
-  const profileMap = {};
-  (allProfiles || []).forEach(p => profileMap[p.id] = p);
-  const weekPtsMap = {};
-  (allLogs || []).forEach(l => {
-    const p = profileMap[l.user_id]; if (!p) return;
-    const g = calcGoals(p);
-    weekPtsMap[l.user_id] = (weekPtsMap[l.user_id] || 0) + calcDayPoints(l.protein, l.water, g);
-  });
-  const myPts = weekPtsMap[currentUser] || 0;
-  const ranked = Object.entries(weekPtsMap).sort((a, b) => b[1] - a[1]);
-  const myRank = ranked.findIndex(([id]) => id === currentUser) + 1;
-  // home-pts and home-rank removed from new design
-
-  const streakDays = await calcStreak();
-  // home-streak removed from new design
-  if (isToday) { checkWeightBanner(); checkHeightBanner(); }
-  renderMyContests();
+  // Check banners
+  checkWeightBanner();
+  checkHeightBanner();
   checkJoinCodeInUrl();
 
-  // Always show log/edit buttons regardless of day
-  const logBtn = document.querySelector('.action-row');
-  if (logBtn) logBtn.style.display = 'flex';
-  // Update Log Food button label
-  const logFoodBtn = document.querySelector('.action-btn-purple');
-  if (logFoodBtn) {
-    logFoodBtn.innerHTML = isToday
-      ? '<i class="ti ti-plus"></i>Log Food'
-      : '<i class="ti ti-plus"></i>Add to ' + new Date(displayDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short' });
-  }
-
-  const fl = document.getElementById('food-log-list');
-  if (!foods.length) {
-    fl.innerHTML = '<div class="empty-state">Nothing logged yet — tap Log Food!</div>';
-  } else {
-    fl.innerHTML = foods.map((f, i) =>
-      '<div class="food-item">' +
-        '<div style="flex:1;min-width:0;">' +
-          '<div class="food-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + f.name + '</div>' +
-          '<div style="font-size:12px;color:var(--muted);">' + Math.round(f.protein) + 'g protein</div>' +
-        '</div>' +
-        '<div style="display:flex;gap:6px;align-items:center;flex-shrink:0;margin-left:8px;">' +
-          '<span class="food-protein">' + Math.round(f.protein) + 'g</span>' +
-          '<button onclick="editFoodItem(' + i + ')" style="background:#EDE9FE;border:none;border-radius:8px;padding:6px 8px;cursor:pointer;font-size:13px;line-height:1;">✏️</button>' +
-          '<button onclick="deleteFoodItem(' + i + ')" style="background:#FEE2E2;border:none;border-radius:8px;padding:6px 8px;cursor:pointer;font-size:13px;line-height:1;">🗑️</button>' +
-        '</div>' +
-      '</div>'
-    ).join('');
-  }
+  // Load all sections
+  renderActivityFeed();
+  renderQuickStats();
+  renderMyContests();
 }
+
 
 async function calcStreak() {
   const { data } = await sb.from('daily_logs').select('log_date,protein,water').eq('user_id', currentUser).order('log_date', { ascending: false }).limit(30);
