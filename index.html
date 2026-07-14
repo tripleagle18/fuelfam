@@ -320,172 +320,90 @@
 
   <div id="tab-home" class="tab-content active">
     <!-- ChallengePac Header -->
-    <div style="background:linear-gradient(135deg,#16A34A,#EA580C);padding:max(env(safe-area-inset-top),44px) 20px 24px;text-align:center;">
-      <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:4px;">
-        <span style="font-size:32px;">⚡</span>
-        <span style="font-size:30px;font-weight:900;color:#fff;letter-spacing:-1px;">ChallengePac</span>
+    <div style="background:linear-gradient(135deg,#16A34A,#EA580C);padding:max(env(safe-area-inset-top),44px) 20px 20px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:26px;">⚡</span>
+            <span style="font-size:26px;font-weight:900;color:#fff;letter-spacing:-1px;">ChallengePac</span>
+          </div>
+          <div style="color:rgba(255,255,255,0.8);font-size:12px;margin-top:2px;" id="home-date-label">Loading...</div>
+        </div>
+        <div id="home-avatar-circle" style="width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;font-size:20px;border:2px solid rgba(255,255,255,0.5);cursor:pointer;" onclick="showTab('tab-profile',document.querySelector('.nav-item:last-child'))">👤</div>
       </div>
-      <div style="color:rgba(255,255,255,0.8);font-size:13px;">compete · track · win together</div>
     </div>
 
-    <!-- Weight check-in banner -->
-    <div id="weight-checkin-banner" style="display:none;margin:14px 16px 0;background:linear-gradient(135deg,#16A34A,#EA580C);border-radius:16px;padding:14px 16px;color:#fff;">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-        <span style="font-size:20px;">⚖️</span>
-        <div>
-          <div style="font-size:15px;font-weight:700;">Weekly weigh-in!</div>
-          <div style="font-size:12px;opacity:0.85;">Update your weight to keep protein goals accurate</div>
+    <div style="padding:0 0 80px;">
+
+      <!-- Weight check-in banner -->
+      <div id="weight-checkin-banner" style="display:none;margin:12px 16px 0;background:linear-gradient(135deg,#16A34A,#EA580C);border-radius:16px;padding:14px 16px;color:#fff;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <span style="font-size:20px;">⚖️</span>
+          <div>
+            <div style="font-size:15px;font-weight:700;">Weekly weigh-in!</div>
+            <div style="font-size:12px;opacity:0.85;">Update your weight to keep goals accurate</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="number" id="checkin-weight" placeholder="Weight (lbs)" style="flex:1;padding:10px 12px;border-radius:10px;border:none;font-size:15px;color:#1E1B4B;">
+          <button onclick="saveWeightCheckin()" style="padding:10px 16px;background:#fff;color:#16A34A;border:none;border-radius:10px;font-weight:800;font-size:14px;cursor:pointer;">Save</button>
         </div>
       </div>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <input type="number" id="checkin-weight" placeholder="Weight (lbs)" style="flex:1;padding:10px 12px;border-radius:10px;border:none;font-size:15px;color:#1E1B4B;">
-        <button onclick="saveWeightCheckin()" style="padding:10px 16px;background:#fff;color:#16A34A;border:none;border-radius:10px;font-weight:800;font-size:14px;cursor:pointer;">Save</button>
-  
-      </div>
-    </div>
 
-    <!-- Height missing banner -->
-    <div id="height-missing-banner" style="display:none;margin:14px 16px 0;background:linear-gradient(135deg,#2563EB,#7C3AED);border-radius:16px;padding:14px 16px;color:#fff;">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-        <span style="font-size:20px;">📏</span>
-        <div>
-          <div style="font-size:15px;font-weight:700;">One quick thing!</div>
-          <div style="font-size:12px;opacity:0.85;">We need your height to calculate your calorie & macro goals accurately</div>
+      <!-- Height missing banner -->
+      <div id="height-missing-banner" style="display:none;margin:12px 16px 0;background:linear-gradient(135deg,#2563EB,#7C3AED);border-radius:16px;padding:14px 16px;color:#fff;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <span style="font-size:20px;">📏</span>
+          <div>
+            <div style="font-size:15px;font-weight:700;">One quick thing!</div>
+            <div style="font-size:12px;opacity:0.85;">We need your height to calculate macro goals</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="number" id="height-feet-input" placeholder="Feet" min="3" max="8" style="width:70px;padding:10px;border-radius:10px;border:none;font-size:15px;color:#1E1B4B;text-align:center;">
+          <input type="number" id="height-inches-input" placeholder="In" min="0" max="11" style="width:70px;padding:10px;border-radius:10px;border:none;font-size:15px;color:#1E1B4B;text-align:center;">
+          <button onclick="saveHeightFromBanner()" style="flex:1;padding:10px 16px;background:#fff;color:#2563EB;border:none;border-radius:10px;font-weight:800;font-size:14px;cursor:pointer;">Save</button>
         </div>
       </div>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <input type="number" id="height-feet-input" placeholder="Feet" min="3" max="8" style="width:70px;padding:10px;border-radius:10px;border:none;font-size:15px;color:#1E1B4B;text-align:center;">
-        <input type="number" id="height-inches-input" placeholder="In" min="0" max="11" style="width:70px;padding:10px;border-radius:10px;border:none;font-size:15px;color:#1E1B4B;text-align:center;">
-        <button onclick="saveHeightFromBanner()" style="flex:1;padding:10px 16px;background:#fff;color:#2563EB;border:none;border-radius:10px;font-weight:800;font-size:14px;cursor:pointer;">Save</button>
-      </div>
-    </div>
 
-    <!-- My Contests -->
-    <div style="padding:16px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <div style="font-size:20px;font-weight:800;color:var(--text);">My Contests</div>
-        <button onclick="showScreen('screen-create-contest')" style="background:linear-gradient(135deg,#16A34A,#EA580C);color:#fff;border:none;border-radius:20px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;">+ Create</button>
+      <!-- Quick Stats Row -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 16px 0;">
+        <div style="background:#fff;border-radius:14px;padding:12px 8px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.06);">
+          <div style="font-size:22px;font-weight:900;color:#16A34A;" id="qs-rank">#–</div>
+          <div style="font-size:10px;color:#6B7280;font-weight:700;text-transform:uppercase;letter-spacing:0.3px;">Top Rank</div>
+        </div>
+        <div style="background:#fff;border-radius:14px;padding:12px 8px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.06);">
+          <div style="font-size:22px;font-weight:900;color:#EA580C;" id="qs-streak">0🔥</div>
+          <div style="font-size:10px;color:#6B7280;font-weight:700;text-transform:uppercase;letter-spacing:0.3px;">Streak</div>
+        </div>
+        <div style="background:#fff;border-radius:14px;padding:12px 8px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.06);">
+          <div style="font-size:22px;font-weight:900;color:#7C3AED;" id="qs-contests">0</div>
+          <div style="font-size:10px;color:#6B7280;font-weight:700;text-transform:uppercase;letter-spacing:0.3px;">Contests</div>
+        </div>
       </div>
-      <div id="my-contests-list"><div class="loading"><span class="dot-spin"></span></div></div>
 
-      <!-- Join by code -->
-      <div style="margin-top:8px;">
-        <div style="display:flex;gap:8px;">
+      <!-- Activity Feed -->
+      <div style="margin:14px 16px 0;">
+        <div style="font-size:16px;font-weight:800;margin-bottom:10px;">Recent Activity 📣</div>
+        <div id="activity-feed"><div style="background:#fff;border-radius:14px;padding:16px;text-align:center;color:#6B7280;font-size:13px;">Loading activity...</div></div>
+      </div>
+
+      <!-- My Contests -->
+      <div style="margin:16px 16px 0;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <div style="font-size:16px;font-weight:800;">My Contests 🏆</div>
+          <button onclick="showScreen('screen-create-contest')" style="background:linear-gradient(135deg,#16A34A,#EA580C);color:#fff;border:none;border-radius:20px;padding:7px 14px;font-size:13px;font-weight:700;cursor:pointer;">+ Create</button>
+        </div>
+        <div id="my-contests-list"><div style="background:#fff;border-radius:14px;padding:16px;text-align:center;color:#6B7280;font-size:13px;">Loading...</div></div>
+        <div style="display:flex;gap:8px;margin-top:10px;">
           <input class="inp" id="join-code-input" placeholder="Have a join code? Enter it here..." style="flex:1;margin-bottom:0;">
           <button onclick="joinByCode()" style="padding:12px 16px;background:#16A34A;color:#fff;border:none;border-radius:var(--radius-sm);font-weight:700;cursor:pointer;">Join</button>
         </div>
       </div>
-    </div>
-  </div>
-
-  <div id="tab-log" class="tab-content">
-    <div class="top-bar" style="padding-bottom:20px;">
-      <div class="top-greeting">Log Food 🍗</div>
-      <div class="top-sub">Add what you ate today</div>
-    </div>
-    <div class="section">
-
-      <div class="log-method">
-        <div class="method-header">
-          <div class="method-icon" style="background:var(--purple-light);color:var(--purple)"><i class="ti ti-camera"></i></div>
-          <div><div class="method-title">AI Photo Analysis <span class="badge-pill badge-ai">AI</span></div><div class="method-sub">Photo your meal — AI asks questions then estimates</div></div>
-        </div>
-        <div style="display:flex;gap:8px;margin-bottom:8px;">
-          <label style="flex:1;padding:12px;background:#EDE9FE;color:#7C3AED;border-radius:12px;text-align:center;font-weight:700;font-size:14px;cursor:pointer;">
-            <i class="ti ti-camera" style="font-size:16px;vertical-align:-2px;margin-right:4px;"></i>Take photo
-            <input type="file" id="photo-input" accept="image/*" capture="environment" style="display:none;" onchange="startPhotoChat(this)">
-          </label>
-          <label style="flex:1;padding:12px;background:#DBEAFE;color:#2563EB;border-radius:12px;text-align:center;font-weight:700;font-size:14px;cursor:pointer;">
-            <i class="ti ti-photo" style="font-size:16px;vertical-align:-2px;margin-right:4px;"></i>Choose photo
-            <input type="file" id="photo-input-gallery" accept="image/*" style="display:none;" onchange="startPhotoChat(this)">
-          </label>
-        </div>
-        <div id="photo-preview-wrap" style="display:none;margin-bottom:8px;border-radius:12px;overflow:hidden;">
-          <img id="photo-preview" style="width:100%;max-height:180px;object-fit:cover;display:block;">
-        </div>
-        <div class="chat-wrap" id="photo-chat-wrap"></div>
-        <div class="chat-input-row" id="photo-chat-input-row" style="display:none;">
-          <input type="text" id="photo-chat-input" placeholder="Answer here..." onkeydown="if(event.key==='Enter')sendPhotoChat()">
-          <button class="chat-send-btn" onclick="sendPhotoChat()"><i class="ti ti-send" style="font-size:18px"></i></button>
-        </div>
-        <div id="photo-food-breakdown" style="display:none;margin-top:12px;"></div>
-        <button class="chat-add-btn" id="photo-add-btn" onclick="addPhotoFoods()" style="display:none;">Add to my log ✓</button>
-        <button class="btn-outline" id="photo-reset-btn" onclick="resetPhotoChat()" style="display:none;margin-top:8px;">Analyze another photo</button>
-      </div>
-
-      <div class="log-method">
-        <div class="method-header">
-          <div class="method-icon" style="background:#FEF3C7;color:#D97706"><i class="ti ti-message-circle"></i></div>
-          <div><div class="method-title">Describe your meal <span class="badge-pill badge-ai">AI</span></div><div class="method-sub">Tell AI what you ate — it'll ask a couple questions</div></div>
-        </div>
-        <div class="chat-wrap" id="chat-wrap"></div>
-        <div class="chat-input-row" id="chat-input-row">
-          <input type="text" id="chat-input" placeholder="e.g. I ate a turkey sandwich..." onkeydown="if(event.key==='Enter')sendChat()">
-          <button class="chat-send-btn" onclick="sendChat()" aria-label="Send"><i class="ti ti-send" style="font-size:18px"></i></button>
-        </div>
-        <button class="chat-add-btn" id="chat-add-btn" onclick="addChatFood()">Add to my log ✓</button>
-      </div>
-
-      <div class="log-method">
-        <div class="method-header">
-          <div class="method-icon" style="background:var(--green-light);color:var(--green)"><i class="ti ti-barcode"></i></div>
-          <div><div class="method-title">Barcode Lookup <span class="badge-pill badge-free">FREE</span></div><div class="method-sub">Photo the barcode or type it in</div></div>
-        </div>
-        <div style="display:flex;gap:8px;margin-bottom:10px;">
-          <label style="flex:1;padding:12px;background:#D1FAE5;color:#059669;border-radius:12px;text-align:center;font-weight:700;font-size:14px;cursor:pointer;">
-            <i class="ti ti-camera" style="font-size:16px;vertical-align:-2px;margin-right:4px;"></i>Take photo
-            <input type="file" id="barcode-photo-input" accept="image/*" capture="environment" style="display:none;" onchange="scanBarcodePhoto(this)">
-          </label>
-          <label style="flex:1;padding:12px;background:#ECFDF5;color:#059669;border-radius:12px;text-align:center;font-weight:700;font-size:14px;cursor:pointer;border:2px solid #D1FAE5;">
-            <i class="ti ti-photo" style="font-size:16px;vertical-align:-2px;margin-right:4px;"></i>Choose photo
-            <input type="file" id="barcode-gallery-input" accept="image/*" style="display:none;" onchange="scanBarcodePhoto(this)">
-          </label>
-        </div>
-        <div id="barcode-preview-wrap" style="display:none;margin-bottom:10px;border-radius:12px;overflow:hidden;">
-          <img id="barcode-preview" style="width:100%;max-height:160px;object-fit:cover;display:block;">
-        </div>
-        <div id="bc-status" style="display:none;font-size:13px;font-weight:600;color:var(--green);text-align:center;padding:8px;background:var(--green-light);border-radius:10px;margin-bottom:8px;"></div>
-        <div style="display:flex;align-items:center;gap:10px;margin:10px 0;">
-          <div style="flex:1;height:1px;background:#E5E7EB;"></div>
-          <div style="font-size:12px;color:var(--muted);font-weight:600;">OR TYPE BARCODE NUMBER</div>
-          <div style="flex:1;height:1px;background:#E5E7EB;"></div>
-        </div>
-        <div style="display:flex;gap:8px;">
-          <input class="inp" id="barcode-manual-input" placeholder="e.g. 012345678901" style="flex:1;margin-bottom:0;" type="number">
-          <button onclick="lookupBarcode(document.getElementById('barcode-manual-input').value)" style="padding:12px 16px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-weight:700;cursor:pointer;white-space:nowrap;">Look up</button>
-        </div>
-        <div id="bc-result" class="result-box result-box-green" style="margin-top:10px;"></div>
-        <div id="bc-add-btns" style="display:none;margin-top:10px;">
-          <button class="btn-main" onclick="addBarcodeFood()">Add to my log ✓</button>
-          <button class="btn-outline" onclick="resetBarcodeScanner()">Scan another</button>
-        </div>
-      </div>
-
-      <div class="log-method">
-        <div class="method-header">
-          <div class="method-icon" style="background:#FEF3C7;color:#D97706"><i class="ti ti-building-store"></i></div>
-          <div><div class="method-title">Restaurant & Food Search <span class="badge-pill badge-free">FREE</span></div><div class="method-sub">Search millions of foods & restaurant items</div></div>
-        </div>
-        <div style="display:flex;gap:8px;margin-top:10px;">
-          <input class="inp" id="food-search-input" placeholder="e.g. McDonald's Big Mac..." style="flex:1;margin-bottom:0;" onkeydown="if(event.key==='Enter')searchFood()">
-          <button onclick="searchFood()" style="padding:12px 16px;background:#D97706;color:#fff;border:none;border-radius:var(--radius-sm);font-weight:700;cursor:pointer;white-space:nowrap;"><i class="ti ti-search"></i></button>
-        </div>
-        <div id="food-search-status" style="display:none;font-size:13px;color:var(--muted);text-align:center;padding:8px;margin-top:8px;"></div>
-        <div id="food-search-results" style="display:none;max-height:320px;overflow-y:auto;margin-top:10px;border:1px solid #E5E7EB;border-radius:12px;"></div>
-      </div>
-
-      <div class="log-method">
-        <div class="method-header">
-          <div class="method-icon" style="background:var(--orange-light);color:var(--orange)"><i class="ti ti-pencil"></i></div>
-          <div><div class="method-title">Manual Entry</div><div class="method-sub">Type it in yourself</div></div>
-        </div>
-        <div class="field-wrap" style="margin-top:10px;"><input class="inp" id="manual-food" placeholder="Food name (e.g. Chicken breast)"></div>
-        <div class="field-wrap"><input class="inp" id="manual-protein" type="number" placeholder="Protein in grams"></div>
-        <button class="btn-main" onclick="addManualFood()">Add to log</button>
-      </div>
 
     </div>
   </div>
+
 
   <div id="tab-challenges" class="tab-content">
     <!-- Horizontal scroll of contests -->
@@ -916,6 +834,17 @@ async function renderHome() {
   const today = getTodayKey();
   const displayDate = viewingDate || today;
   const isToday = displayDate === today;
+
+  // Update header
+  const dateEl = document.getElementById('home-date-label');
+  if (dateEl) dateEl.textContent = new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+  const avatarEl = document.getElementById('home-avatar-circle');
+  if (avatarEl) avatarEl.textContent = avatarEmoji(currentProfile.name);
+
+  // Load activity feed
+  renderActivityFeed();
+  // Load quick stats
+  renderQuickStats();
   // food-log-title element removed from new design
 
   // date nav elements removed from new design
@@ -1294,106 +1223,146 @@ async function selectChallengeTab(tabId) {
   }
 }
 
+let globalViewingDate = null;
+
 async function renderGlobalChallenge() {
-  const content = document.getElementById('challenge-content');
-  content.innerHTML = '<div class="loading"><span class="dot-spin"></span></div>';
+  const contentEl = document.getElementById('challenge-content');
+  contentEl.innerHTML = '<div class="loading"><span class="dot-spin"></span></div>';
   const today = getTodayKey();
+  const displayDate = globalViewingDate || today;
+  const isToday = displayDate === today;
   const wk = getWeekKey();
   const goals = calcGoals(currentProfile);
 
-  // Get today's log
-  const { data: myLog } = await sb.from('daily_logs').select('*').eq('user_id', currentUser).eq('log_date', today).maybeSingle();
+  const { data: myLog } = await sb.from('daily_logs').select('*').eq('user_id', currentUser).eq('log_date', displayDate).maybeSingle();
   const protein = myLog?.protein || 0;
   const water = myLog?.water || 0;
   const fat = myLog?.fat || 0;
   const carbs = myLog?.carbs || 0;
   const foods = myLog?.foods || [];
 
-  // Get all users for leaderboard
-  const { data: allProfiles } = await sb.from('profiles').select('id,name,weight,age,activity,goal');
-  const { data: weekLogs } = await sb.from('daily_logs').select('*').gte('log_date', wk);
+  // Scoring for each macro
+  const defaultTiers = [{points:10,pct:100},{points:7,pct:90},{points:5,pct:75},{points:2,pct:50}];
+  function getTierPts(logged, goal) {
+    const pct = goal > 0 ? (logged/goal)*100 : 0;
+    const tier = defaultTiers.find(t => pct >= t.pct);
+    return { pts: tier ? tier.points : 0, pct: Math.round(pct) };
+  }
+  const proteinScore = getTierPts(protein, goals.protein);
+  const waterScore = getTierPts(water, goals.water);
+  const fatScore = getTierPts(fat, goals.fat || 1);
+  const carbScore = getTierPts(carbs, goals.carbs || 1);
+  const dayPts = proteinScore.pts + waterScore.pts + fatScore.pts + carbScore.pts;
 
-  // Calculate weekly points for all users
+  // Date nav label
+  const dateLabel = isToday ? 'Today' : new Date(displayDate + 'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
+
+  // Get all users for leaderboard
+  const { data: allProfiles } = await sb.from('profiles').select('id,name,weight,age,activity,goal,height_inches,sex');
+  const { data: weekLogs } = await sb.from('daily_logs').select('*').gte('log_date', wk);
+  const { data: dayLogs } = await sb.from('daily_logs').select('*').eq('log_date', displayDate);
+
   const ranked = (allProfiles||[]).map(p => {
     const g = calcGoals(p);
     const logs = (weekLogs||[]).filter(l => l.user_id === p.id);
     let pts = 0;
-    logs.forEach(l => pts += calcDayPoints(l.protein, l.water, g));
-    return { ...p, pts, goals: g };
+    logs.forEach(l => {
+      pts += getTierPts(l.protein||0, g.protein).pts;
+      pts += getTierPts(l.water||0, g.water).pts;
+    });
+    const dayLog = (dayLogs||[]).find(l => l.user_id === p.id) || {};
+    return { ...p, pts, dayLog, goals: g };
   }).sort((a,b) => b.pts - a.pts);
-
-  const myRank = ranked.findIndex(p => p.id === currentUser) + 1;
-  const myPts = ranked.find(p => p.id === currentUser)?.pts || 0;
   const medals = ['🥇','🥈','🥉'];
-  const pPct = Math.min(100, Math.round(protein/goals.protein*100));
-  const wPct = Math.min(100, Math.round(water/goals.water*100));
 
-  content.innerHTML = `
-    <!-- Today's progress -->
-    <div class="card" style="margin-bottom:14px;">
-      <div style="font-size:15px;font-weight:800;margin-bottom:12px;">Today's Progress</div>
-      <div style="margin-bottom:12px;">
-        <div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:4px;">
-          <span style="font-weight:600;">🥩 Protein</span>
-          <span style="font-weight:800;color:#16A34A;">${Math.round(protein)} / ${goals.protein}g</span>
-        </div>
-        <div style="background:#F3F4F6;border-radius:20px;height:12px;overflow:hidden;">
-          <div style="width:${pPct}%;height:100%;border-radius:20px;background:linear-gradient(90deg,#16A34A,#EA580C);transition:width 0.5s;"></div>
-        </div>
-      </div>
-      <div style="margin-bottom:12px;">
-        <div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:4px;">
-          <span style="font-weight:600;">🧈 Fat</span>
-          <span style="font-weight:800;color:#D97706;">${Math.round(fat)} / ${goals.fat}g</span>
-        </div>
-        <div style="background:#F3F4F6;border-radius:20px;height:12px;overflow:hidden;">
-          <div style="width:${Math.min(100,Math.round(fat/goals.fat*100))}%;height:100%;border-radius:20px;background:linear-gradient(90deg,#D97706,#F59E0B);transition:width 0.5s;"></div>
-        </div>
-      </div>
-      <div style="margin-bottom:12px;">
-        <div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:4px;">
-          <span style="font-weight:600;">🌾 Carbs</span>
-          <span style="font-weight:800;color:#7C3AED;">${Math.round(carbs)} / ${goals.carbs}g</span>
-        </div>
-        <div style="background:#F3F4F6;border-radius:20px;height:12px;overflow:hidden;">
-          <div style="width:${Math.min(100,Math.round(carbs/goals.carbs*100))}%;height:100%;border-radius:20px;background:linear-gradient(90deg,#7C3AED,#A78BFA);transition:width 0.5s;"></div>
-        </div>
-      </div>
-      <div style="margin-bottom:12px;">
-        <div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:4px;">
-          <span style="font-weight:600;">💧 Water</span>
-          <span style="font-weight:800;color:#2563EB;">${Math.round(water)} / ${goals.water}oz</span>
-        </div>
-        <div style="background:#F3F4F6;border-radius:20px;height:12px;overflow:hidden;">
-          <div style="width:${wPct}%;height:100%;border-radius:20px;background:linear-gradient(90deg,#2563EB,#38BDF8);transition:width 0.5s;"></div>
-        </div>
-      </div>
-      <div style="font-size:13px;color:var(--muted);margin-bottom:8px;">Food logged today:</div>
-      ${foods.length === 0
-        ? '<div style="font-size:13px;color:var(--muted);font-style:italic;">Nothing yet — tap Log to add food</div>'
-        : foods.map(f => `<div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0;border-bottom:1px solid #F3F4F6;"><span>${f.name}</span><span style="font-weight:700;color:#16A34A;">${Math.round(f.protein)}g</span></div>`).join('')
-      }
-    </div>
+  function macroRow(emoji, label, logged, goal, score, color, gradient) {
+    const barPct = Math.min(100, Math.round(logged/goal*100));
+    return '<div style="background:#fff;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
+        '<div style="font-size:15px;font-weight:700;">' + emoji + ' ' + label + '</div>' +
+        '<div style="background:#F0FDF4;border-radius:20px;padding:4px 10px;font-size:13px;font-weight:800;color:#16A34A;">+' + score.pts + ' pts</div>' +
+      '</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;text-align:center;">' +
+        '<div style="background:#F9FAFB;border-radius:10px;padding:8px;">' +
+          '<div style="font-size:11px;color:#6B7280;font-weight:600;text-transform:uppercase;">Goal</div>' +
+          '<div style="font-size:16px;font-weight:800;">' + goal + 'g</div>' +
+        '</div>' +
+        '<div style="background:#F9FAFB;border-radius:10px;padding:8px;">' +
+          '<div style="font-size:11px;color:#6B7280;font-weight:600;text-transform:uppercase;">Logged</div>' +
+          '<div style="font-size:16px;font-weight:800;color:' + color + ';">' + Math.round(logged) + 'g</div>' +
+        '</div>' +
+        '<div style="background:#F9FAFB;border-radius:10px;padding:8px;">' +
+          '<div style="font-size:11px;color:#6B7280;font-weight:600;text-transform:uppercase;">% of Goal</div>' +
+          '<div style="font-size:16px;font-weight:800;color:' + color + ';">' + score.pct + '%</div>' +
+        '</div>' +
+      '</div>' +
+      '<div style="background:#F3F4F6;border-radius:20px;height:10px;overflow:hidden;">' +
+        '<div style="width:' + barPct + '%;height:100%;border-radius:20px;background:' + gradient + ';transition:width 0.5s;"></div>' +
+      '</div>' +
+    '</div>';
+  }
 
-    <!-- Quick log buttons -->
-    <div style="display:flex;gap:10px;margin-bottom:14px;">
-      <button onclick="showTab('tab-log',document.querySelector('.nav-item:nth-child(3)'))" style="flex:1;padding:14px;background:#DCFCE7;color:#16A34A;border:none;border-radius:var(--radius-sm);font-weight:700;font-size:14px;cursor:pointer;">+ Log Food</button>
-      <button onclick="openWaterModal()" style="flex:1;padding:14px;background:#DBEAFE;color:#2563EB;border:none;border-radius:var(--radius-sm);font-weight:700;font-size:14px;cursor:pointer;">💧 Log Water</button>
-    </div>
+  contentEl.innerHTML =
+    // Date navigation
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;background:#fff;border-radius:14px;padding:12px 16px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">' +
+      '<button onclick="changeGlobalDay(-1)" style="background:#F0FDF4;border:none;border-radius:10px;padding:8px 14px;font-size:18px;cursor:pointer;color:#16A34A;">‹</button>' +
+      '<div style="text-align:center;">' +
+        '<div style="font-size:15px;font-weight:800;">' + dateLabel + '</div>' +
+        '<div style="font-size:12px;color:#6B7280;">' + dayPts + ' pts earned</div>' +
+      '</div>' +
+      '<button onclick="changeGlobalDay(1)" style="background:' + (isToday?'#F9FAFB':'#F0FDF4') + ';border:none;border-radius:10px;padding:8px 14px;font-size:18px;cursor:pointer;color:' + (isToday?'#D1D5DB':'#16A34A') + ';" ' + (isToday?'disabled':'') + '>›</button>' +
+    '</div>' +
 
-    <!-- Weekly Leaderboard -->
-    <div class="card">
-      <div style="font-size:15px;font-weight:800;margin-bottom:4px;">⚡ Global Leaderboard</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">Week of ${formatDateLabel(wk)} · Resets Monday</div>
-      ${ranked.map((p,i) => `
-        <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #F3F4F6;${p.id===currentUser?'background:#F0FDF4;margin:0 -16px;padding:10px 16px;':''}">
-          <div style="font-size:20px;min-width:28px;">${medals[i]||'#'+(i+1)}</div>
-          <div style="flex:1;">
-            <div style="font-weight:700;font-size:14px;">${p.name}${p.id===currentUser?' (you)':''}</div>
-          </div>
-          <div style="font-size:16px;font-weight:800;color:#16A34A;">${p.pts} pts</div>
-        </div>`).join('')}
-    </div>`;
+    // Macro cards
+    '<div style="margin-bottom:4px;font-size:13px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:0.5px;">Progress</div>' +
+    macroRow('🥩','Protein', protein, goals.protein, proteinScore, '#16A34A', 'linear-gradient(90deg,#16A34A,#EA580C)') +
+    macroRow('🧈','Fat', fat, goals.fat||70, fatScore, '#D97706', 'linear-gradient(90deg,#D97706,#F59E0B)') +
+    macroRow('🌾','Carbs', carbs, goals.carbs||200, carbScore, '#7C3AED', 'linear-gradient(90deg,#7C3AED,#A78BFA)') +
+    macroRow('💧','Water (oz)', water, goals.water, waterScore, '#2563EB', 'linear-gradient(90deg,#2563EB,#38BDF8)') +
+
+    // Food log
+    (foods.length > 0 ? '<div style="background:#fff;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">' +
+      '<div style="font-size:14px;font-weight:700;margin-bottom:8px;">Food logged</div>' +
+      foods.map(f => '<div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid #F3F4F6;">' +
+        '<span>' + f.name + '</span>' +
+        '<span style="font-weight:700;color:#16A34A;">' + Math.round(f.protein||0) + 'g P</span>' +
+      '</div>').join('') +
+    '</div>' : '') +
+
+    // Quick log buttons (today only)
+    (isToday ? '<div style="display:flex;gap:10px;margin-bottom:14px;">' +
+      '<button onclick="goToLogTab()" style="flex:1;padding:14px;background:#DCFCE7;color:#16A34A;border:none;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer;">+ Log Food</button>' +
+      '<button onclick="openWaterModal()" style="flex:1;padding:14px;background:#DBEAFE;color:#2563EB;border:none;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer;">💧 Log Water</button>' +
+    '</div>' : '') +
+
+    // Leaderboard for this day
+    '<div style="background:#fff;border-radius:14px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">' +
+      '<div style="font-size:15px;font-weight:800;margin-bottom:4px;">⚡ ' + (isToday?'Week':'Day') + ' Leaderboard</div>' +
+      '<div style="font-size:12px;color:#6B7280;margin-bottom:12px;">' + (isToday ? 'Week of ' + formatDateLabel(wk) + ' · Resets Monday' : dateLabel) + '</div>' +
+      ranked.map((p,i) => {
+        const dLog = p.dayLog || {};
+        const dPts = getTierPts(dLog.protein||0,p.goals.protein).pts + getTierPts(dLog.water||0,p.goals.water).pts;
+        return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #F3F4F6;' + (p.id===currentUser?'background:#F0FDF4;margin:0 -14px;padding:10px 14px;':'') + '">' +
+          '<div style="font-size:20px;min-width:28px;">' + (medals[i]||'#'+(i+1)) + '</div>' +
+          '<div style="flex:1;">' +
+            '<div style="font-weight:700;font-size:14px;">' + p.name + (p.id===currentUser?' (you)':'') + '</div>' +
+            '<div style="font-size:11px;color:#6B7280;">' + (isToday ? p.pts + ' week pts' : dPts + ' pts this day') + '</div>' +
+          '</div>' +
+          '<div style="font-size:16px;font-weight:800;color:#16A34A;">' + (isToday ? p.pts : dPts) + ' pts</div>' +
+        '</div>';
+      }).join('') +
+    '</div>';
+}
+
+function changeGlobalDay(delta) {
+  const today = getTodayKey();
+  const base = globalViewingDate || today;
+  const d = new Date(base + 'T12:00:00');
+  d.setDate(d.getDate() + delta);
+  const newDate = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  if (newDate > today) return;
+  globalViewingDate = newDate === today ? null : newDate;
+  renderGlobalChallenge();
 }
 
 async function renderContestChallenge(contestId) {
@@ -1768,6 +1737,93 @@ async function addSearchedFood() {
   document.getElementById('food-search-status').style.display = 'none';
   window._foodSearchResults = [];
 }
+
+
+// ─── ACTIVITY FEED & QUICK STATS ──────────────────────────────────────────
+async function renderActivityFeed() {
+  const feed = document.getElementById('activity-feed');
+  if (!feed) return;
+  try {
+    // Get recent logs from all users (last 2 days)
+    const yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
+    const yKey = yesterday.getFullYear()+'-'+String(yesterday.getMonth()+1).padStart(2,'0')+'-'+String(yesterday.getDate()).padStart(2,'0');
+    const { data: recentLogs } = await sb.from('daily_logs').select('user_id,protein,water,fat,carbs,log_date,foods').gte('log_date', yKey).order('log_date',{ascending:false}).limit(20);
+    const { data: profiles } = await sb.from('profiles').select('id,name,weight,activity,goal,height_inches,sex,age');
+    if (!recentLogs || recentLogs.length === 0) {
+      feed.innerHTML = '<div style="background:#fff;border-radius:14px;padding:16px;text-align:center;color:#6B7280;font-size:13px;">No recent activity yet. Start logging!</div>';
+      return;
+    }
+    const profileMap = {};
+    (profiles||[]).forEach(p => profileMap[p.id] = p);
+    const items = [];
+    (recentLogs||[]).forEach(log => {
+      const p = profileMap[log.user_id];
+      if (!p) return;
+      const g = calcGoals(p);
+      const isToday = log.log_date === getTodayKey();
+      const dayLabel = isToday ? 'Today' : 'Yesterday';
+      const pPct = g.protein > 0 ? Math.round(log.protein/g.protein*100) : 0;
+      const wPct = g.water > 0 ? Math.round(log.water/g.water*100) : 0;
+      if (pPct >= 100) items.push({ name: p.name, msg: 'hit their protein goal! 🎯', pts: '+10 pts', color: '#16A34A', day: dayLabel, uid: log.user_id });
+      else if (pPct >= 75) items.push({ name: p.name, msg: 'logged ' + Math.round(log.protein) + 'g protein (' + pPct + '% of goal)', pts: '+5 pts', color: '#EA580C', day: dayLabel, uid: log.user_id });
+      if (wPct >= 100) items.push({ name: p.name, msg: 'crushed their water goal! 💧', pts: '+10 pts', color: '#2563EB', day: dayLabel, uid: log.user_id });
+      if ((log.foods||[]).length >= 3) items.push({ name: p.name, msg: 'logged ' + log.foods.length + ' meals today 🍽', pts: '', color: '#7C3AED', day: dayLabel, uid: log.user_id });
+    });
+    if (items.length === 0) {
+      feed.innerHTML = '<div style="background:#fff;border-radius:14px;padding:16px;text-align:center;color:#6B7280;font-size:13px;">Keep logging — activity will show here!</div>';
+      return;
+    }
+    feed.innerHTML = items.slice(0,8).map(item =>
+      '<div style="background:#fff;border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;box-shadow:0 1px 6px rgba(0,0,0,0.05);">' +
+        '<div style="width:36px;height:36px;border-radius:50%;background:' + item.color + '20;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">' + avatarEmoji(item.name) + '</div>' +
+        '<div style="flex:1;min-width:0;">' +
+          '<div style="font-size:13px;"><strong>' + item.name + '</strong> ' + item.msg + '</div>' +
+          '<div style="font-size:11px;color:#9CA3AF;margin-top:2px;">' + item.day + (item.pts ? ' · <span style="color:' + item.color + ';font-weight:700;">' + item.pts + '</span>' : '') + '</div>' +
+        '</div>' +
+      '</div>'
+    ).join('');
+  } catch(e) {
+    const feed = document.getElementById('activity-feed');
+    if (feed) feed.innerHTML = '<div style="background:#fff;border-radius:14px;padding:16px;text-align:center;color:#6B7280;font-size:13px;">Could not load activity.</div>';
+  }
+}
+
+async function renderQuickStats() {
+  try {
+    const wk = getWeekKey();
+    // Streak
+    const streak = await calcStreak();
+    const streakEl = document.getElementById('qs-streak');
+    if (streakEl) streakEl.textContent = streak + '🔥';
+
+    // Contest count
+    const { data: memberships } = await sb.from('contest_members').select('contest_id').eq('user_id', currentUser);
+    const contestEl = document.getElementById('qs-contests');
+    if (contestEl) contestEl.textContent = (memberships||[]).length;
+
+    // Best rank across contests
+    const { data: allProfiles } = await sb.from('profiles').select('id,weight,activity,goal,height_inches,sex,age');
+    const { data: weekLogs } = await sb.from('daily_logs').select('*').gte('log_date', wk);
+    const goals = calcGoals(currentProfile);
+    const ptsMap = {};
+    (allProfiles||[]).forEach(p => {
+      const g = calcGoals(p);
+      const logs = (weekLogs||[]).filter(l => l.user_id === p.id);
+      let pts = 0;
+      logs.forEach(l => pts += calcDayPoints(l.protein||0, l.water||0, g));
+      ptsMap[p.id] = pts;
+    });
+    const ranked = Object.entries(ptsMap).sort((a,b) => b[1]-a[1]);
+    const myRank = ranked.findIndex(([id]) => id === currentUser) + 1;
+    const rankEl = document.getElementById('qs-rank');
+    if (rankEl) {
+      const medals = ['🥇','🥈','🥉'];
+      rankEl.textContent = medals[myRank-1] || '#' + myRank;
+    }
+  } catch(e) {}
+}
+
+function goToLogTab() { showTab("tab-log", document.querySelector(".nav-item:nth-child(3)")); }
 
 function doLogout() { currentUser = null; currentProfile = null; pendingAiFood = null; pendingBarcodeFood = null; clearSession(); stopScanner(); showScreen('screen-splash'); }
 
@@ -2379,7 +2435,7 @@ async function showContestDetail(contestId) {
 
   // Check if admin
   const { data: membership } = await sb.from('contest_members').select('role').eq('contest_id', contestId).eq('user_id', currentUser).maybeSingle();
-  const isAdmin = membership?.role === 'admin';
+  const isAdmin = membership?.role === 'admin' || contest.creator_id === currentUser;
 
   // Render goals
   const goalDiv = document.getElementById('detail-goals');
