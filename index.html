@@ -299,6 +299,12 @@
     <select class="inp" id="su-sex"><option value="">Select...</option><option value="male">Male</option><option value="female">Female</option><option value="other">Other / prefer not to say</option></select>
   </div>
   <div class="field-wrap"><div class="field-label">Weight (lbs)</div><input class="inp" id="su-weight" type="number" placeholder="e.g. 165"></div>
+  <div class="field-wrap"><div class="field-label">Height</div>
+    <div style="display:flex;gap:8px;">
+      <div style="flex:1;"><input class="inp" id="su-feet" type="number" placeholder="Feet" min="3" max="8" style="margin-bottom:0;"></div>
+      <div style="flex:1;"><input class="inp" id="su-inches" type="number" placeholder="Inches" min="0" max="11" style="margin-bottom:0;"></div>
+    </div>
+  </div>
   <div class="field-wrap"><div class="field-label">Age</div><input class="inp" id="su-age" type="number" placeholder="e.g. 30"></div>
   <div class="field-wrap"><div class="field-label">Activity level</div>
     <select class="inp" id="su-activity"><option value="">Select...</option><option value="sedentary">Sedentary (desk job)</option><option value="light">Lightly active (1-3x/week)</option><option value="moderate">Moderately active (3-5x/week)</option><option value="very">Very active (6-7x/week)</option><option value="athlete">Athlete / intense daily</option></select>
@@ -334,7 +340,23 @@
       <div style="display:flex;gap:8px;align-items:center;">
         <input type="number" id="checkin-weight" placeholder="Weight (lbs)" style="flex:1;padding:10px 12px;border-radius:10px;border:none;font-size:15px;color:#1E1B4B;">
         <button onclick="saveWeightCheckin()" style="padding:10px 16px;background:#fff;color:#16A34A;border:none;border-radius:10px;font-weight:800;font-size:14px;cursor:pointer;">Save</button>
-        <button onclick="dismissWeightBanner()" style="padding:8px 12px;background:rgba(255,255,255,0.2);color:#fff;border:none;border-radius:10px;font-size:13px;cursor:pointer;">Later</button>
+  
+      </div>
+    </div>
+
+    <!-- Height missing banner -->
+    <div id="height-missing-banner" style="display:none;margin:14px 16px 0;background:linear-gradient(135deg,#2563EB,#7C3AED);border-radius:16px;padding:14px 16px;color:#fff;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <span style="font-size:20px;">📏</span>
+        <div>
+          <div style="font-size:15px;font-weight:700;">One quick thing!</div>
+          <div style="font-size:12px;opacity:0.85;">We need your height to calculate your calorie & macro goals accurately</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input type="number" id="height-feet-input" placeholder="Feet" min="3" max="8" style="width:70px;padding:10px;border-radius:10px;border:none;font-size:15px;color:#1E1B4B;text-align:center;">
+        <input type="number" id="height-inches-input" placeholder="In" min="0" max="11" style="width:70px;padding:10px;border-radius:10px;border:none;font-size:15px;color:#1E1B4B;text-align:center;">
+        <button onclick="saveHeightFromBanner()" style="flex:1;padding:10px 16px;background:#fff;color:#2563EB;border:none;border-radius:10px;font-weight:800;font-size:14px;cursor:pointer;">Save</button>
       </div>
     </div>
 
@@ -719,13 +741,45 @@ function getTodayKey() {
 }
 
 function calcGoals(p) {
-  const ageMult = p.age >= 40 ? 1.1 : 1.0;
-  const actMap = { sedentary: 0.54, light: 0.64, moderate: 0.75, very: 0.85, athlete: 1.0 };
-  const gm = p.goal === 'gain' ? 1.1 : p.goal === 'lose' ? 0.9 : 1.0;
-  const protein = Math.round(p.weight * (actMap[p.activity] || 0.75) * gm * ageMult);
+  // Convert lbs to kg
+  const kg = (p.weight || 160) / 2.205;
+
+  // Protein: 1.7g per kg of body weight
+  const protein = Math.round(kg * 1.7);
+
+  // Water goal
   const aw = { sedentary: 0, light: 12, moderate: 18, very: 24, athlete: 32 };
-  const water = Math.round(p.weight * 0.5 + (aw[p.activity] || 18));
-  return { protein, water };
+  const water = Math.round((p.weight || 160) * 0.5 + (aw[p.activity] || 18));
+
+  // BMR using Mifflin-St Jeor
+  const heightCm = ((p.height_inches || 68) * 2.54);
+  const age = p.age || 30;
+  let bmr;
+  if (p.sex === 'male') {
+    bmr = (10 * kg) + (6.25 * heightCm) - (5 * age) + 5;
+  } else {
+    bmr = (10 * kg) + (6.25 * heightCm) - (5 * age) - 161;
+  }
+
+  // Activity multiplier (TDEE)
+  const actMult = { sedentary: 1.2, light: 1.375, moderate: 1.55, very: 1.725, athlete: 1.9 };
+  const tdee = bmr * (actMult[p.activity] || 1.55);
+
+  // Goal adjustment
+  const goalAdj = p.goal === 'lose' ? 0.85 : p.goal === 'gain' ? 1.10 : 1.0;
+  const calories = Math.round(tdee * goalAdj);
+
+  // Macro splits based on goal
+  let proteinPct, fatPct, carbPct;
+  if (p.goal === 'lose') { proteinPct = 0.40; fatPct = 0.30; carbPct = 0.30; }
+  else if (p.goal === 'gain') { proteinPct = 0.35; fatPct = 0.25; carbPct = 0.40; }
+  else { proteinPct = 0.30; fatPct = 0.30; carbPct = 0.40; }
+
+  // Fat: 9 cal/g, Carbs: 4 cal/g
+  const fat = Math.round((calories * fatPct) / 9);
+  const carbs = Math.round((calories * carbPct) / 4);
+
+  return { protein, water, fat, carbs, calories };
 }
 
 function calcDayPoints(protein, water, goals) {
@@ -768,14 +822,17 @@ async function doSignup() {
   const password = document.getElementById('su-pass').value;
   const sex = document.getElementById('su-sex').value;
   const weight = parseFloat(document.getElementById('su-weight').value);
+  const feet = parseInt(document.getElementById('su-feet').value) || 0;
+  const inches = parseInt(document.getElementById('su-inches').value) || 0;
+  const heightInches = (feet * 12) + inches;
   const age = parseInt(document.getElementById('su-age').value);
   const activity = document.getElementById('su-activity').value;
   const goal = document.getElementById('su-goal').value;
   const err = document.getElementById('signup-error');
   const btn = document.querySelector('#screen-signup .btn-main');
   err.style.display = 'none';
-  if (!name || !username || !password || !sex || !weight || !age || !activity || !goal) {
-    err.textContent = 'Please fill in all fields.'; err.style.display = 'block'; return;
+  if (!name || !username || !password || !sex || !weight || !heightInches || !age || !activity || !goal) {
+    err.textContent = 'Please fill in all fields including height.'; err.style.display = 'block'; return;
   }
   btn.textContent = 'Creating account...'; btn.disabled = true;
   try {
@@ -783,7 +840,7 @@ async function doSignup() {
     if (existing.data) { err.textContent = 'Username already taken.'; err.style.display = 'block'; btn.textContent = 'Create my account'; btn.disabled = false; return; }
     const { data, error } = await sb.from('profiles').insert({
       username, name, password_hash: btoa(password),
-      sex, weight, age, activity, goal, wins: 0, is_admin: false
+      sex, weight, height_inches: heightInches, age, activity, goal, wins: 0, is_admin: false
     }).select().single();
     if (error) { err.textContent = 'Error: ' + error.message; err.style.display = 'block'; btn.textContent = 'Create my account'; btn.disabled = false; return; }
     currentProfile = data; currentUser = data.id;
@@ -890,7 +947,7 @@ async function renderHome() {
 
   const streakDays = await calcStreak();
   // home-streak removed from new design
-  if (isToday) checkWeightBanner();
+  if (isToday) { checkWeightBanner(); checkHeightBanner(); }
   renderMyContests();
   checkJoinCodeInUrl();
 
@@ -979,7 +1036,7 @@ async function editWaterForDay() {
 }
 
 // ─── LOG HELPERS ──────────────────────────────────────────────────────────
-async function upsertLog({ protein_add = 0, water_add = 0, food = null }) {
+async function upsertLog({ protein_add = 0, water_add = 0, fat_add = 0, carbs_add = 0, food = null }) {
   const today = getTodayKey();
   const logDate = viewingDate || today;
   const { data: existing } = await sb.from('daily_logs').select('*').eq('user_id', currentUser).eq('log_date', logDate).maybeSingle();
@@ -989,16 +1046,18 @@ async function upsertLog({ protein_add = 0, water_add = 0, food = null }) {
     await sb.from('daily_logs').update({
       protein: (existing.protein || 0) + protein_add,
       water: (existing.water || 0) + water_add,
+      fat: (existing.fat || 0) + fat_add,
+      carbs: (existing.carbs || 0) + carbs_add,
       foods
     }).eq('id', existing.id);
   } else {
     const foods = food ? [food] : [];
-    await sb.from('daily_logs').insert({ user_id: currentUser, log_date: logDate, protein: protein_add, water: water_add, foods });
+    await sb.from('daily_logs').insert({ user_id: currentUser, log_date: logDate, protein: protein_add, water: water_add, fat: fat_add, carbs: carbs_add, foods });
   }
 }
 
-async function addFoodToLog(name, protein) {
-  await upsertLog({ protein_add: protein, food: { name, protein } });
+async function addFoodToLog(name, protein, fat = 0, carbs = 0) {
+  await upsertLog({ protein_add: protein, fat_add: fat, carbs_add: carbs, food: { name, protein, fat, carbs } });
   renderHome();
 }
 
@@ -1246,6 +1305,8 @@ async function renderGlobalChallenge() {
   const { data: myLog } = await sb.from('daily_logs').select('*').eq('user_id', currentUser).eq('log_date', today).maybeSingle();
   const protein = myLog?.protein || 0;
   const water = myLog?.water || 0;
+  const fat = myLog?.fat || 0;
+  const carbs = myLog?.carbs || 0;
   const foods = myLog?.foods || [];
 
   // Get all users for leaderboard
@@ -1278,6 +1339,24 @@ async function renderGlobalChallenge() {
         </div>
         <div style="background:#F3F4F6;border-radius:20px;height:12px;overflow:hidden;">
           <div style="width:${pPct}%;height:100%;border-radius:20px;background:linear-gradient(90deg,#16A34A,#EA580C);transition:width 0.5s;"></div>
+        </div>
+      </div>
+      <div style="margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:4px;">
+          <span style="font-weight:600;">🧈 Fat</span>
+          <span style="font-weight:800;color:#D97706;">${Math.round(fat)} / ${goals.fat}g</span>
+        </div>
+        <div style="background:#F3F4F6;border-radius:20px;height:12px;overflow:hidden;">
+          <div style="width:${Math.min(100,Math.round(fat/goals.fat*100))}%;height:100%;border-radius:20px;background:linear-gradient(90deg,#D97706,#F59E0B);transition:width 0.5s;"></div>
+        </div>
+      </div>
+      <div style="margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:4px;">
+          <span style="font-weight:600;">🌾 Carbs</span>
+          <span style="font-weight:800;color:#7C3AED;">${Math.round(carbs)} / ${goals.carbs}g</span>
+        </div>
+        <div style="background:#F3F4F6;border-radius:20px;height:12px;overflow:hidden;">
+          <div style="width:${Math.min(100,Math.round(carbs/goals.carbs*100))}%;height:100%;border-radius:20px;background:linear-gradient(90deg,#7C3AED,#A78BFA);transition:width 0.5s;"></div>
         </div>
       </div>
       <div style="margin-bottom:12px;">
@@ -1453,7 +1532,28 @@ async function checkWeightBanner() {
 }
 
 function dismissWeightBanner() {
-  document.getElementById('weight-checkin-banner').style.display = 'none';
+  // Weight banner is mandatory - only hide after saving
+}
+
+async function checkHeightBanner() {
+  const banner = document.getElementById('height-missing-banner');
+  if (!banner) return;
+  if (!currentProfile.height_inches) {
+    banner.style.display = 'block';
+  } else {
+    banner.style.display = 'none';
+  }
+}
+
+async function saveHeightFromBanner() {
+  const feet = parseInt(document.getElementById('height-feet-input').value) || 0;
+  const inches = parseInt(document.getElementById('height-inches-input').value) || 0;
+  const heightInches = (feet * 12) + inches;
+  if (!heightInches || heightInches < 36) { alert('Please enter a valid height'); return; }
+  await sb.from('profiles').update({ height_inches: heightInches }).eq('id', currentUser);
+  currentProfile.height_inches = heightInches;
+  document.getElementById('height-missing-banner').style.display = 'none';
+  renderHome();
 }
 
 async function saveWeightCheckin() {
@@ -1476,11 +1576,14 @@ async function saveWeightCheckin() {
   input.value = '';
   dismissWeightBanner();
   renderHome();
-  // Show confirmation
-  const banner = document.getElementById('weight-checkin-banner');
-  banner.style.display = 'block';
-  banner.innerHTML = '<div style="font-size:15px;font-weight:700;">✅ Weight saved! Your protein goal has been updated.</div>';
-  setTimeout(() => { banner.style.display = 'none'; }, 3000);
+  // Hide banner after saving
+  document.getElementById('weight-checkin-banner').style.display = 'none';
+  // Brief success message
+  const msg = document.createElement('div');
+  msg.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#16A34A;color:#fff;padding:12px 20px;border-radius:20px;font-weight:700;z-index:999;';
+  msg.textContent = '✅ Weight saved! Goals updated.';
+  document.body.appendChild(msg);
+  setTimeout(() => msg.remove(), 2500);
 }
 
 async function renderWeightGraph() {
