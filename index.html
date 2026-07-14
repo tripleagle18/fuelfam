@@ -507,7 +507,20 @@
           <div><div class="method-title">Manual Entry</div><div class="method-sub">Type it in yourself</div></div>
         </div>
         <div class="field-wrap" style="margin-top:10px;"><input class="inp" id="manual-food" placeholder="Food name (e.g. Chicken breast)"></div>
-        <div class="field-wrap"><input class="inp" id="manual-protein" type="number" placeholder="Protein in grams"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;">
+          <div>
+            <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:4px;">PROTEIN (g)</div>
+            <input class="inp" id="manual-protein" type="number" placeholder="0" style="margin-bottom:0;">
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:4px;">FAT (g)</div>
+            <input class="inp" id="manual-fat" type="number" placeholder="0" style="margin-bottom:0;">
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:4px;">CARBS (g)</div>
+            <input class="inp" id="manual-carbs" type="number" placeholder="0" style="margin-bottom:0;">
+          </div>
+        </div>
         <button class="btn-main" onclick="addManualFood()">Add to log</button>
       </div>
 
@@ -1134,7 +1147,7 @@ async function lookupBarcode(code) {
 
 function showBarcodeResult(data, status) {
   if (!data.found) { status.textContent = data.error || 'Product not found. Try manual food entry.'; return; }
-  pendingBarcodeFood = { name: data.name, protein: data.protein, proteinPerServing: data.protein };
+  pendingBarcodeFood = { name: data.name, protein: data.protein, fat: data.fat||0, carbs: data.carbs||0, proteinPerServing: data.protein, fatPerServing: data.fat||0, carbsPerServing: data.carbs||0 };
   if (status) status.style.display = 'none';
   const resultDiv = document.getElementById('bc-result');
   resultDiv.style.display = 'block';
@@ -1160,20 +1173,26 @@ function changeServings(delta) {
   const total = Math.round(pendingBarcodeFood.proteinPerServing * currentServings);
   document.getElementById('serving-protein').textContent = total;
   pendingBarcodeFood.protein = total;
-  pendingBarcodeFood.name = currentServings !== 1 
+  pendingBarcodeFood.fat = Math.round((pendingBarcodeFood.fatPerServing||0) * currentServings);
+  pendingBarcodeFood.carbs = Math.round((pendingBarcodeFood.carbsPerServing||0) * currentServings);
+  pendingBarcodeFood.name = currentServings !== 1
     ? pendingBarcodeFood.name.replace(/ \([\d.]+ servings?\)/, '') + ' (' + currentServings + ' serving' + (currentServings !== 1 ? 's' : '') + ')'
     : pendingBarcodeFood.name.replace(/ \([\d.]+ servings?\)/, '');
 }
 
-function addBarcodeFood() { if (!pendingBarcodeFood) return; addFoodToLog(pendingBarcodeFood.name, pendingBarcodeFood.protein); document.getElementById('bc-result').textContent = '✅ Added to your log!'; document.getElementById('bc-add-btns').style.display = 'none'; pendingBarcodeFood = null; }
+function addBarcodeFood() { if (!pendingBarcodeFood) return; addFoodToLog(pendingBarcodeFood.name, pendingBarcodeFood.protein, pendingBarcodeFood.fat||0, pendingBarcodeFood.carbs||0); document.getElementById('bc-result').textContent = '✅ Added to your log!'; document.getElementById('bc-add-btns').style.display = 'none'; pendingBarcodeFood = null; }
 
 function addManualFood() {
   const name = document.getElementById('manual-food').value.trim();
-  const protein = parseFloat(document.getElementById('manual-protein').value);
-  if (!name || !protein || protein < 0) return;
-  addFoodToLog(name, protein);
+  const protein = parseFloat(document.getElementById('manual-protein').value) || 0;
+  const fat = parseFloat(document.getElementById('manual-fat').value) || 0;
+  const carbs = parseFloat(document.getElementById('manual-carbs').value) || 0;
+  if (!name) return;
+  addFoodToLog(name, protein, fat, carbs);
   document.getElementById('manual-food').value = '';
   document.getElementById('manual-protein').value = '';
+  document.getElementById('manual-fat').value = '';
+  document.getElementById('manual-carbs').value = '';
 }
 
 // ─── LEADERBOARD ──────────────────────────────────────────────────────────
@@ -1778,9 +1797,11 @@ function clearFoodSearch() { document.getElementById("food-search-results").styl
 
 async function addSearchedFood() {
   const name = document.getElementById('search-food-name')?.value?.trim();
-  const protein = parseFloat(document.getElementById('search-food-protein')?.value);
-  if (!name || isNaN(protein)) return;
-  await addFoodToLog(name, protein);
+  const protein = parseFloat(document.getElementById('search-food-protein')?.value) || 0;
+  const fat = parseFloat(document.getElementById('search-food-fat')?.value) || 0;
+  const carbs = parseFloat(document.getElementById('search-food-carbs')?.value) || 0;
+  if (!name) return;
+  await addFoodToLog(name, protein, fat, carbs);
   document.getElementById('food-search-results').style.display = 'none';
   document.getElementById('food-search-input').value = '';
   document.getElementById('food-search-status').style.display = 'none';
@@ -1940,7 +1961,7 @@ async function sendChat() {
 
 function addChatFood() {
   if (!pendingChatFood) return;
-  addFoodToLog(pendingChatFood.name, pendingChatFood.protein);
+  addFoodToLog(pendingChatFood.name, pendingChatFood.protein, pendingChatFood.fat||0, pendingChatFood.carbs||0);
   // Reset chat
   chatHistory = [];
   pendingChatFood = null;
@@ -2105,7 +2126,7 @@ function showFoodBreakdown(foods) {
 
 async function addPhotoFoods() {
   for (const food of pendingPhotoFoods) {
-    if (food.protein > 0 || food.name) await addFoodToLog(food.name, food.protein);
+    if (food.name) await addFoodToLog(food.name, food.protein||0, food.fat||0, food.carbs||0);
   }
   resetPhotoChat(true);
 }
