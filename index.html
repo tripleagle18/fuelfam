@@ -2110,17 +2110,27 @@ function showFoodBreakdown(foods) {
   wrap.innerHTML = `
     <div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">Adjust if needed:</div>
     ${foods.map((f,i) => `
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;background:#F9FAFB;border-radius:10px;padding:10px;">
-        <input value="${f.name}" onchange="pendingPhotoFoods[${i}].name=this.value"
-          style="flex:1;border:1.5px solid #E5E7EB;border-radius:8px;padding:8px;font-size:14px;background:#fff;">
-        <input type="number" value="${f.protein}" onchange="pendingPhotoFoods[${i}].protein=parseFloat(this.value)||0"
-          style="width:60px;border:1.5px solid #7C3AED;border-radius:8px;padding:8px;font-size:14px;font-weight:700;color:#7C3AED;text-align:center;background:#fff;">
-        <span style="font-size:12px;color:var(--muted);">g</span>
-        <button onclick="pendingPhotoFoods.splice(${i},1);showFoodBreakdown(pendingPhotoFoods)"
-          style="background:#FEE2E2;border:none;border-radius:8px;padding:6px 8px;cursor:pointer;color:#991B1B;">🗑️</button>
+      <div style="background:#F9FAFB;border-radius:10px;padding:10px;margin-bottom:8px;">
+        <div style="display:flex;gap:8px;margin-bottom:6px;">
+          <input value="${f.name}" onchange="pendingPhotoFoods[${i}].name=this.value"
+            style="flex:1;border:1.5px solid #E5E7EB;border-radius:8px;padding:8px;font-size:14px;background:#fff;">
+          <button onclick="pendingPhotoFoods.splice(${i},1);showFoodBreakdown(pendingPhotoFoods)"
+            style="background:#FEE2E2;border:none;border-radius:8px;padding:6px 8px;cursor:pointer;color:#991B1B;">🗑️</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
+          <div><div style="font-size:10px;color:var(--muted);font-weight:600;margin-bottom:2px;">PROTEIN</div>
+          <input type="number" value="${f.protein}" onchange="pendingPhotoFoods[${i}].protein=parseFloat(this.value)||0"
+            style="width:100%;border:1.5px solid #16A34A;border-radius:8px;padding:6px;font-size:14px;font-weight:700;color:#16A34A;text-align:center;background:#fff;"></div>
+          <div><div style="font-size:10px;color:var(--muted);font-weight:600;margin-bottom:2px;">FAT</div>
+          <input type="number" value="${f.fat||0}" onchange="pendingPhotoFoods[${i}].fat=parseFloat(this.value)||0"
+            style="width:100%;border:1.5px solid #D97706;border-radius:8px;padding:6px;font-size:14px;font-weight:700;color:#D97706;text-align:center;background:#fff;"></div>
+          <div><div style="font-size:10px;color:var(--muted);font-weight:600;margin-bottom:2px;">CARBS</div>
+          <input type="number" value="${f.carbs||0}" onchange="pendingPhotoFoods[${i}].carbs=parseFloat(this.value)||0"
+            style="width:100%;border:1.5px solid #7C3AED;border-radius:8px;padding:6px;font-size:14px;font-weight:700;color:#7C3AED;text-align:center;background:#fff;"></div>
+        </div>
       </div>`).join('')}
-    <div style="text-align:right;font-size:14px;font-weight:800;color:#7C3AED;margin-top:4px;">
-      Total: ${foods.reduce((a,f)=>a+(parseFloat(f.protein)||0),0)}g protein
+    <div style="text-align:right;font-size:14px;font-weight:800;color:#16A34A;margin-top:4px;">
+      Protein: ${foods.reduce((a,f)=>a+(parseFloat(f.protein)||0),0)}g · Fat: ${foods.reduce((a,f)=>a+(parseFloat(f.fat)||0),0)}g · Carbs: ${foods.reduce((a,f)=>a+(parseFloat(f.carbs)||0),0)}g
     </div>`;
 }
 
