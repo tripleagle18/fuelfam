@@ -2426,93 +2426,52 @@ async function renderMyContests() {
   try {
     const { data: memberships } = await sb.from('contest_members').select('contest_id, role').eq('user_id', currentUser);
     if (!memberships || memberships.length === 0) {
-      list.innerHTML = '<div class="empty-state" style="padding:16px 0;color:var(--muted);font-size:14px;text-align:center;">No contests yet!<br>Create one or join with a code below.</div>';
+      list.innerHTML = '<div style="text-align:center;padding:20px;color:#6B7280;font-size:14px;">No contests yet!<br>Create one or join with a code below.</div>';
       return;
     }
     const ids = memberships.map(m => m.contest_id);
     const roleMap = {};
     memberships.forEach(m => roleMap[m.contest_id] = m.role);
     const { data: contests } = await sb.from('contests').select('*').in('id', ids).order('created_at', { ascending: false });
-    if (!contests || contests.length === 0) { list.innerHTML = '<div class="empty-state">No contests found.</div>'; return; }
+    if (!contests || contests.length === 0) {
+      list.innerHTML = '<div style="text-align:center;padding:20px;color:#6B7280;">No contests found.</div>';
+      return;
+    }
     const now = new Date();
-
-    // For each contest, get rank and points
-    const cards = await Promise.all(contests.map(async c => {
+    list.innerHTML = contests.map(c => {
       const end = new Date(c.end_date + 'T12:00:00');
       const start = new Date(c.start_date + 'T12:00:00');
       const daysLeft = Math.ceil((end - now) / (1000*60*60*24));
       const isEnded = end < now;
-      const isAdmin = roleMap[c.id] === 'admin';
-
-      // Get all members and logs for ranking
-      const { data: members } = await sb.from('contest_members').select('user_id').eq('contest_id', c.id);
-      const memberIds = (members||[]).map(m => m.user_id);
-      const { data: logs } = await sb.from('contest_logs').select('*').eq('contest_id', c.id);
-
-      // Calculate my score
-      const myLogs = (logs||[]).filter(l => l.user_id === currentUser);
-      const myTotals = {};
-      myLogs.forEach(l => myTotals[l.goal_name] = (myTotals[l.goal_name]||0) + l.amount);
-      let myScore = 0;
-      (c.goals||[]).forEach(g => {
-        const logged = myTotals[g.name] || 0;
-        const tiers3 = c.scoring_tiers || [{points:10,pct:100},{points:5,pct:90},{points:2,pct:75}];
-        const pct3 = g.target > 0 ? (logged/g.target)*100 : 0;
-        const tier3 = tiers3.sort((a,b) => b.pct-a.pct).find(t => pct3 >= t.pct);
-        if (tier3) myScore += tier3.points;
-      });
-
-      // Calculate rank
-      const allScores = await Promise.all(memberIds.map(async uid => {
-        const uLogs = (logs||[]).filter(l => l.user_id === uid);
-        const uTotals = {};
-        uLogs.forEach(l => uTotals[l.goal_name] = (uTotals[l.goal_name]||0) + l.amount);
-        let uScore = 0;
-        (c.goals||[]).forEach(g => {
-          const logged = uTotals[g.name] || 0;
-          if (c.scoring_method === 'points') {
-            const pct = g.target > 0 ? logged/g.target : 0;
-            if (pct >= 1) uScore += c.points_hit||10;
-            else if (pct >= 0.9) uScore += c.points_close||5;
-            else if (pct >= 0.75) uScore += c.points_partial||2;
-          } else if (c.scoring_method === 'percentage') {
-            uScore += g.target > 0 ? Math.min(100, Math.round(logged/g.target*100)) : 0;
-          } else { uScore += logged; }
-        });
-        return uScore;
-      }));
-      const rank = allScores.filter(s => s > myScore).length + 1;
-      const rankLabel = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '#' + rank;
-      const unit = c.scoring_method === 'points' ? 'pts' : c.scoring_method === 'percentage' ? '%' : '';
-
-      return `<div style="background:#fff;border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;box-shadow:0 2px 12px rgba(22,163,74,0.08);border-left:4px solid ${isEnded?'#9CA3AF':'#16A34A'};cursor:pointer;${isEnded?'opacity:0.7':''}" onclick="showContestDetail('${c.id}')">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
-          <div>
-            <div style="font-size:16px;font-weight:800;">${c.name}</div>
-            <div style="font-size:12px;color:var(--muted);">${start.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${end.toLocaleDateString('en-US',{month:'short',day:'numeric'})} · ${isEnded?'Ended':daysLeft+' days left'}</div>
-          </div>
-          ${isAdmin?'<span style="background:#DCFCE7;color:#16A34A;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;">Admin</span>':''}
-        </div>
-        <div style="display:flex;gap:10px;">
-          <div style="flex:1;background:#F0FDF4;border-radius:10px;padding:10px;text-align:center;">
-            <div style="font-size:22px;font-weight:900;color:#16A34A;">${rankLabel}</div>
-            <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;">Rank</div>
-          </div>
-          <div style="flex:1;background:#FFF7ED;border-radius:10px;padding:10px;text-align:center;">
-            <div style="font-size:22px;font-weight:900;color:#EA580C;">${Math.round(myScore)}${unit}</div>
-            <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;">Score</div>
-          </div>
-          <div style="flex:1;background:#F9FAFB;border-radius:10px;padding:10px;text-align:center;">
-            <div style="font-size:22px;font-weight:900;color:var(--text);">${memberIds.length}</div>
-            <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;">Players</div>
-          </div>
-        </div>
-      </div>`;
-    }));
-    list.innerHTML = cards.join('');
+      const isAdmin = roleMap[c.id] === 'admin' || c.creator_id === currentUser;
+      const goalChips = (c.goals||[]).map(g =>
+        '<span style="background:#DCFCE7;color:#16A34A;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:600;">' + g.name + '</span>'
+      ).join('');
+      const cid = c.id;
+      return '<div style="background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:10px;box-shadow:0 2px 10px rgba(0,0,0,0.06);border-left:4px solid ' + (isEnded?'#9CA3AF':'#16A34A') + ';cursor:pointer;" id="contest-card-' + cid + '" onclick="handleContestCardClick(event)">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">' +
+          '<div style="font-size:16px;font-weight:800;">' + c.name + '</div>' +
+          (isAdmin ? '<span style="background:#DCFCE7;color:#16A34A;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;">Admin</span>' : '') +
+        '</div>' +
+        '<div style="font-size:12px;color:#6B7280;margin-bottom:8px;">' +
+          start.toLocaleDateString('en-US',{month:'short',day:'numeric'}) + ' – ' +
+          end.toLocaleDateString('en-US',{month:'short',day:'numeric'}) +
+          ' · ' + (isEnded ? 'Ended' : daysLeft + ' days left') +
+        '</div>' +
+        '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;">' + goalChips + '</div>' +
+        '<div style="font-size:12px;color:#9CA3AF;">Tap to view details &amp; leaderboard →</div>' +
+      '</div>';
+    }).join('');
   } catch(e) {
-    list.innerHTML = '<div class="empty-state">Could not load contests.</div>';
+    list.innerHTML = '<div style="text-align:center;padding:20px;color:#EF4444;font-size:13px;">Error: ' + e.message + '</div>';
   }
+}
+
+
+function handleContestCardClick(e) {
+  const card = e.currentTarget;
+  const id = card.id.replace('contest-card-', '');
+  showContestDetail(id);
 }
 
 async function joinByCode() {
