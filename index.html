@@ -501,6 +501,26 @@
         <button class="chat-add-btn" id="chat-add-btn" onclick="addChatFood()">Add to my log ✓</button>
       </div>
 
+      <!-- Water logging -->
+      <div class="log-method">
+        <div class="method-header">
+          <div class="method-icon" style="background:#DBEAFE;color:#2563EB"><i class="ti ti-droplet"></i></div>
+          <div><div class="method-title">Log Water</div><div class="method-sub">Track your daily water intake</div></div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 8px;">
+          <button class="water-chip" onclick="quickWater(8)">8 oz</button>
+          <button class="water-chip" onclick="quickWater(12)">12 oz</button>
+          <button class="water-chip" onclick="quickWater(16)">16 oz</button>
+          <button class="water-chip" onclick="quickWater(20)">20 oz</button>
+          <button class="water-chip" onclick="quickWater(32)">32 oz</button>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <input class="inp" id="log-tab-water" type="number" placeholder="Custom amount (oz)" style="flex:1;margin-bottom:0;">
+          <button onclick="logWaterFromTab()" style="padding:12px 16px;background:#2563EB;color:#fff;border:none;border-radius:var(--radius-sm);font-weight:700;cursor:pointer;">Add</button>
+        </div>
+        <div id="log-tab-water-confirm" style="display:none;color:#16A34A;font-size:13px;font-weight:700;margin-top:8px;text-align:center;"></div>
+      </div>
+
       <div class="log-method">
         <div class="method-header">
           <div class="method-icon" style="background:var(--orange-light);color:var(--orange)"><i class="ti ti-pencil"></i></div>
@@ -544,7 +564,7 @@
     </div>
 
     <!-- Challenge content area -->
-    <div id="challenge-content" style="padding:16px;">
+    <div id="challenge-content" style="padding:16px;padding-bottom:80px;overflow-y:auto;">
       <div class="loading"><span class="dot-spin"></span></div>
     </div>
   </div>
@@ -999,6 +1019,17 @@ function streakBonus(streak) {
 }
 
 // ─── WATER ────────────────────────────────────────────────────────────────
+async function logWaterFromTab() {
+  const oz = parseFloat(document.getElementById('log-tab-water').value);
+  if (!oz || oz <= 0) return;
+  await upsertLog({ water_add: oz });
+  document.getElementById('log-tab-water').value = '';
+  const confirm = document.getElementById('log-tab-water-confirm');
+  confirm.textContent = '✅ ' + oz + ' oz added!';
+  confirm.style.display = 'block';
+  setTimeout(() => { confirm.style.display = 'none'; }, 2000);
+}
+
 function openWaterModal() { document.getElementById('water-modal').classList.add('open'); }
 function closeWaterModal() { document.getElementById('water-modal').classList.remove('open'); }
 async function quickWater(oz) { document.getElementById('water-amount').value = oz; await logWater(); }
@@ -1311,15 +1342,21 @@ async function renderGlobalChallenge() {
 
   // Scoring for each macro
   const defaultTiers = [{points:10,pct:100},{points:7,pct:90},{points:5,pct:75},{points:2,pct:50}];
-  function getTierPts(logged, goal) {
+  function getTierPts(logged, goal, canOverPenalize) {
     const pct = goal > 0 ? (logged/goal)*100 : 0;
+    // If over goal for Fat/Carbs, deduct points proportionally
+    if (canOverPenalize && pct > 100) {
+      const overPct = pct - 100;
+      const penalty = Math.round(overPct / 10); // -1 pt per 10% over
+      return { pts: Math.max(-10, -penalty), pct: Math.round(pct) };
+    }
     const tier = defaultTiers.find(t => pct >= t.pct);
     return { pts: tier ? tier.points : 0, pct: Math.round(pct) };
   }
   const proteinScore = getTierPts(protein, goals.protein);
   const waterScore = getTierPts(water, goals.water);
-  const fatScore = getTierPts(fat, goals.fat || 1);
-  const carbScore = getTierPts(carbs, goals.carbs || 1);
+  const fatScore = getTierPts(fat, goals.fat || 1, true);
+  const carbScore = getTierPts(carbs, goals.carbs || 1, true);
   const dayPts = proteinScore.pts + waterScore.pts + fatScore.pts + carbScore.pts;
 
   // Date nav label
@@ -1349,7 +1386,7 @@ async function renderGlobalChallenge() {
     return '<div style="background:#fff;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">' +
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
         '<div style="font-size:15px;font-weight:700;">' + emoji + ' ' + label + '</div>' +
-        '<div style="background:#F0FDF4;border-radius:20px;padding:4px 10px;font-size:13px;font-weight:800;color:#16A34A;">+' + score.pts + ' pts</div>' +
+        '<div style="background:' + (score.pts < 0 ? '#FEE2E2' : '#F0FDF4') + ';border-radius:20px;padding:4px 10px;font-size:13px;font-weight:800;color:' + (score.pts < 0 ? '#991B1B' : '#16A34A') + ';">' + (score.pts >= 0 ? '+' : '') + score.pts + ' pts</div>' +
       '</div>' +
       '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;text-align:center;">' +
         '<div style="background:#F9FAFB;border-radius:10px;padding:8px;">' +
@@ -2694,6 +2731,70 @@ async function showContestDetail(contestId) {
   }
 }
 
+
+function buildGoalLogUI(g, i, contestId, myLogs) {
+  const freqPeriod = g.freqPeriod || 'day';
+  const freqNum = g.freqNum || 1;
+
+  // Get current period start
+  function getPeriodKey() {
+    const now = new Date();
+    if (freqPeriod === 'day') return now.toISOString().slice(0,10);
+    if (freqPeriod === 'week') {
+      const day = now.getDay(), diff = now.getDate() - (day===0?6:day-1);
+      const mon = new Date(now); mon.setDate(diff);
+      return mon.toISOString().slice(0,10);
+    }
+    if (freqPeriod === 'month') return now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+    return 'contest'; // whole contest
+  }
+
+  const periodKey = getPeriodKey();
+  const periodLogs = (myLogs||[]).filter(l => {
+    if (freqPeriod === 'day') return l.log_date === periodKey;
+    if (freqPeriod === 'week') return l.log_date >= periodKey;
+    if (freqPeriod === 'month') return l.log_date && l.log_date.startsWith(periodKey);
+    return true;
+  });
+  const completedCount = periodLogs.reduce((sum, l) => sum + (l.amount || 0), 0);
+
+  // Build checkboxes
+  const checkboxes = Array.from({length: freqNum}, (_, idx) => {
+    const checked = idx < completedCount;
+    return '<div data-cid="' + contestId + '" data-gname="' + g.name + '" data-idx="' + idx + '" data-total="' + freqNum + '" data-period="' + freqPeriod + '" data-count="' + completedCount + '" onclick="handleCheckboxClick(this)" style="width:36px;height:36px;border-radius:8px;border:2px solid ' + (checked?'#16A34A':'#D1D5DB') + ';background:' + (checked?'#16A34A':'#fff') + ';display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;">' +
+      (checked ? '✓' : '') +
+    '</div>';
+  }).join('');
+
+  return '<div style="margin-top:10px;">' +
+    '<div style="font-size:12px;color:#6B7280;font-weight:600;margin-bottom:8px;">' + completedCount + ' of ' + freqNum + ' completed this ' + freqPeriod + '</div>' +
+    '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">' +
+      checkboxes +
+      '<span style="font-size:13px;color:#6B7280;margin-left:4px;">per ' + freqPeriod + '</span>' +
+    '</div>' +
+  '</div>';
+}
+
+function handleCheckboxClick(el) {
+  toggleContestCheck(el.dataset.cid, el.dataset.gname, parseInt(el.dataset.idx), parseInt(el.dataset.total), el.dataset.period, parseInt(el.dataset.count));
+}
+
+async function toggleContestCheck(contestId, goalName, idx, total, period, currentCount) {
+  // Toggle: if already checked (idx < currentCount) = uncheck, else check
+  const newCount = idx < currentCount ? idx : idx + 1;
+  const today = getTodayKey();
+  // Delete today logs for this goal and re-insert with new count
+  const { data: existingLogs } = await sb.from('contest_logs').select('*')
+    .eq('contest_id', contestId).eq('user_id', currentUser).eq('goal_name', goalName).eq('log_date', today);
+  if (existingLogs && existingLogs.length > 0) {
+    await sb.from('contest_logs').delete().eq('contest_id', contestId).eq('user_id', currentUser).eq('goal_name', goalName).eq('log_date', today);
+  }
+  if (newCount > 0) {
+    await sb.from('contest_logs').insert({ contest_id: contestId, user_id: currentUser, goal_name: goalName, amount: newCount, log_date: today });
+  }
+  await renderContestChallenge(contestId);
+}
+
 function logContestGoalFromBtn(btn) {
   const row = btn.parentElement;
   const contestId = row.dataset.contestid;
@@ -2779,6 +2880,27 @@ async function sendContestInvite(contestId, contestName, joinCode) {
     alert('Invite sent to ' + email + '!\n\nAlso share the join code: ' + joinCode);
   } catch(e) {
     alert('Could not send email. Share join code manually: ' + joinCode);
+  }
+}
+
+
+function copyInviteLink(code, contestName) {
+  const url = window.location.origin + window.location.pathname + '?join=' + code;
+  const text = 'Join my "' + contestName + '" challenge on ChallengePac!\n\nJoin code: ' + code + '\nOr tap: ' + url;
+  navigator.clipboard.writeText(text).then(() => {
+    alert('Invite copied! Paste it in a text or email to share.');
+  }).catch(() => {
+    prompt('Copy this invite:', text);
+  });
+}
+
+function shareInvite(code, contestName) {
+  const url = window.location.origin + window.location.pathname + '?join=' + code;
+  const text = 'Join my "' + contestName + '" challenge on ChallengePac! Join code: ' + code + ' or tap: ' + url;
+  if (navigator.share) {
+    navigator.share({ title: 'Join ' + contestName + ' on ChallengePac', text: text, url: url });
+  } else {
+    copyInviteLink(code, contestName);
   }
 }
 
