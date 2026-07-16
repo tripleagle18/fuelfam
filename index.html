@@ -547,7 +547,7 @@
     </div>
   </div>
 
-  <div id="tab-challenges" class="tab-content">
+  <div id="tab-challenges" class="tab-content" style="overflow-y:auto;height:100vh;padding-bottom:80px;">
     <!-- Horizontal scroll of contests -->
     <div style="background:linear-gradient(135deg,#16A34A,#EA580C);padding:max(env(safe-area-inset-top),44px) 0 0;">
       <div style="padding:0 16px 12px;">
@@ -555,7 +555,7 @@
         <div style="font-size:13px;color:rgba(255,255,255,0.8);">Track your daily goals</div>
       </div>
       <!-- Horizontal contest scroll -->
-      <div id="challenge-tabs-scroll" style="display:flex;gap:10px;padding:0 16px 16px;overflow-x:auto;scrollbar-width:none;">
+      <div id="challenge-tabs-scroll" style="display:flex;gap:10px;padding:0 16px 16px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;">
         <div onclick="selectChallengeTab('global')" id="ctab-global"
           style="flex-shrink:0;padding:8px 18px;border-radius:20px;font-size:14px;font-weight:700;cursor:pointer;background:#fff;color:#16A34A;white-space:nowrap;">
           ⚡ Global
@@ -1637,12 +1637,7 @@ async function renderContestChallenge(contestId) {
       '<div style="background:#F3F4F6;border-radius:20px;height:10px;overflow:hidden;margin-bottom:' + (g.autoFromProfile?'0':'10') + 'px;">' +
         '<div style="width:' + pct + '%;height:100%;border-radius:20px;background:linear-gradient(90deg,#16A34A,#EA580C);"></div>' +
       '</div>' +
-      (g.autoFromProfile ? '' :
-        '<div style="display:flex;gap:8px;margin-top:10px;">' +
-          '<input type="number" id="clog-' + i + '" placeholder="Log amount..." class="inp" style="flex:1;margin-bottom:0;padding:8px 12px;">' +
-          '<button onclick="logContestGoalSafe(this)" style="padding:8px 14px;background:#16A34A;color:#fff;border:none;border-radius:10px;font-weight:700;cursor:pointer;">Log</button>' +
-        '</div>'
-      ) +
+      (g.autoFromProfile ? '' : buildGoalLogUI(g, i, contestId, myLogs)) +
     '</div>';
   }).join('');
 
