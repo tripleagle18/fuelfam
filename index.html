@@ -194,6 +194,7 @@
   .tab-content { display: none; }
   .tab-content.active { display: block; }
   #tab-home.active { display: flex; flex-direction: column; }
+  #tab-challenges.active { display: flex !important; flex-direction: column; }
 
   .section-heading { font-size: 18px; font-weight: 800; margin-bottom: 14px; }
 
@@ -547,7 +548,7 @@
     </div>
   </div>
 
-  <div id="tab-challenges" class="tab-content" style="overflow-y:auto;height:100vh;padding-bottom:80px;">
+  <div id="tab-challenges" class="tab-content" style="display:flex;flex-direction:column;height:100vh;overflow:hidden;">
     <!-- Horizontal scroll of contests -->
     <div style="background:linear-gradient(135deg,#16A34A,#EA580C);padding:max(env(safe-area-inset-top),44px) 0 0;">
       <div style="padding:0 16px 12px;">
@@ -564,7 +565,7 @@
     </div>
 
     <!-- Challenge content area -->
-    <div id="challenge-content" style="padding:16px;padding-bottom:80px;overflow-y:auto;">
+    <div id="challenge-content" style="flex:1;overflow-y:auto;padding:16px;padding-bottom:80px;-webkit-overflow-scrolling:touch;">
       <div class="loading"><span class="dot-spin"></span></div>
     </div>
   </div>
@@ -1577,6 +1578,20 @@ function changeGlobalDay(delta) {
   renderGlobalChallenge();
 }
 
+function getPeriodStart(period) {
+  const now = new Date();
+  if (period === 'day') return now.toISOString().slice(0,10);
+  if (period === 'week') {
+    const day = now.getDay(), diff = now.getDate() - (day===0?6:day-1);
+    const mon = new Date(now); mon.setDate(diff);
+    return mon.toISOString().slice(0,10);
+  }
+  if (period === 'month') {
+    return now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-01';
+  }
+  return null; // whole contest
+}
+
 async function renderContestChallenge(contestId) {
   const contentEl = document.getElementById('challenge-content');
   contentEl.innerHTML = '<div class="loading"><span class="dot-spin"></span></div>';
@@ -1593,6 +1608,10 @@ async function renderContestChallenge(contestId) {
       if (g.type === 'water') return { ...g, target: goals.water, unit: 'oz' };
       if (g.type === 'fat') return { ...g, target: goals.fat || 70, unit: 'g' };
       if (g.type === 'carbs') return { ...g, target: goals.carbs || 200, unit: 'g' };
+    }
+    // For custom checkbox goals, target = freqNum (times to complete per period)
+    if (g.freqNum && g.freqNum > 0) {
+      return { ...g, target: g.freqNum, unit: g.freqPeriod || 'day' };
     }
     return { ...g, target: g.target || 1, unit: g.unit || '' };
   }
@@ -1611,12 +1630,24 @@ async function renderContestChallenge(contestId) {
 
   const goalCards = resolvedGoals.map((g, i) => {
     // For preset macro goals, pull from daily_log
-    let logged = myTotals[g.name] || 0;
+    let logged = 0;
     if (g.autoFromProfile && dailyLog) {
       if (g.type === 'protein') logged = dailyLog.protein || 0;
       if (g.type === 'water') logged = dailyLog.water || 0;
       if (g.type === 'fat') logged = dailyLog.fat || 0;
       if (g.type === 'carbs') logged = dailyLog.carbs || 0;
+    } else if (!g.autoFromProfile) {
+      // For checkbox goals use period count
+      const freqPeriod = g.freqPeriod || 'day';
+      const periodStart = getPeriodStart(freqPeriod);
+      const periodLogs = (myLogs||[]).filter(l =>
+        l.goal_name === g.name && (!periodStart || l.log_date >= periodStart)
+      );
+      logged = periodLogs.reduce((sum, l) => sum + (l.amount || 0), 0);
+      // Override target to freqNum for display
+      if (g.freqNum) g = { ...g, target: g.freqNum };
+    } else {
+      logged = myTotals[g.name] || 0;
     }
     const pct = g.target > 0 ? Math.min(100, Math.round(logged/g.target*100)) : 0;
     const scorePct = g.target > 0 ? (logged/g.target)*100 : 0;
