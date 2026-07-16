@@ -1638,14 +1638,14 @@ async function renderContestChallenge(contestId) {
       if (g.type === 'carbs') logged = dailyLog.carbs || 0;
     } else if (!g.autoFromProfile) {
       // For checkbox goals use period count
-      const freqPeriod = g.freqPeriod || 'day';
-      const periodStart = getPeriodStart(freqPeriod);
-      const periodLogs = (myLogs||[]).filter(l =>
-        l.goal_name === g.name && (!periodStart || l.log_date >= periodStart)
+      const freqPeriod2 = g.freqPeriod || 'day';
+      const periodStart2 = getPeriodStart(freqPeriod2);
+      const periodLogs2 = (myLogs||[]).filter(l =>
+        l.goal_name === g.name && (!periodStart2 || l.log_date >= periodStart2)
       );
-      logged = periodLogs.reduce((sum, l) => sum + (l.amount || 0), 0);
-      // Override target to freqNum for display
-      if (g.freqNum) g = { ...g, target: g.freqNum };
+      logged = periodLogs2.reduce((sum, l) => sum + (l.amount || 0), 0);
+      // Override target to freqNum for display, unit to 'times'
+      if (g.freqNum) g = { ...g, target: g.freqNum, unit: 'x' };
     } else {
       logged = myTotals[g.name] || 0;
     }
@@ -2777,6 +2777,7 @@ function buildGoalLogUI(g, i, contestId, myLogs) {
 
   const periodKey = getPeriodKey();
   const periodLogs = (myLogs||[]).filter(l => {
+    if (!l.goal_name || l.goal_name !== g.name) return false;
     if (freqPeriod === 'day') return l.log_date === periodKey;
     if (freqPeriod === 'week') return l.log_date >= periodKey;
     if (freqPeriod === 'month') return l.log_date && l.log_date.startsWith(periodKey);
@@ -2805,18 +2806,30 @@ function handleCheckboxClick(el) {
   toggleContestCheck(el.dataset.cid, el.dataset.gname, parseInt(el.dataset.idx), parseInt(el.dataset.total), el.dataset.period, parseInt(el.dataset.count));
 }
 
-async function toggleContestCheck(contestId, goalName, idx, total, period, currentCount) {
-  // Toggle: if already checked (idx < currentCount) = uncheck, else check
-  const newCount = idx < currentCount ? idx : idx + 1;
-  const today = getTodayKey();
-  // Delete today logs for this goal and re-insert with new count
-  const { data: existingLogs } = await sb.from('contest_logs').select('*')
-    .eq('contest_id', contestId).eq('user_id', currentUser).eq('goal_name', goalName).eq('log_date', today);
-  if (existingLogs && existingLogs.length > 0) {
-    await sb.from('contest_logs').delete().eq('contest_id', contestId).eq('user_id', currentUser).eq('goal_name', goalName).eq('log_date', today);
+async function toggleContestCheck(contestId, goalName, checkIdx, total, period, currentCount) {
+  // Toggle: clicking checked box unchecks it (set count to checkIdx), clicking unchecked checks it (set count to checkIdx+1)
+  const newCount = checkIdx < currentCount ? checkIdx : checkIdx + 1;
+  
+  // Use period-based key for log_date
+  const periodStart = getPeriodStart(period) || getTodayKey();
+  
+  // Delete all logs for this goal in this period then reinsert with new count
+  const { data: existing } = await sb.from('contest_logs').select('*')
+    .eq('contest_id', contestId).eq('user_id', currentUser).eq('goal_name', goalName);
+  
+  if (existing && existing.length > 0) {
+    // Delete period logs
+    const periodLogs = existing.filter(l => !periodStart || l.log_date >= periodStart);
+    for (const log of periodLogs) {
+      await sb.from('contest_logs').delete().eq('id', log.id);
+    }
   }
+  
   if (newCount > 0) {
-    await sb.from('contest_logs').insert({ contest_id: contestId, user_id: currentUser, goal_name: goalName, amount: newCount, log_date: today });
+    await sb.from('contest_logs').insert({ 
+      contest_id: contestId, user_id: currentUser, 
+      goal_name: goalName, amount: newCount, log_date: getTodayKey() 
+    });
   }
   await renderContestChallenge(contestId);
 }
