@@ -1774,85 +1774,6 @@ async function renderProfile() {
       </div>`).join('');
   } else { adminPanel.style.display = 'none'; }
 }
-
-async function removeUser(id, name) {
-  if (!confirm('Remove ' + name + ' from FuelFam?')) return;
-  await sb.from('daily_logs').delete().eq('user_id', id);
-  await sb.from('profiles').delete().eq('id', id);
-  renderProfile(); renderLeaderboard();
-}
-
-
-// ─── WEIGHT TRACKING ──────────────────────────────────────────────────────
-async function checkWeightBanner() {
-  const banner = document.getElementById('weight-checkin-banner');
-  if (!banner) return;
-  // Check if user has logged weight this week
-  const wk = getWeekKey();
-  const { data } = await sb.from('weight_logs').select('id').eq('user_id', currentUser).gte('log_date', wk).maybeSingle();
-  if (!data) {
-    // No weigh-in this week — show banner
-    banner.style.display = 'block';
-  } else {
-    banner.style.display = 'none';
-  }
-}
-
-function dismissWeightBanner() {
-  // Weight banner is mandatory - only hide after saving
-}
-
-async function checkHeightBanner() {
-  const banner = document.getElementById('height-missing-banner');
-  if (!banner) return;
-  if (!currentProfile.height_inches) {
-    banner.style.display = 'block';
-  } else {
-    banner.style.display = 'none';
-  }
-}
-
-async function saveHeightFromBanner() {
-  const feet = parseInt(document.getElementById('height-feet-input').value) || 0;
-  const inches = parseInt(document.getElementById('height-inches-input').value) || 0;
-  const heightInches = (feet * 12) + inches;
-  if (!heightInches || heightInches < 36) { alert('Please enter a valid height'); return; }
-  await sb.from('profiles').update({ height_inches: heightInches }).eq('id', currentUser);
-  currentProfile.height_inches = heightInches;
-  document.getElementById('height-missing-banner').style.display = 'none';
-  renderHome();
-}
-
-async function saveWeightCheckin() {
-  const input = document.getElementById('checkin-weight');
-  const weight = parseFloat(input.value);
-  if (!weight || weight < 50 || weight > 700) {
-    input.style.border = '2px solid #EF4444';
-    return;
-  }
-  const today = getTodayKey();
-  // Save to weight_logs table
-  await sb.from('weight_logs').upsert({
-    user_id: currentUser,
-    log_date: today,
-    weight: weight
-  }, { onConflict: 'user_id,log_date' });
-  // Update profile weight so protein goal recalculates
-  await sb.from('profiles').update({ weight }).eq('id', currentUser);
-  currentProfile.weight = weight;
-  input.value = '';
-  dismissWeightBanner();
-  renderHome();
-  // Hide banner after saving
-  document.getElementById('weight-checkin-banner').style.display = 'none';
-  // Brief success message
-  const msg = document.createElement('div');
-  msg.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#16A34A;color:#fff;padding:12px 20px;border-radius:20px;font-weight:700;z-index:999;';
-  msg.textContent = '✅ Weight saved! Goals updated.';
-  document.body.appendChild(msg);
-  setTimeout(() => msg.remove(), 2500);
-}
-
 async function renderWeightGraph() {
   const { data: logs } = await sb.from('weight_logs')
     .select('log_date, weight')
@@ -2669,7 +2590,6 @@ async function renderMyContests() {
     list.innerHTML = '<div style="text-align:center;padding:20px;color:#EF4444;font-size:13px;">Error: ' + e.message + '</div>';
   }
 }
-
 
 function handleContestCardClick(e) {
   const card = e.currentTarget;
