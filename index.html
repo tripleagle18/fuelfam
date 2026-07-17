@@ -1306,6 +1306,24 @@ async function loadChallengesTab() {
   selectChallengeTab(selectedChallengeTab);
 }
 
+function setupCheckboxDelegation() {
+  const contentEl = document.getElementById('challenge-content');
+  if (!contentEl || contentEl._checkboxDelegated) return;
+  contentEl._checkboxDelegated = true;
+  contentEl.addEventListener('click', function(e) {
+    const cb = e.target.closest('.challenge-checkbox');
+    if (!cb) return;
+    toggleContestCheck(
+      cb.dataset.cid,
+      cb.dataset.gname,
+      parseInt(cb.dataset.idx),
+      parseInt(cb.dataset.total),
+      cb.dataset.period,
+      parseInt(cb.dataset.count)
+    );
+  });
+}
+
 async function selectChallengeTab(tabId) {
   selectedChallengeTab = tabId;
   // Update tab styles
@@ -1316,6 +1334,7 @@ async function selectChallengeTab(tabId) {
   const activeTab = document.getElementById('ctab-' + tabId);
   if (activeTab) { activeTab.style.background = '#fff'; activeTab.style.color = '#16A34A'; }
 
+  setupCheckboxDelegation();
   if (tabId === 'global') {
     await renderGlobalChallenge();
   } else {
@@ -1679,8 +1698,6 @@ async function renderContestChallenge(contestId) {
     '</div>' +
     '<div style="font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">My Progress</div>' +
     goalCards +
-
-    <!-- Contest leaderboard -->
     '<div id="contest-challenge-lb"></div>';
 
   // Load leaderboard
@@ -2788,7 +2805,7 @@ function buildGoalLogUI(g, i, contestId, myLogs) {
   // Build checkboxes
   const checkboxes = Array.from({length: freqNum}, (_, idx) => {
     const checked = idx < completedCount;
-    return '<div data-cid="' + contestId + '" data-gname="' + g.name + '" data-idx="' + idx + '" data-total="' + freqNum + '" data-period="' + freqPeriod + '" data-count="' + completedCount + '" onclick="handleCheckboxClick(this)" style="width:36px;height:36px;border-radius:8px;border:2px solid ' + (checked?'#16A34A':'#D1D5DB') + ';background:' + (checked?'#16A34A':'#fff') + ';display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;">' +
+    return '<div class="challenge-checkbox" data-cid="' + contestId + '" data-gname="' + g.name + '" data-idx="' + idx + '" data-total="' + freqNum + '" data-period="' + freqPeriod + '" data-count="' + completedCount + '" style="width:44px;height:44px;border-radius:10px;border:2px solid ' + (checked?'#16A34A':'#D1D5DB') + ';background:' + (checked?'#16A34A':'#fff') + ';display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:20px;">' +
       (checked ? '✓' : '') +
     '</div>';
   }).join('');
