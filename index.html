@@ -1745,34 +1745,60 @@ async function renderProfile() {
   document.getElementById('profile-avatar').textContent = avatarEmoji(p.name);
   document.getElementById('profile-name').textContent = p.name;
   const { data: logs } = await sb.from('daily_logs').select('*').eq('user_id', currentUser).gte('log_date', getWeekKey());
-  const weekPts = (logs || []).reduce((acc, l) => acc + calcDayPoints(l.protein, l.water, goals), 0);
-  const { data: allProfiles } = await sb.from('profiles').select('id,weight,activity,goal,wins');
+  const weekPts = (logs || []).reduce((acc, l) => acc + calcDayPoints(l.protein||0, l.water||0, goals), 0);
+  const { data: allProfiles } = await sb.from('profiles').select('id,weight,activity,goal,wins,height_inches,sex,age');
   const { data: allLogs } = await sb.from('daily_logs').select('user_id,protein,water').gte('log_date', getWeekKey());
   const ptsMap = {};
-  (allLogs || []).forEach(l => { const pr = (allProfiles || []).find(x => x.id === l.user_id); if (!pr) return; ptsMap[l.user_id] = (ptsMap[l.user_id] || 0) + calcDayPoints(l.protein, l.water, calcGoals(pr)); });
-  const ranked = Object.entries(ptsMap).sort((a, b) => b[1] - a[1]);
+  (allLogs||[]).forEach(l => {
+    const pr = (allProfiles||[]).find(x => x.id === l.user_id);
+    if (!pr) return;
+    ptsMap[l.user_id] = (ptsMap[l.user_id]||0) + calcDayPoints(l.protein||0, l.water||0, calcGoals(pr));
+  });
+  const ranked = Object.entries(ptsMap).sort((a,b) => b[1]-a[1]);
   const rank = ranked.findIndex(([id]) => id === currentUser) + 1;
   document.getElementById('prof-pts').textContent = weekPts;
   document.getElementById('prof-wins').textContent = p.wins || 0;
   document.getElementById('prof-rank').textContent = '#' + (rank || 1);
-  const actLabels = { sedentary: 'Sedentary', light: 'Light', moderate: 'Moderate', very: 'Very active', athlete: 'Athlete' };
-  document.getElementById('profile-info-rows').innerHTML = `
-    <div class="info-row"><span class="info-key">Username</span><span class="info-val">@${p.username}</span></div>
-    <div class="info-row"><span class="info-key">Weight</span><span class="info-val">${p.weight} lbs</span></div>
-    <div class="info-row"><span class="info-key">Activity</span><span class="info-val">${actLabels[p.activity] || p.activity}</span></div>
-    <div class="info-row"><span class="info-key">Daily protein goal</span><span class="info-val" style="color:var(--purple)">${goals.protein}g</span></div>
-    <div class="info-row"><span class="info-key">Daily water goal</span><span class="info-val" style="color:var(--blue)">${goals.water} oz</span></div>`;
+  const actLabels = { sedentary:'Sedentary', light:'Light', moderate:'Moderate', very:'Very active', athlete:'Athlete' };
+  const goalLabels = { lose:'Lose weight', maintain:'Maintain', gain:'Build muscle' };
+  const heightFt = p.height_inches ? Math.floor(p.height_inches/12) + "'" + (p.height_inches%12) + '"' : 'Not set';
+  document.getElementById('profile-info-rows').innerHTML =
+    '<div class="info-row"><span class="info-key">Username</span><span class="info-val">@' + p.username + '</span></div>' +
+    '<div class="info-row"><span class="info-key">Weight</span><span class="info-val">' + p.weight + ' lbs</span></div>' +
+    '<div class="info-row"><span class="info-key">Height</span><span class="info-val">' + heightFt + '</span></div>' +
+    '<div class="info-row"><span class="info-key">Activity</span><span class="info-val">' + (actLabels[p.activity]||p.activity) + '</span></div>' +
+    '<div class="info-row"><span class="info-key">Goal</span><span class="info-val">' + (goalLabels[p.goal]||p.goal) + '</span></div>' +
+    '<div class="info-row"><span class="info-key">Daily calories</span><span class="info-val">' + goals.calories + ' cal</span></div>' +
+    '<div class="info-row"><span class="info-key">Protein goal</span><span class="info-val" style="color:#16A34A;font-weight:700;">' + goals.protein + 'g</span></div>' +
+    '<div class="info-row"><span class="info-key">Fat goal</span><span class="info-val" style="color:#D97706;font-weight:700;">' + goals.fat + 'g</span></div>' +
+    '<div class="info-row"><span class="info-key">Carbs goal</span><span class="info-val" style="color:#7C3AED;font-weight:700;">' + goals.carbs + 'g</span></div>' +
+    '<div class="info-row"><span class="info-key">Water goal</span><span class="info-val" style="color:#2563EB;font-weight:700;">' + goals.water + ' oz</span></div>';
   renderWeightGraph();
   const adminPanel = document.getElementById('admin-panel');
   if (p.is_admin) {
     adminPanel.style.display = 'block';
     const { data: allUsers } = await sb.from('profiles').select('*');
-    document.getElementById('admin-user-list').innerHTML = (allUsers || []).map(u => `
-      <div class="admin-row">
-        <div><div style="font-weight:700;">${u.name}</div><div style="font-size:12px;color:var(--muted);">@${u.username}</div></div>
-        ${!u.is_admin ? `<button class="btn-remove" onclick="removeUser('${u.id}','${u.name}')">Remove</button>` : '<span style="font-size:12px;color:var(--purple);font-weight:700;">Admin</span>'}
-      </div>`).join('');
+    document.getElementById('admin-user-list').innerHTML = (allUsers||[]).map(u =>
+      '<div class="admin-row">' +
+        '<div><div style="font-weight:700;">' + u.name + '</div><div style="font-size:12px;color:var(--muted);">@' + u.username + '</div></div>' +
+        (!u.is_admin
+          ? '<button class="btn-remove" data-uid="' + u.id + '" data-uname="' + u.name + '" onclick="removeUserFromBtn(this)">Remove</button>'
+          : '<span style="font-size:12px;color:var(--purple);font-weight:700;">Admin</span>') +
+      '</div>'
+    ).join('');
   } else { adminPanel.style.display = 'none'; }
+}
+
+function removeUserFromBtn(btn) { removeUser(btn.dataset.uid, btn.dataset.uname); }
+
+async function removeUser(id, name) {
+  if (!confirm('Remove ' + name + ' from ChallengePac? This will delete all their data.')) return;
+  await sb.from('daily_logs').delete().eq('user_id', id);
+  await sb.from('weight_logs').delete().eq('user_id', id);
+  await sb.from('contest_members').delete().eq('user_id', id);
+  await sb.from('contest_logs').delete().eq('user_id', id);
+  await sb.from('profiles').delete().eq('id', id);
+  renderProfile();
 }
 async function renderWeightGraph() {
   const { data: logs } = await sb.from('weight_logs')
@@ -2713,14 +2739,16 @@ function buildGoalLogUI(g, i, contestId, myLogs) {
   }
 
   const periodKey = getPeriodKey();
+  const today = getTodayKey();
   const periodLogs = (myLogs||[]).filter(l => {
     if (!l.goal_name || l.goal_name !== g.name) return false;
-    if (freqPeriod === 'day') return l.log_date === periodKey;
+    if (freqPeriod === 'day') return l.log_date === today;
     if (freqPeriod === 'week') return l.log_date >= periodKey;
     if (freqPeriod === 'month') return l.log_date && l.log_date.startsWith(periodKey);
     return true;
   });
-  const completedCount = periodLogs.reduce((sum, l) => sum + (l.amount || 0), 0);
+  // Use max amount from any single log in the period (we store cumulative count per day)
+  const completedCount = periodLogs.length > 0 ? Math.max(...periodLogs.map(l => l.amount||0)) : 0;
 
   // Build checkboxes
   const checkboxes = Array.from({length: freqNum}, (_, idx) => {
@@ -2744,29 +2772,35 @@ function handleCheckboxClick(el) {
 }
 
 async function toggleContestCheck(contestId, goalName, checkIdx, total, period, currentCount) {
-  // Toggle: clicking checked box unchecks it (set count to checkIdx), clicking unchecked checks it (set count to checkIdx+1)
+  // Simple toggle: if box is checked (idx < currentCount) uncheck by reducing count, else check by increasing
   const newCount = checkIdx < currentCount ? checkIdx : checkIdx + 1;
-  
-  // Use period-based key for log_date
-  const periodStart = getPeriodStart(period) || getTodayKey();
-  
-  // Delete all logs for this goal in this period then reinsert with new count
-  const { data: existing } = await sb.from('contest_logs').select('*')
-    .eq('contest_id', contestId).eq('user_id', currentUser).eq('goal_name', goalName);
-  
-  if (existing && existing.length > 0) {
-    // Delete period logs
-    const periodLogs = existing.filter(l => !periodStart || l.log_date >= periodStart);
-    for (const log of periodLogs) {
-      await sb.from('contest_logs').delete().eq('id', log.id);
+  const today = getTodayKey();
+
+  try {
+    // Find existing log for today for this goal
+    const { data: existing } = await sb.from('contest_logs').select('*')
+      .eq('contest_id', contestId)
+      .eq('user_id', currentUser)
+      .eq('goal_name', goalName)
+      .eq('log_date', today);
+
+    if (existing && existing.length > 0) {
+      if (newCount === 0) {
+        await sb.from('contest_logs').delete().eq('id', existing[0].id);
+      } else {
+        await sb.from('contest_logs').update({ amount: newCount }).eq('id', existing[0].id);
+      }
+    } else if (newCount > 0) {
+      await sb.from('contest_logs').insert({
+        contest_id: contestId,
+        user_id: currentUser,
+        goal_name: goalName,
+        amount: newCount,
+        log_date: today
+      });
     }
-  }
-  
-  if (newCount > 0) {
-    await sb.from('contest_logs').insert({ 
-      contest_id: contestId, user_id: currentUser, 
-      goal_name: goalName, amount: newCount, log_date: getTodayKey() 
-    });
+  } catch(e) {
+    console.error('Checkbox error:', e);
   }
   await renderContestChallenge(contestId);
 }
