@@ -1364,11 +1364,13 @@ async function selectChallengeTab(tabId) {
   if (tabId === 'global') {
     await renderGlobalChallenge();
   } else {
+    contestViewingDate = null;
     await renderContestChallenge(tabId);
   }
 }
 
 let globalViewingDate = null;
+let contestViewingDate = null;
 
 async function renderGlobalChallenge() {
   const contentEl = document.getElementById('challenge-content');
@@ -1612,6 +1614,17 @@ async function updateWaterInChallenge() {
 
 function closeEditModal() { const m = document.getElementById('food-edit-modal'); if (m) m.remove(); }
 
+function changeContestDay(delta) {
+  const today = getTodayKey();
+  const base = contestViewingDate || today;
+  const d = new Date(base + 'T12:00:00');
+  d.setDate(d.getDate() + delta);
+  const newDate = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  if (newDate > today) return;
+  contestViewingDate = newDate === today ? null : newDate;
+  renderContestChallenge(currentContestId);
+}
+
 function changeGlobalDay(delta) {
   const today = getTodayKey();
   const base = globalViewingDate || today;
@@ -1638,12 +1651,16 @@ function getPeriodStart(period) {
 }
 
 async function renderContestChallenge(contestId) {
+  currentContestId = contestId;
   const contentEl = document.getElementById('challenge-content');
   contentEl.innerHTML = '<div class="loading"><span class="dot-spin"></span></div>';
   const contest = userContestsForChallenges.find(c => c.id === contestId);
   if (!contest) { contentEl.innerHTML = '<div class="empty-state">Contest not found.</div>'; return; }
 
   const today = getTodayKey();
+  const displayDate = contestViewingDate || today;
+  const isToday = displayDate === today;
+  const dateLabel = isToday ? 'Today' : new Date(displayDate + 'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
   const goals = calcGoals(currentProfile);
 
   // Resolve targets for preset goals from user profile
@@ -1668,7 +1685,7 @@ async function renderContestChallenge(contestId) {
   (myLogs||[]).forEach(l => myTotals[l.goal_name] = (myTotals[l.goal_name]||0) + l.amount);
 
   // Also get daily_logs for preset macro goals
-  const { data: dailyLog } = await sb.from('daily_logs').select('*').eq('user_id', currentUser).eq('log_date', today).maybeSingle();
+  const { data: dailyLog } = await sb.from('daily_logs').select('*').eq('user_id', currentUser).eq('log_date', displayDate).maybeSingle();
 
   const tiers = contest.scoring_tiers || [{points:10,pct:100},{points:7,pct:90},{points:3,pct:75}];
   let totalPts = 0;
@@ -1718,6 +1735,17 @@ async function renderContestChallenge(contestId) {
   }).join('');
 
   contentEl.innerHTML = '<div id="contest-inner-wrap" style="min-height:100%;padding-bottom:20px;">' +
+
+    // Date navigation
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;background:#fff;border-radius:14px;padding:12px 16px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">' +
+      '<button onclick="changeContestDay(-1)" style="background:#F0FDF4;border:none;border-radius:10px;padding:8px 14px;font-size:18px;cursor:pointer;color:#16A34A;">‹</button>' +
+      '<div style="text-align:center;">' +
+        '<div style="font-size:15px;font-weight:800;">' + dateLabel + '</div>' +
+        '<div style="font-size:12px;color:#6B7280;">' + totalPts + ' pts earned</div>' +
+      '</div>' +
+      '<button onclick="changeContestDay(1)" style="background:' + (isToday?'#F9FAFB':'#F0FDF4') + ';border:none;border-radius:10px;padding:8px 14px;font-size:18px;cursor:pointer;color:' + (isToday?'#D1D5DB':'#16A34A') + ';" ' + (isToday?'disabled':'') + '>›</button>' +
+    '</div>' +
+
     '<div style="background:#fff;border-radius:14px;padding:12px 16px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,0.05);text-align:center;">' +
       '<div style="font-size:13px;color:#6B7280;">Today points earned</div>' +
       '<div style="font-size:28px;font-weight:900;color:#16A34A;">' + totalPts + ' pts</div>' +
