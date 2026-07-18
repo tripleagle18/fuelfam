@@ -1696,14 +1696,15 @@ async function renderContestChallenge(contestId) {
     '</div>';
   }).join('');
 
-  contentEl.innerHTML =
+  contentEl.innerHTML = '<div id="contest-inner-wrap" style="min-height:100%;padding-bottom:20px;">' +
     '<div style="background:#fff;border-radius:14px;padding:12px 16px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,0.05);text-align:center;">' +
       '<div style="font-size:13px;color:#6B7280;">Today points earned</div>' +
       '<div style="font-size:28px;font-weight:900;color:#16A34A;">' + totalPts + ' pts</div>' +
     '</div>' +
     '<div style="font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">My Progress</div>' +
     goalCards +
-    '<div id="contest-challenge-lb"></div>';
+    '<div id="contest-challenge-lb"></div>' +
+    '</div>';
 
   // Load leaderboard
   const { data: members } = await sb.from('contest_members').select('user_id').eq('contest_id', contestId);
