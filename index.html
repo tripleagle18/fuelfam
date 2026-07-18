@@ -2868,30 +2868,32 @@ function handleCheckboxClick(el) {
 }
 
 async function toggleContestCheck(contestId, goalName, checkIdx, total, period, currentCount) {
-  // If clicking a checked box (checkIdx < currentCount) → uncheck it (set count to checkIdx)
-  // If clicking an unchecked box (checkIdx >= currentCount) → check it (set count to checkIdx + 1)
-  // Special case: clicking the only checked box (checkIdx === 0 and currentCount === 1) → uncheck all (count = 0)
   let newCount;
   if (checkIdx < currentCount) {
-    // Clicking a checked box - uncheck it and everything above
-    newCount = checkIdx; // 0 means all unchecked if first box clicked
+    newCount = checkIdx; // uncheck - set to checkIdx (0 = fully unchecked)
   } else {
-    // Clicking an unchecked box - check up to this box
-    newCount = checkIdx + 1;
+    newCount = checkIdx + 1; // check up to this box
   }
 
   const today = getTodayKey();
+  const periodStart = getPeriodStart(period) || today;
+
   try {
-    const { data: existing } = await sb.from('contest_logs').select('id')
+    // Delete ALL logs for this goal in the current period (not just today)
+    // This handles weekly goals where user may have checked on different days
+    const { data: existing } = await sb.from('contest_logs').select('id, log_date')
       .eq('contest_id', contestId)
       .eq('user_id', currentUser)
       .eq('goal_name', goalName)
-      .eq('log_date', today);
+      .gte('log_date', periodStart);
 
     if (existing && existing.length > 0) {
-      await sb.from('contest_logs').delete().eq('id', existing[0].id);
+      for (const log of existing) {
+        await sb.from('contest_logs').delete().eq('id', log.id);
+      }
     }
 
+    // Insert one record for today with the new cumulative count
     if (newCount > 0) {
       const { error: insertErr } = await sb.from('contest_logs').insert({
         contest_id: contestId,
