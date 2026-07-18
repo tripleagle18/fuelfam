@@ -2868,11 +2868,20 @@ function handleCheckboxClick(el) {
 }
 
 async function toggleContestCheck(contestId, goalName, checkIdx, total, period, currentCount) {
-  const newCount = checkIdx < currentCount ? checkIdx : checkIdx + 1;
-  const today = getTodayKey();
+  // If clicking a checked box (checkIdx < currentCount) → uncheck it (set count to checkIdx)
+  // If clicking an unchecked box (checkIdx >= currentCount) → check it (set count to checkIdx + 1)
+  // Special case: clicking the only checked box (checkIdx === 0 and currentCount === 1) → uncheck all (count = 0)
+  let newCount;
+  if (checkIdx < currentCount) {
+    // Clicking a checked box - uncheck it and everything above
+    newCount = checkIdx; // 0 means all unchecked if first box clicked
+  } else {
+    // Clicking an unchecked box - check up to this box
+    newCount = checkIdx + 1;
+  }
 
+  const today = getTodayKey();
   try {
-    // Try upsert approach - delete any existing and reinsert
     const { data: existing } = await sb.from('contest_logs').select('id')
       .eq('contest_id', contestId)
       .eq('user_id', currentUser)
@@ -2884,7 +2893,7 @@ async function toggleContestCheck(contestId, goalName, checkIdx, total, period, 
     }
 
     if (newCount > 0) {
-      const { data: inserted, error: insertErr } = await sb.from('contest_logs').insert({
+      const { error: insertErr } = await sb.from('contest_logs').insert({
         contest_id: contestId,
         user_id: currentUser,
         goal_name: goalName,
@@ -2896,7 +2905,7 @@ async function toggleContestCheck(contestId, goalName, checkIdx, total, period, 
 
     await renderContestChallenge(contestId);
   } catch(e) {
-    alert('Error saving: ' + e.message);
+    alert('Error: ' + e.message);
   }
 }
 
