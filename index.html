@@ -1740,6 +1740,7 @@ async function renderContestChallenge(contestId) {
 
 // ─── PROFILE ──────────────────────────────────────────────────────────────
 async function renderProfile() {
+  try {
   const p = currentProfile;
   const goals = calcGoals(p);
   document.getElementById('profile-avatar').textContent = avatarEmoji(p.name);
@@ -1787,6 +1788,7 @@ async function renderProfile() {
       '</div>'
     ).join('');
   } else { adminPanel.style.display = 'none'; }
+  } catch(e) { alert('Profile error: ' + e.message + ' | ' + e.stack?.slice(0,200)); }
 }
 
 function removeUserFromBtn(btn) { removeUser(btn.dataset.uid, btn.dataset.uname); }
