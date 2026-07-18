@@ -338,17 +338,28 @@
 
       <!-- Weight check-in banner -->
       <div id="weight-checkin-banner" style="display:none;margin:12px 16px 0;background:linear-gradient(135deg,#16A34A,#EA580C);border-radius:16px;padding:14px 16px;color:#fff;">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
           <span style="font-size:20px;">⚖️</span>
           <div>
-            <div style="font-size:15px;font-weight:700;">Weekly weigh-in!</div>
-            <div style="font-size:12px;opacity:0.85;">Update your weight to keep goals accurate</div>
+            <div style="font-size:15px;font-weight:700;">Weekly check-in!</div>
+            <div style="font-size:12px;opacity:0.85;">Update to keep your macro goals accurate</div>
           </div>
         </div>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <input type="number" id="checkin-weight" placeholder="Weight (lbs)" style="flex:1;padding:10px 12px;border-radius:10px;border:none;font-size:15px;color:#1E1B4B;">
-          <button onclick="saveWeightCheckin()" style="padding:10px 16px;background:#fff;color:#16A34A;border:none;border-radius:10px;font-weight:800;font-size:14px;cursor:pointer;">Save</button>
+        <div style="margin-bottom:8px;">
+          <div style="font-size:12px;font-weight:700;margin-bottom:4px;opacity:0.9;">Current weight (lbs)</div>
+          <input type="number" id="checkin-weight" placeholder="e.g. 275" style="width:100%;padding:10px 12px;border-radius:10px;border:none;font-size:15px;color:#1E1B4B;box-sizing:border-box;">
         </div>
+        <div style="margin-bottom:10px;">
+          <div style="font-size:12px;font-weight:700;margin-bottom:4px;opacity:0.9;">Current activity level</div>
+          <select id="checkin-activity" style="width:100%;padding:10px 12px;border-radius:10px;border:none;font-size:15px;color:#1E1B4B;box-sizing:border-box;">
+            <option value="sedentary">Sedentary (little/no exercise)</option>
+            <option value="light">Low Active (light exercise 1-3x/week)</option>
+            <option value="moderate">Active (moderate exercise 3-5x/week)</option>
+            <option value="very">Very Active (hard exercise 6-7x/week)</option>
+            <option value="athlete">Athlete (physical job + exercise)</option>
+          </select>
+        </div>
+        <button onclick="saveWeightCheckin()" style="width:100%;padding:12px;background:#fff;color:#16A34A;border:none;border-radius:10px;font-weight:800;font-size:15px;cursor:pointer;">Update my goals ✓</button>
       </div>
 
       <!-- Height missing banner -->
@@ -804,45 +815,57 @@ function getTodayKey() {
 }
 
 function calcGoals(p) {
-  // Convert lbs to kg
   const kg = (p.weight || 160) / 2.205;
-
-  // Protein: 1.7g per kg of body weight
-  const protein = Math.round(kg * 1.7);
-
-  // Water goal
-  const aw = { sedentary: 0, light: 12, moderate: 18, very: 24, athlete: 32 };
-  const water = Math.round((p.weight || 160) * 0.5 + (aw[p.activity] || 18));
-
-  // BMR using Mifflin-St Jeor
-  const heightCm = ((p.height_inches || 68) * 2.54);
+  const heightM = ((p.height_inches || 68) * 0.0254);
   const age = p.age || 30;
-  let bmr;
-  if (p.sex === 'male') {
-    bmr = (10 * kg) + (6.25 * heightCm) - (5 * age) + 5;
+
+  // DRI EER equation (Institute of Medicine)
+  // PA coefficients: sedentary=1.0, light=1.11, moderate=1.25, very=1.48
+  const paMap = { sedentary: 1.0, light: 1.11, moderate: 1.25, very: 1.48, athlete: 1.48 };
+  const PA = paMap[p.activity] || 1.11;
+
+  let driCalories;
+  if ((p.sex || 'male') === 'male') {
+    driCalories = 662 - (9.53 * age) + PA * (15.91 * kg + 539.6 * heightM);
   } else {
-    bmr = (10 * kg) + (6.25 * heightCm) - (5 * age) - 161;
+    driCalories = 354 - (6.91 * age) + PA * (9.36 * kg + 726 * heightM);
   }
 
-  // Activity multiplier (TDEE)
-  const actMult = { sedentary: 1.2, light: 1.375, moderate: 1.55, very: 1.725, athlete: 1.9 };
-  const tdee = bmr * (actMult[p.activity] || 1.55);
-
   // Goal adjustment
-  const goalAdj = p.goal === 'lose' ? 0.85 : p.goal === 'gain' ? 1.10 : 1.0;
-  const calories = Math.round(tdee * goalAdj);
+  let calories;
+  if (p.goal === 'lose') calories = Math.round(driCalories - 750);
+  else calories = Math.round(driCalories); // maintain or gain = DRI as-is
 
-  // Macro splits based on goal
-  let proteinPct, fatPct, carbPct;
-  if (p.goal === 'lose') { proteinPct = 0.40; fatPct = 0.30; carbPct = 0.30; }
-  else if (p.goal === 'gain') { proteinPct = 0.35; fatPct = 0.25; carbPct = 0.40; }
-  else { proteinPct = 0.30; fatPct = 0.30; carbPct = 0.40; }
+  calories = Math.max(1200, calories); // safety floor
 
-  // Fat: 9 cal/g, Carbs: 4 cal/g
-  const fat = Math.round((calories * fatPct) / 9);
-  const carbs = Math.round((calories * carbPct) / 4);
+  // Protein: 1.7g/kg for lose/maintain, 2.2g/kg for gain/build muscle
+  const proteinMultiplier = p.goal === 'gain' ? 2.2 : 1.7;
+  const protein = Math.round(kg * proteinMultiplier);
 
-  return { protein, water, fat, carbs, calories };
+  // Fat: 30% of DRI calories (not goal-adjusted) / 9 cal per g
+  const fat = Math.round((driCalories * 0.30) / 9);
+
+  // Carbs: 40% of DRI calories / 4 cal per g
+  const carbs = Math.round((driCalories * 0.40) / 4);
+
+  // Water: 3.7L/day men, 2.7L/day women converted to oz
+  const waterL = (p.sex || 'male') === 'male' ? 3.7 : 2.7;
+  const water = Math.round(waterL * 33.814); // L to oz
+
+  // Apply manual overrides if set
+  return {
+    calories: p.goal_calories || calories,
+    protein: p.goal_protein || protein,
+    fat: p.goal_fat || fat,
+    carbs: p.goal_carbs || carbs,
+    water: p.goal_water || water,
+    // Store calculated values for "reset to recommended"
+    calc_calories: calories,
+    calc_protein: protein,
+    calc_fat: fat,
+    calc_carbs: carbs,
+    calc_water: water
+  };
 }
 
 function calcDayPoints(protein, water, goals) {
@@ -1769,17 +1792,30 @@ async function renderProfile() {
   const actLabels = { sedentary:'Sedentary', light:'Light', moderate:'Moderate', very:'Very active', athlete:'Athlete' };
   const goalLabels = { lose:'Lose weight', maintain:'Maintain', gain:'Build muscle' };
   const heightFt = p.height_inches ? Math.floor(p.height_inches/12) + "'" + (p.height_inches%12) + '"' : 'Not set';
+  function goalRow(label, key, value, calcValue, unit, color) {
+    const isOverridden = !!p['goal_' + key];
+    return '<div class="info-row" style="align-items:center;">' +
+      '<span class="info-key">' + label + '</span>' +
+      '<div style="display:flex;align-items:center;gap:6px;">' +
+        '<span class="info-val" style="color:' + color + ';font-weight:700;">' + value + unit + '</span>' +
+        '<button data-gkey="' + key + '" data-glabel="' + label + '" data-gcalc="' + calcValue + '" data-gunit="' + unit + '" onclick="editGoalFromBtn(this)" style="background:#F0FDF4;border:none;border-radius:6px;padding:3px 8px;cursor:pointer;font-size:12px;color:#16A34A;">✏️</button>' +
+        (isOverridden ? '<button data-rkey="' + key + '" onclick="resetGoalFromBtn(this)" style="background:#FEF3C7;border:none;border-radius:6px;padding:3px 8px;cursor:pointer;font-size:11px;color:#D97706;">↺ Reset</button>' : '') +
+      '</div>' +
+    '</div>';
+  }
+
   document.getElementById('profile-info-rows').innerHTML =
     '<div class="info-row"><span class="info-key">Username</span><span class="info-val">@' + p.username + '</span></div>' +
     '<div class="info-row"><span class="info-key">Weight</span><span class="info-val">' + p.weight + ' lbs</span></div>' +
     '<div class="info-row"><span class="info-key">Height</span><span class="info-val">' + heightFt + '</span></div>' +
     '<div class="info-row"><span class="info-key">Activity</span><span class="info-val">' + (actLabels[p.activity]||p.activity) + '</span></div>' +
     '<div class="info-row"><span class="info-key">Goal</span><span class="info-val">' + (goalLabels[p.goal]||p.goal) + '</span></div>' +
-    '<div class="info-row"><span class="info-key">Daily calories</span><span class="info-val">' + goals.calories + ' cal</span></div>' +
-    '<div class="info-row"><span class="info-key">Protein goal</span><span class="info-val" style="color:#16A34A;font-weight:700;">' + goals.protein + 'g</span></div>' +
-    '<div class="info-row"><span class="info-key">Fat goal</span><span class="info-val" style="color:#D97706;font-weight:700;">' + goals.fat + 'g</span></div>' +
-    '<div class="info-row"><span class="info-key">Carbs goal</span><span class="info-val" style="color:#7C3AED;font-weight:700;">' + goals.carbs + 'g</span></div>' +
-    '<div class="info-row"><span class="info-key">Water goal</span><span class="info-val" style="color:#2563EB;font-weight:700;">' + goals.water + ' oz</span></div>';
+    '<div style="margin:10px 0 6px;font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:0.5px;">Daily Goals <span style="font-weight:400;font-style:italic;">(tap ✏️ to customize)</span></div>' +
+    goalRow('Calories', 'calories', goals.calories, goals.calc_calories, ' cal', '#1E1B4B') +
+    goalRow('Protein', 'protein', goals.protein, goals.calc_protein, 'g', '#16A34A') +
+    goalRow('Fat', 'fat', goals.fat, goals.calc_fat, 'g', '#D97706') +
+    goalRow('Carbs', 'carbs', goals.carbs, goals.calc_carbs, 'g', '#7C3AED') +
+    goalRow('Water', 'water', goals.water, goals.calc_water, ' oz', '#2563EB');
   renderWeightGraph();
   const adminPanel = document.getElementById('admin-panel');
   if (p.is_admin) {
@@ -1798,6 +1834,55 @@ async function renderProfile() {
 }
 
 function removeUserFromBtn(btn) { removeUser(btn.dataset.uid, btn.dataset.uname); }
+
+
+function closeGoalEditModal() { const m = document.getElementById("goal-edit-modal"); if(m) m.remove(); }
+
+function editGoalFromBtn(btn) { editGoal(btn.dataset.gkey, btn.dataset.glabel, parseFloat(btn.dataset.gcalc), btn.dataset.gunit); }
+
+async function editGoal(key, label, calcValue, unit) {
+  const current = currentProfile['goal_' + key] || calcValue;
+  const modal = document.createElement('div');
+  modal.id = 'goal-edit-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;display:flex;align-items:flex-end;justify-content:center;';
+  modal.innerHTML =
+    '<div style="background:#fff;border-radius:20px 20px 0 0;padding:24px;width:100%;max-width:480px;">' +
+      '<div style="font-size:17px;font-weight:800;margin-bottom:6px;">Customize ' + label + '</div>' +
+      '<div style="font-size:13px;color:#6B7280;margin-bottom:14px;">Recommended: ' + calcValue + unit + '</div>' +
+      '<input type="number" id="goal-edit-input" data-key="' + key + '" value="' + current + '" style="width:100%;padding:14px;border:2px solid #16A34A;border-radius:12px;font-size:22px;font-weight:800;text-align:center;box-sizing:border-box;margin-bottom:6px;">' +
+      '<div style="font-size:12px;color:#9CA3AF;text-align:center;margin-bottom:16px;">' + unit.trim() + '</div>' +
+      '<div style="display:flex;gap:10px;">' +
+        '<button onclick="saveGoalEdit(document.getElementById(\"goal-edit-input\").dataset.key)" id="save-goal-btn" style="flex:1;padding:14px;background:linear-gradient(135deg,#16A34A,#EA580C);color:#fff;border:none;border-radius:12px;font-weight:700;font-size:16px;cursor:pointer;">Save</button>' +
+        '<button onclick="closeGoalEditModal()" style="padding:14px 20px;background:#F3F4F6;border:none;border-radius:12px;font-size:14px;cursor:pointer;">Cancel</button>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(modal);
+  document.getElementById('goal-edit-input').focus();
+  document.getElementById('goal-edit-input').select();
+}
+
+async function saveGoalEdit(key) {
+  if (!key) key = document.getElementById('goal-edit-input')?.dataset?.key;
+  const val = parseFloat(document.getElementById('goal-edit-input').value);
+  if (!val || val <= 0) { alert('Please enter a valid number'); return; }
+  const update = {};
+  update['goal_' + key] = val;
+  await sb.from('profiles').update(update).eq('id', currentUser);
+  currentProfile['goal_' + key] = val;
+  document.getElementById('goal-edit-modal').remove();
+  renderProfile();
+}
+
+function resetGoalFromBtn(btn) { resetGoal(btn.dataset.rkey); }
+
+async function resetGoal(key) {
+  if (!confirm('Reset to recommended value?')) return;
+  const update = {};
+  update['goal_' + key] = null;
+  await sb.from('profiles').update(update).eq('id', currentUser);
+  currentProfile['goal_' + key] = null;
+  renderProfile();
+}
 
 async function removeUser(id, name) {
   if (!confirm('Remove ' + name + ' from ChallengePac? This will delete all their data.')) return;
