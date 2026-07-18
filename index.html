@@ -1852,7 +1852,7 @@ async function editGoal(key, label, calcValue, unit) {
       '<input type="number" id="goal-edit-input" data-key="' + key + '" value="' + current + '" style="width:100%;padding:14px;border:2px solid #16A34A;border-radius:12px;font-size:22px;font-weight:800;text-align:center;box-sizing:border-box;margin-bottom:6px;">' +
       '<div style="font-size:12px;color:#9CA3AF;text-align:center;margin-bottom:16px;">' + unit.trim() + '</div>' +
       '<div style="display:flex;gap:10px;">' +
-        '<button onclick="saveGoalEdit(document.getElementById(\"goal-edit-input\").dataset.key)" id="save-goal-btn" style="flex:1;padding:14px;background:linear-gradient(135deg,#16A34A,#EA580C);color:#fff;border:none;border-radius:12px;font-weight:700;font-size:16px;cursor:pointer;">Save</button>' +
+        '<button onclick="saveGoalEdit()" style="flex:1;padding:14px;background:linear-gradient(135deg,#16A34A,#EA580C);color:#fff;border:none;border-radius:12px;font-weight:700;font-size:16px;cursor:pointer;">Save</button>' +
         '<button onclick="closeGoalEditModal()" style="padding:14px 20px;background:#F3F4F6;border:none;border-radius:12px;font-size:14px;cursor:pointer;">Cancel</button>' +
       '</div>' +
     '</div>';
@@ -1861,15 +1861,18 @@ async function editGoal(key, label, calcValue, unit) {
   document.getElementById('goal-edit-input').select();
 }
 
-async function saveGoalEdit(key) {
-  if (!key) key = document.getElementById('goal-edit-input')?.dataset?.key;
-  const val = parseFloat(document.getElementById('goal-edit-input').value);
+async function saveGoalEdit() {
+  const input = document.getElementById('goal-edit-input');
+  const key = input?.dataset?.key;
+  const val = parseFloat(input?.value);
+  if (!key) { alert('Error: could not identify goal'); return; }
   if (!val || val <= 0) { alert('Please enter a valid number'); return; }
   const update = {};
   update['goal_' + key] = val;
-  await sb.from('profiles').update(update).eq('id', currentUser);
+  const { error } = await sb.from('profiles').update(update).eq('id', currentUser);
+  if (error) { alert('Save failed: ' + error.message); return; }
   currentProfile['goal_' + key] = val;
-  document.getElementById('goal-edit-modal').remove();
+  closeGoalEditModal();
   renderProfile();
 }
 
