@@ -1313,6 +1313,7 @@ function setupCheckboxDelegation() {
   contentEl.addEventListener('click', function(e) {
     const cb = e.target.closest('.challenge-checkbox');
     if (!cb) return;
+    alert('Clicked! Goal: ' + cb.dataset.gname + ', Box #' + cb.dataset.idx + ', Count: ' + cb.dataset.count);
     toggleContestCheck(
       cb.dataset.cid,
       cb.dataset.gname,
