@@ -1313,7 +1313,6 @@ function setupCheckboxDelegation() {
   contentEl.addEventListener('click', function(e) {
     const cb = e.target.closest('.challenge-checkbox');
     if (!cb) return;
-    alert('Clicked! Goal: ' + cb.dataset.gname + ', Box #' + cb.dataset.idx + ', Count: ' + cb.dataset.count);
     toggleContestCheck(
       cb.dataset.cid,
       cb.dataset.gname,
@@ -2773,37 +2772,36 @@ function handleCheckboxClick(el) {
 }
 
 async function toggleContestCheck(contestId, goalName, checkIdx, total, period, currentCount) {
-  // Simple toggle: if box is checked (idx < currentCount) uncheck by reducing count, else check by increasing
   const newCount = checkIdx < currentCount ? checkIdx : checkIdx + 1;
   const today = getTodayKey();
 
   try {
-    // Find existing log for today for this goal
-    const { data: existing } = await sb.from('contest_logs').select('*')
+    // Try upsert approach - delete any existing and reinsert
+    const { data: existing } = await sb.from('contest_logs').select('id')
       .eq('contest_id', contestId)
       .eq('user_id', currentUser)
       .eq('goal_name', goalName)
       .eq('log_date', today);
 
     if (existing && existing.length > 0) {
-      if (newCount === 0) {
-        await sb.from('contest_logs').delete().eq('id', existing[0].id);
-      } else {
-        await sb.from('contest_logs').update({ amount: newCount }).eq('id', existing[0].id);
-      }
-    } else if (newCount > 0) {
-      await sb.from('contest_logs').insert({
+      await sb.from('contest_logs').delete().eq('id', existing[0].id);
+    }
+
+    if (newCount > 0) {
+      const { data: inserted, error: insertErr } = await sb.from('contest_logs').insert({
         contest_id: contestId,
         user_id: currentUser,
         goal_name: goalName,
         amount: newCount,
         log_date: today
       });
+      if (insertErr) { alert('Save error: ' + insertErr.message); return; }
     }
+
+    await renderContestChallenge(contestId);
   } catch(e) {
-    console.error('Checkbox error:', e);
+    alert('Error saving: ' + e.message);
   }
-  await renderContestChallenge(contestId);
 }
 
 function logContestGoalFromBtn(btn) {
