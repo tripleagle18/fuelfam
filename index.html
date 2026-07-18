@@ -194,7 +194,7 @@
   .tab-content { display: none; }
   .tab-content.active { display: block; }
   #tab-home.active { display: flex; flex-direction: column; }
-  #tab-challenges.active { display: flex !important; flex-direction: column; }
+  #tab-challenges.active { display: flex; flex-direction: column; height: calc(100vh - 60px); overflow: hidden; }
 
   .section-heading { font-size: 18px; font-weight: 800; margin-bottom: 14px; }
 
@@ -548,7 +548,7 @@
     </div>
   </div>
 
-  <div id="tab-challenges" class="tab-content" style="display:flex;flex-direction:column;height:100vh;overflow:hidden;">
+  <div id="tab-challenges" class="tab-content">
     <!-- Horizontal scroll of contests -->
     <div style="background:linear-gradient(135deg,#16A34A,#EA580C);padding:max(env(safe-area-inset-top),44px) 0 0;">
       <div style="padding:0 16px 12px;">
@@ -867,8 +867,13 @@ function showScreen(id) {
 
 function showTab(id, btn) {
   stopScanner();
-  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.tab-content').forEach(t => {
+    t.classList.remove('active');
+    t.style.display = 'none';
+  });
+  const activeTab = document.getElementById(id);
+  activeTab.classList.add('active');
+  activeTab.style.display = '';
   document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
   if (id === 'tab-challenges') loadChallengesTab();
