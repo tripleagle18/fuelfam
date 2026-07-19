@@ -3250,13 +3250,27 @@ async function showContestDetail(contestId) {
 
   // Render goals
   const goalDiv = document.getElementById('detail-goals');
+  const myGoals = calcGoals(currentProfile);
   goalDiv.innerHTML = `<div class="card">
     <div style="font-size:15px;font-weight:700;margin-bottom:10px;">Contest Goals</div>
-    ${(contest.goals||[]).map(g => `
-      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #F3F4F6;font-size:14px;">
+    ${(contest.goals||[]).map(g => {
+      let targetDisplay = '';
+      if (g.autoFromProfile) {
+        const t = g.type==='protein' ? myGoals.protein+'g (auto)' :
+                  g.type==='water' ? myGoals.water+' oz (auto)' :
+                  g.type==='fat' ? myGoals.fat+'g (auto)' :
+                  g.type==='carbs' ? myGoals.carbs+'g (auto)' : 'Auto';
+        targetDisplay = t;
+      } else if (g.freqNum) {
+        targetDisplay = g.freqNum + 'x per ' + (g.freqPeriod||'day');
+      } else {
+        targetDisplay = (g.target||'') + ' ' + (g.unit||'');
+      }
+      return `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #F3F4F6;font-size:14px;">
         <span>${g.name}</span>
-        <span style="font-weight:700;color:#16A34A;">${g.target} ${g.unit} <span style="color:var(--muted);font-weight:400;">${g.frequency}</span></span>
-      </div>`).join('')}
+        <span style="font-weight:700;color:#16A34A;">${targetDisplay}</span>
+      </div>`;
+    }).join('')}
     <div style="font-size:12px;color:var(--muted);margin-top:8px;">Scoring: ${contest.scoring_method}${contest.scoring_method==='points'?` · Hit=${contest.points_hit}pts · Close=${contest.points_close}pts · Partial=${contest.points_partial}pts`:''}</div>
   </div>`;
 
@@ -3316,42 +3330,96 @@ async function showContestDetail(contestId) {
 async function renderContestLeaderboard(contest) {
   const lbDiv = document.getElementById('detail-leaderboard');
   lbDiv.innerHTML = '<div class="loading"><span class="dot-spin"></span></div>';
+  
   const { data: members } = await sb.from('contest_members').select('user_id').eq('contest_id', contest.id);
   const memberIds = (members||[]).map(m => m.user_id);
   if (!memberIds.length) { lbDiv.innerHTML = '<div class="empty-state">No members yet.</div>'; return; }
-  const { data: profiles } = await sb.from('profiles').select('id,name').in('id', memberIds);
-  const { data: logs } = await sb.from('contest_logs').select('*').eq('contest_id', contest.id);
+
+  const { data: profiles } = await sb.from('profiles').select('*').in('id', memberIds);
+  const { data: contestLogs } = await sb.from('contest_logs').select('*').eq('contest_id', contest.id);
+  const { data: dailyLogs } = await sb.from('daily_logs').select('*').in('user_id', memberIds).gte('log_date', contest.start_date);
+  const tiers = contest.scoring_tiers || [{points:10,pct:100},{points:7,pct:90},{points:3,pct:75}];
   const medals = ['🥇','🥈','🥉'];
+
   const scored = (profiles||[]).map(p => {
-    const userLogs = (logs||[]).filter(l => l.user_id === p.id);
+    const pGoals = calcGoals(p);
+    const pDailyLogs = (dailyLogs||[]).filter(l => l.user_id === p.id);
+    const pContestLogs = (contestLogs||[]).filter(l => l.user_id === p.id);
     let score = 0;
-    const goalTotals = {};
-    userLogs.forEach(l => { goalTotals[l.goal_name] = (goalTotals[l.goal_name]||0) + l.amount; });
+    const goalDetails = [];
+
     (contest.goals||[]).forEach(g => {
-      const logged = goalTotals[g.name] || 0;
-      const tiers = contest.scoring_tiers || [{points:10,pct:100},{points:5,pct:90},{points:2,pct:75}];
-      const pct = g.target > 0 ? (logged / g.target) * 100 : 0;
-      const matchedTier = tiers.sort((a,b) => b.pct-a.pct).find(t => pct >= t.pct);
-      if (matchedTier) score += matchedTier.points;
+      let logged = 0;
+      let target = 1;
+      let unit = '';
+      let pts = 0;
+
+      if (g.autoFromProfile) {
+        // Sum from daily logs across entire contest
+        pDailyLogs.forEach(dl => {
+          if (g.type==='protein') logged += dl.protein||0;
+          else if (g.type==='water') logged += dl.water||0;
+          else if (g.type==='fat') logged += dl.fat||0;
+          else if (g.type==='carbs') logged += dl.carbs||0;
+        });
+        target = g.type==='protein' ? pGoals.protein :
+                 g.type==='water' ? pGoals.water :
+                 g.type==='fat' ? pGoals.fat :
+                 g.type==='carbs' ? pGoals.carbs : 1;
+        unit = g.type==='water' ? 'oz' : 'g';
+        // Score per day logged
+        pDailyLogs.forEach(dl => {
+          const dayLogged = g.type==='protein' ? (dl.protein||0) :
+                            g.type==='water' ? (dl.water||0) :
+                            g.type==='fat' ? (dl.fat||0) : (dl.carbs||0);
+          pts += calcMacroPts(g.type, dayLogged, target, tiers);
+        });
+      } else {
+        // Custom checkbox goals - score per period
+        target = g.freqNum || 1;
+        unit = 'x';
+        const freqPeriod = g.freqPeriod || 'day';
+        // Get unique periods and score each
+        const periodLogs = {};
+        pContestLogs.filter(l => l.goal_name === g.name).forEach(l => {
+          const ps = freqPeriod === 'day' ? l.log_date :
+                     freqPeriod === 'week' ? 'w' + l.log_date.slice(0,7) :
+                     freqPeriod === 'month' ? l.log_date.slice(0,7) : 'all';
+          periodLogs[ps] = Math.max(periodLogs[ps]||0, l.amount||0);
+        });
+        Object.values(periodLogs).forEach(amount => {
+          if (amount >= target) pts += tiers[0]?.points || 10;
+        });
+        logged = Object.values(periodLogs).reduce((s,a) => s+a, 0);
+      }
+
+      score += pts;
+      goalDetails.push({ name: g.name, logged: Math.round(logged), target, unit, pts });
     });
-    return { ...p, score, goalTotals };
+
+    return { id: p.id, name: p.name, score, goalDetails };
   }).sort((a,b) => b.score - a.score);
 
-  const unit = contest.scoring_method === 'points' ? 'pts' : contest.scoring_method === 'percentage' ? '%' : '';
-  lbDiv.innerHTML = `<div class="card">
-    <div style="font-size:15px;font-weight:700;margin-bottom:12px;">🏆 Leaderboard</div>
-    ${scored.map((p,i) => `
-      <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #F3F4F6;${p.id===currentUser?'background:#F0FDF4;margin:0 -16px;padding:10px 16px;':''}">
-        <div style="font-size:22px;min-width:32px;">${medals[i]||'#'+(i+1)}</div>
-        <div style="flex:1;">
-          <div style="font-weight:700;">${p.name}${p.id===currentUser?' (you)':''}</div>
-          <div style="font-size:12px;color:var(--muted);">
-            ${(contest.goals||[]).map(g => g.name + ': ' + (p.goalTotals[g.name]||0) + ' ' + g.unit).join(' · ')}
-          </div>
-        </div>
-        <div style="font-size:18px;font-weight:800;color:#16A34A;">${Math.round(p.score)}${unit}</div>
-      </div>`).join('')}
-  </div>`;
+  lbDiv.innerHTML = '<div style="background:#fff;border-radius:14px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">' +
+    '<div style="font-size:16px;font-weight:800;margin-bottom:12px;">🏆 Leaderboard</div>' +
+    scored.map((p, i) =>
+      '<div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #F3F4F6;">' +
+        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">' +
+          '<div style="font-size:22px;">' + (medals[i]||'#'+(i+1)) + '</div>' +
+          '<div style="flex:1;font-weight:800;font-size:15px;">' + p.name + (p.id===currentUser?' (you)':'') + '</div>' +
+          '<div style="font-size:18px;font-weight:900;color:' + (p.score<0?'#EF4444':'#16A34A') + ';">' + (p.score>=0?'+':'') + Math.round(p.score) + ' pts</div>' +
+        '</div>' +
+        '<div style="padding-left:32px;">' +
+          p.goalDetails.map(g =>
+            '<div style="display:flex;justify-content:space-between;font-size:12px;color:#6B7280;margin-bottom:2px;">' +
+              '<span>' + g.name + '</span>' +
+              '<span style="color:' + (g.pts>0?'#16A34A':g.pts<0?'#EF4444':'#9CA3AF') + ';font-weight:600;">' + (g.pts>=0?'+':'') + g.pts + ' pts</span>' +
+            '</div>'
+          ).join('') +
+        '</div>' +
+      '</div>'
+    ).join('') +
+  '</div>';
 }
 
 async function logContestGoal(contestId, goalName, index, unit) {
