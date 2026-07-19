@@ -1441,28 +1441,9 @@ async function renderGlobalChallenge() {
   // Scoring for each macro
   const defaultTiers = [{points:10,pct:100},{points:7,pct:90},{points:5,pct:75},{points:2,pct:50}];
   function getTierPts(logged, goal, type) {
-    // type: 'protein', 'fat', 'carbs', 'water'
-    const diff = logged - goal;
     const pct = goal > 0 ? (logged/goal)*100 : 0;
-
-    if (type === 'protein') {
-      // Within 20g under = full points, over = full points (no penalty)
-      if (logged >= goal - 20) return { pts: defaultTiers[0].points, pct: Math.round(pct) };
-    }
-    if (type === 'fat' || type === 'carbs') {
-      // Within 20g under = full points
-      if (logged >= goal - 20 && logged <= goal) return { pts: defaultTiers[0].points, pct: Math.round(pct) };
-      // Over by up to 30g = full points
-      if (diff > 0 && diff <= 30) return { pts: defaultTiers[0].points, pct: Math.round(pct) };
-      // Over by more than 30g = deduct points
-      if (diff > 30) {
-        const penalty = Math.round((diff - 30) / 10);
-        return { pts: Math.max(-10, -penalty), pct: Math.round(pct) };
-      }
-    }
-    // Default tier scoring
-    const tier = defaultTiers.find(t => pct >= t.pct);
-    return { pts: tier ? tier.points : 0, pct: Math.round(pct) };
+    const pts = calcMacroPts(type, logged, goal, defaultTiers);
+    return { pts, pct: Math.round(pct) };
   }
   const proteinScore = getTierPts(protein, goals.protein, 'protein');
   const waterScore = getTierPts(water, goals.water, 'water');
@@ -1763,6 +1744,30 @@ function logContestGoalSafe(btn) {
   logContestGoalFromBtn(btn);
 }
 
+function calcMacroPts(type, logged, goal, tiers) {
+  // type: 'protein', 'fat', 'carbs', 'water'
+  const diff = logged - goal;
+  const maxPts = tiers && tiers.length > 0 ? Math.max(...tiers.map(t => t.points)) : 10;
+
+  if (type === 'protein') {
+    // Within 20g under OR any amount over = full points, no penalty
+    if (logged >= goal - 20) return maxPts;
+  }
+  if (type === 'fat' || type === 'carbs') {
+    // Within 20g under = full points
+    if (logged >= goal - 20 && logged <= goal) return maxPts;
+    // Over by up to 30g = full points
+    if (diff > 0 && diff <= 30) return maxPts;
+    // Over by more than 30g = deduct points
+    if (diff > 30) return Math.max(-10, -Math.round((diff - 30) / 10));
+  }
+  // Default: tier scoring by percentage
+  const pct = goal > 0 ? (logged / goal) * 100 : 0;
+  const sortedTiers = [...(tiers||[{points:10,pct:100},{points:7,pct:90},{points:3,pct:75}])].sort((a,b) => b.pct - a.pct);
+  const matched = sortedTiers.find(t => pct >= t.pct);
+  return matched ? matched.points : 0;
+}
+
 function buildGoalLogUI(g, i, contestId, myLogs) {
   const freqPeriod = g.freqPeriod || 'day';
   const freqNum = g.freqNum || 1;
@@ -1834,12 +1839,13 @@ async function renderContestChallenge(contestId) {
     const dateLabel = isToday ? 'Today' : new Date(displayDate + 'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
     const goals = calcGoals(currentProfile);
 
-    function resolveGoal(g) {
+    function resolveGoal(g, userGoals) {
+      const ug = userGoals || goals;
       if (g.autoFromProfile) {
-        if (g.type === 'protein') return { ...g, target: goals.protein, unit: 'g' };
-        if (g.type === 'water') return { ...g, target: goals.water, unit: 'oz' };
-        if (g.type === 'fat') return { ...g, target: goals.fat || 70, unit: 'g' };
-        if (g.type === 'carbs') return { ...g, target: goals.carbs || 200, unit: 'g' };
+        if (g.type === 'protein') return { ...g, target: ug.protein, unit: 'g' };
+        if (g.type === 'water') return { ...g, target: ug.water, unit: 'oz' };
+        if (g.type === 'fat') return { ...g, target: ug.fat, unit: 'g' };
+        if (g.type === 'carbs') return { ...g, target: ug.carbs, unit: 'g' };
       }
       if (g.freqNum && g.freqNum > 0) return { ...g, target: g.freqNum, unit: 'x' };
       return { ...g, target: g.target || 1, unit: g.unit || '' };
@@ -1868,9 +1874,8 @@ async function renderContestChallenge(contestId) {
       const scorePct = g.target > 0 ? (logged/g.target)*100 : 0;
       let pts;
       if (g.autoFromProfile) {
-        // Macro goals use tier scoring
-        const matchedTier = [...tiers].sort((a,b) => b.pct-a.pct).find(t => scorePct >= t.pct);
-        pts = matchedTier ? matchedTier.points : 0;
+        // Use same scoring rules as global challenge
+        pts = calcMacroPts(g.type, logged, g.target || 1, tiers);
       } else {
         // Custom checkbox goals: all or nothing
         const target = g.freqNum || g.target || 1;
