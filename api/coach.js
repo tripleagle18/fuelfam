@@ -21,7 +21,10 @@ Here is the user's current data:
 - Activity level: ${userData.activity}
 - Current streak: ${userData.streak} days
 
-This week's logged data:
+TODAY's food and nutrition log:
+${userData.todaySummary}
+
+This week's average logged data:
 ${userData.weekSummary}
 
 Contest performance:
