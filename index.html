@@ -432,16 +432,10 @@
         </div>
       </div>
 
-      <!-- Activity Feed -->
-      <div style="margin:14px 16px 0;">
-        <div style="font-size:16px;font-weight:800;margin-bottom:10px;">Recent Activity 📣</div>
-        <div id="activity-feed"><div style="background:#fff;border-radius:14px;padding:16px;text-align:center;color:#6B7280;font-size:13px;">Loading activity...</div></div>
-      </div>
-
       <!-- My Contests -->
       <div style="margin:16px 16px 0;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-          <div style="font-size:16px;font-weight:800;">My Contests 🏆</div>
+          <div style="font-size:18px;font-weight:800;">My Contests 🏆</div>
           <button onclick="showScreen('screen-create-contest')" style="background:linear-gradient(135deg,#16A34A,#EA580C);color:#fff;border:none;border-radius:20px;padding:7px 14px;font-size:13px;font-weight:700;cursor:pointer;">+ Create</button>
         </div>
         <div id="my-contests-list"><div style="background:#fff;border-radius:14px;padding:16px;text-align:center;color:#6B7280;font-size:13px;">Loading...</div></div>
@@ -1099,10 +1093,6 @@ async function renderHome() {
   checkHeightBanner();
   checkJoinCodeInUrl();
 
-  try { await renderActivityFeed(); } catch(e) {
-    const f = document.getElementById('activity-feed');
-    if (f) f.innerHTML = '<div style="padding:12px;color:#6B7280;font-size:13px;">No recent activity yet.</div>';
-  }
   try { await renderQuickStats(); } catch(e) { console.error('QuickStats error:', e); }
   try { await renderMyContests(); } catch(e) {
     const l = document.getElementById('my-contests-list');
@@ -1112,20 +1102,28 @@ async function renderHome() {
 
 
 async function calcStreak() {
-  const { data } = await sb.from('daily_logs').select('log_date,protein,water').eq('user_id', currentUser).order('log_date', { ascending: false }).limit(30);
-  if (!data || !data.length) return 0;
-  const goals = calcGoals(currentProfile);
-  let streak = 0;
-  const today = new Date(); today.setHours(0,0,0,0);
-  for (let i = 0; i < 30; i++) {
-    const d = new Date(today); d.setDate(d.getDate() - i);
-    const key = d.toISOString().slice(0, 10);
-    const log = data.find(l => l.log_date === key);
-    if (!log) { if (i === 0) continue; break; }
-    const pts = calcDayPoints(log.protein, log.water, goals);
-    if (pts >= 5) streak++; else if (i > 0) break;
-  }
-  return streak;
+  try {
+    const { data } = await sb.from('daily_logs')
+      .select('log_date,protein,water')
+      .eq('user_id', currentUser)
+      .order('log_date', { ascending: false })
+      .limit(30);
+    if (!data || !data.length) return 0;
+    const goals = calcGoals(currentProfile);
+    let streak = 0;
+    for (let i = 0; i < 30; i++) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      // Use LOCAL date to match getTodayKey format
+      const key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+      const log = data.find(l => l.log_date === key);
+      if (!log) { if (i === 0) continue; break; }
+      const pts = calcDayPoints(log.protein||0, log.water||0, goals);
+      if (pts > 0) streak++;
+      else if (i > 0) break;
+    }
+    return streak;
+  } catch(e) { return 0; }
 }
 
 function streakBonus(streak) {
@@ -3094,7 +3092,6 @@ async function renderMyContests() {
   try {
     const { data: memberships, error: memErr } = await sb.from('contest_members')
       .select('contest_id, role').eq('user_id', currentUser);
-    
     if (memErr || !memberships || memberships.length === 0) {
       list.innerHTML = '<div style="text-align:center;padding:20px;color:#6B7280;font-size:14px;">No contests yet!<br>Create one or join with a code below.</div>';
       return;
@@ -3102,41 +3099,91 @@ async function renderMyContests() {
     const ids = memberships.map(m => m.contest_id);
     const roleMap = {};
     memberships.forEach(m => roleMap[m.contest_id] = m.role);
-
-    const { data: contests, error: conErr } = await sb.from('contests')
-      .select('*').in('id', ids).order('created_at', { ascending: false });
-
-    if (conErr || !contests || contests.length === 0) {
+    const { data: contests } = await sb.from('contests').select('*').in('id', ids).order('created_at', { ascending: false });
+    if (!contests || contests.length === 0) {
       list.innerHTML = '<div style="text-align:center;padding:20px;color:#6B7280;">No contests found.</div>';
       return;
     }
 
+    // Get all contest logs to calculate ranks
+    const { data: allContestLogs } = await sb.from('contest_logs').select('*').in('contest_id', ids);
+    const { data: allMembers } = await sb.from('contest_members').select('contest_id,user_id').in('contest_id', ids);
+
     const now = new Date();
-    list.innerHTML = contests.map(c => {
+    const rankEmojis = ['🥇','🥈','🥉','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟'];
+
+    const cards = contests.map(c => {
       const end = new Date(c.end_date + 'T12:00:00');
       const start = new Date(c.start_date + 'T12:00:00');
       const daysLeft = Math.ceil((end - now) / (1000*60*60*24));
       const isEnded = end < now;
       const isAdmin = roleMap[c.id] === 'admin' || c.creator_id === currentUser;
-      const goalChips = (c.goals||[]).map(g =>
-        '<span style="background:#DCFCE7;color:#16A34A;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:600;">' + g.name + '</span>'
-      ).join('');
-      return '<div data-cid="' + c.id + '" onclick="handleContestCardClick(event)" style="background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:10px;box-shadow:0 2px 10px rgba(0,0,0,0.06);border-left:4px solid ' + (isEnded?'#9CA3AF':'#16A34A') + ';cursor:pointer;">' +
-        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">' +
-          '<div style="font-size:16px;font-weight:800;">' + c.name + '</div>' +
-          (isAdmin ? '<span style="background:#DCFCE7;color:#16A34A;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;">Admin</span>' : '') +
+      const tiers = c.scoring_tiers || [{points:10,pct:100},{points:7,pct:90},{points:3,pct:75}];
+
+      // Get members for this contest
+      const contestMembers = (allMembers||[]).filter(m => m.contest_id === c.id);
+      const totalPlayers = contestMembers.length;
+
+      // Calculate scores for all members
+      const contestLogs = (allContestLogs||[]).filter(l => l.contest_id === c.id);
+      const scores = contestMembers.map(m => {
+        const userLogs = contestLogs.filter(l => l.user_id === m.user_id);
+        const totals = {};
+        userLogs.forEach(l => {
+          const ps = getPeriodStart(l.freqPeriod || 'day');
+          totals[l.goal_name] = Math.max(totals[l.goal_name]||0, l.amount||0);
+        });
+        let score = 0;
+        (c.goals||[]).forEach(g => {
+          if (!g.autoFromProfile) {
+            const logged = totals[g.name] || 0;
+            const target = g.freqNum || 1;
+            const pct = (logged/target)*100;
+            const tier = [...tiers].sort((a,b)=>b.pct-a.pct).find(t=>pct>=t.pct);
+            if (tier) score += tier.points;
+          }
+        });
+        return { userId: m.user_id, score };
+      }).sort((a,b) => b.score - a.score);
+
+      const myRankIdx = scores.findIndex(s => s.userId === currentUser);
+      const myRank = myRankIdx + 1;
+      const rankEmoji = rankEmojis[myRankIdx] || ('#' + myRank);
+      const rankLabel = myRank === 1 ? 'You are in 1st place!' :
+                        myRank === 2 ? 'You are in 2nd place!' :
+                        myRank === 3 ? 'You are in 3rd place!' :
+                        'You are in ' + myRank + (myRank===1?'st':myRank===2?'nd':myRank===3?'rd':'th') + ' place';
+
+      return '<div data-cid="' + c.id + '" onclick="handleContestCardClick(event)" style="background:#fff;border-radius:16px;margin-bottom:12px;box-shadow:0 3px 14px rgba(0,0,0,0.08);overflow:hidden;cursor:pointer;">' +
+        // Header bar
+        '<div style="background:linear-gradient(135deg,#16A34A,#EA580C);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;">' +
+          '<div style="font-size:17px;font-weight:900;color:#fff;">' + c.name + '</div>' +
+          (isAdmin ? '<span style="background:rgba(255,255,255,0.25);color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;">Admin</span>' : '') +
         '</div>' +
-        '<div style="font-size:12px;color:#6B7280;margin-bottom:8px;">' +
-          start.toLocaleDateString('en-US',{month:'short',day:'numeric'}) + ' – ' +
-          end.toLocaleDateString('en-US',{month:'short',day:'numeric'}) +
-          ' · ' + (isEnded ? 'Ended' : daysLeft + ' days left') +
+        // Dates and days left
+        '<div style="padding:12px 16px 0;display:flex;justify-content:space-between;align-items:center;">' +
+          '<div style="font-size:12px;color:#6B7280;">' + start.toLocaleDateString('en-US',{month:'short',day:'numeric'}) + ' – ' + end.toLocaleDateString('en-US',{month:'short',day:'numeric'}) + '</div>' +
+          (isEnded
+            ? '<div style="background:#FEE2E2;color:#991B1B;border-radius:20px;padding:4px 12px;font-size:13px;font-weight:700;">Ended</div>'
+            : '<div style="background:#DCFCE7;color:#16A34A;border-radius:20px;padding:4px 12px;font-size:15px;font-weight:900;">' + daysLeft + ' days left</div>') +
         '</div>' +
-        '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;">' + goalChips + '</div>' +
-        '<div style="font-size:12px;color:#9CA3AF;">Tap to view details &amp; leaderboard →</div>' +
+        // Rank display
+        '<div style="padding:12px 16px 14px;">' +
+          '<div style="background:linear-gradient(135deg,#F0FDF4,#DBEAFE);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:12px;">' +
+            '<div style="font-size:36px;line-height:1;">' + rankEmoji + '</div>' +
+            '<div style="flex:1;">' +
+              '<div style="font-size:15px;font-weight:800;color:#1E1B4B;">' + rankLabel + '</div>' +
+              '<div style="font-size:12px;color:#6B7280;margin-top:2px;">out of ' + totalPlayers + ' player' + (totalPlayers!==1?'s':'') + ' · tap for details</div>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
       '</div>';
-    }).join('');
+    });
+
+    list.innerHTML = cards.join('');
   } catch(e) {
     list.innerHTML = '<div style="text-align:center;padding:20px;color:#6B7280;">Could not load contests.</div>';
+    console.error('renderMyContests error:', e);
   }
 }
 
