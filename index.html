@@ -1704,8 +1704,14 @@ async function renderContestChallenge(contestId) {
   currentContestId = contestId;
   const contentEl = document.getElementById('challenge-content');
   contentEl.innerHTML = '<div class="loading"><span class="dot-spin"></span></div>';
-  const contest = userContestsForChallenges.find(c => c.id === contestId);
-  if (!contest) { contentEl.innerHTML = '<div class="empty-state">Contest not found.</div>'; return; }
+  let contest = userContestsForChallenges.find(c => c.id === contestId);
+  if (!contest) {
+    // Fallback: fetch directly from Supabase
+    const { data: fetched } = await sb.from('contests').select('*').eq('id', contestId).maybeSingle();
+    if (!fetched) { contentEl.innerHTML = '<div class="empty-state">Contest not found.</div>'; return; }
+    contest = fetched;
+    userContestsForChallenges.push(fetched);
+  }
 
   const today = getTodayKey();
   const displayDate = contestViewingDate || today;
