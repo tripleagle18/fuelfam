@@ -1363,7 +1363,7 @@ async function loadChallengesTab() {
   const ids = (memberships||[]).map(m => m.contest_id);
   let contests = [];
   if (ids.length > 0) {
-    const { data } = await sb.from('contests').select('*').in('id', ids).eq('status','active');
+    const { data } = await sb.from('contests').select('*').in('id', ids);
     contests = data || [];
   }
   userContestsForChallenges = contests;
@@ -1507,7 +1507,6 @@ async function renderGlobalChallenge() {
   }
 
   contentEl.innerHTML =
-    // Date navigation
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;background:#fff;border-radius:14px;padding:12px 16px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">' +
       '<button onclick="changeGlobalDay(-1)" style="background:#F0FDF4;border:none;border-radius:10px;padding:8px 14px;font-size:18px;cursor:pointer;color:#16A34A;">‹</button>' +
       '<div style="text-align:center;">' +
@@ -1686,6 +1685,43 @@ function changeGlobalDay(delta) {
   renderGlobalChallenge();
 }
 
+
+function buildGoalLogUI(g, i, contestId, myLogs) {
+  const freqPeriod = g.freqPeriod || 'day';
+  const freqNum = g.freqNum || 1;
+  const today = getTodayKey();
+  const periodStart = getPeriodStart(freqPeriod) || today;
+
+  const periodLogs = (myLogs||[]).filter(l => {
+    if (l.goal_name !== g.name) return false;
+    if (freqPeriod === 'day') return l.log_date === today;
+    return l.log_date >= periodStart;
+  });
+  const completedCount = periodLogs.length > 0 ? Math.max(...periodLogs.map(l => l.amount||0)) : 0;
+
+  const checkboxes = Array.from({length: freqNum}, (_, idx) => {
+    const checked = idx < completedCount;
+    return '<div class="challenge-checkbox"' +
+      ' data-cid="' + contestId + '"' +
+      ' data-gname="' + g.name + '"' +
+      ' data-idx="' + idx + '"' +
+      ' data-total="' + freqNum + '"' +
+      ' data-period="' + freqPeriod + '"' +
+      ' data-count="' + completedCount + '"' +
+      ' style="width:44px;height:44px;border-radius:10px;border:2px solid ' + (checked?'#16A34A':'#D1D5DB') + ';background:' + (checked?'#16A34A':'#fff') + ';display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:20px;">' +
+      (checked ? '✓' : '') +
+    '</div>';
+  }).join('');
+
+  return '<div style="margin-top:10px;">' +
+    '<div style="font-size:12px;color:#6B7280;font-weight:600;margin-bottom:8px;">' + completedCount + ' of ' + freqNum + ' completed this ' + freqPeriod + '</div>' +
+    '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">' +
+      checkboxes +
+      '<span style="font-size:13px;color:#6B7280;margin-left:4px;">per ' + freqPeriod + '</span>' +
+    '</div>' +
+  '</div>';
+}
+
 function getPeriodStart(period) {
   const now = new Date();
   if (period === 'day') return now.toISOString().slice(0,10);
@@ -1703,150 +1739,157 @@ function getPeriodStart(period) {
 async function renderContestChallenge(contestId) {
   currentContestId = contestId;
   const contentEl = document.getElementById('challenge-content');
+  if (!contentEl) return;
   contentEl.innerHTML = '<div class="loading"><span class="dot-spin"></span></div>';
-  let contest = userContestsForChallenges.find(c => c.id === contestId);
-  if (!contest) {
-    // Fallback: fetch directly from Supabase
-    const { data: fetched } = await sb.from('contests').select('*').eq('id', contestId).maybeSingle();
-    if (!fetched) { contentEl.innerHTML = '<div class="empty-state">Contest not found.</div>'; return; }
-    contest = fetched;
-    userContestsForChallenges.push(fetched);
+
+  try {
+    let contest = userContestsForChallenges.find(c => c.id === contestId);
+    if (!contest) {
+      const { data: fetched, error: fErr } = await sb.from('contests').select('*').eq('id', contestId).maybeSingle();
+      if (fErr || !fetched) { contentEl.innerHTML = '<div style="padding:20px;text-align:center;color:#6B7280;">Contest not found.</div>'; return; }
+      contest = fetched;
+      userContestsForChallenges.push(fetched);
+    }
+
+    const today = getTodayKey();
+    const displayDate = contestViewingDate || today;
+    const isToday = displayDate === today;
+    const dateLabel = isToday ? 'Today' : new Date(displayDate + 'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
+    const goals = calcGoals(currentProfile);
+
+    function resolveGoal(g) {
+      if (g.autoFromProfile) {
+        if (g.type === 'protein') return { ...g, target: goals.protein, unit: 'g' };
+        if (g.type === 'water') return { ...g, target: goals.water, unit: 'oz' };
+        if (g.type === 'fat') return { ...g, target: goals.fat || 70, unit: 'g' };
+        if (g.type === 'carbs') return { ...g, target: goals.carbs || 200, unit: 'g' };
+      }
+      if (g.freqNum && g.freqNum > 0) return { ...g, target: g.freqNum, unit: 'x' };
+      return { ...g, target: g.target || 1, unit: g.unit || '' };
+    }
+
+    const resolvedGoals = (contest.goals||[]).map(resolveGoal);
+    const { data: myLogs } = await sb.from('contest_logs').select('*').eq('contest_id', contestId).eq('user_id', currentUser);
+    const { data: dailyLog } = await sb.from('daily_logs').select('*').eq('user_id', currentUser).eq('log_date', displayDate).maybeSingle();
+    const tiers = contest.scoring_tiers || [{points:10,pct:100},{points:7,pct:90},{points:3,pct:75}];
+    let totalPts = 0;
+
+    const goalCards = resolvedGoals.map((g, i) => {
+      let logged = 0;
+      if (g.autoFromProfile && dailyLog) {
+        if (g.type === 'protein') logged = dailyLog.protein || 0;
+        else if (g.type === 'water') logged = dailyLog.water || 0;
+        else if (g.type === 'fat') logged = dailyLog.fat || 0;
+        else if (g.type === 'carbs') logged = dailyLog.carbs || 0;
+      } else if (!g.autoFromProfile) {
+        const ps = getPeriodStart(g.freqPeriod || 'day');
+        const pl = (myLogs||[]).filter(l => l.goal_name === g.name && (!ps || l.log_date >= ps));
+        logged = pl.length > 0 ? Math.max(...pl.map(l => l.amount||0)) : 0;
+        g = { ...g, target: g.freqNum || g.target || 1, unit: 'x' };
+      }
+      const pct = g.target > 0 ? Math.min(100, Math.round(logged/g.target*100)) : 0;
+      const scorePct = g.target > 0 ? (logged/g.target)*100 : 0;
+      const matchedTier = [...tiers].sort((a,b) => b.pct-a.pct).find(t => scorePct >= t.pct);
+      const pts = matchedTier ? matchedTier.points : 0;
+      totalPts += pts;
+
+      const ptsColor = pts < 0 ? '#EF4444' : '#16A34A';
+      const ptsBg = pts < 0 ? '#FEE2E2' : '#F0FDF4';
+
+      return '<div style="background:#fff;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
+          '<div style="font-size:15px;font-weight:700;">' + g.name + '</div>' +
+          '<div style="background:' + ptsBg + ';border-radius:20px;padding:4px 10px;font-size:13px;font-weight:800;color:' + ptsColor + ';">' + (pts>=0?'+':'') + pts + ' pts</div>' +
+        '</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;text-align:center;">' +
+          '<div style="background:#F9FAFB;border-radius:10px;padding:8px;"><div style="font-size:11px;color:#6B7280;font-weight:600;text-transform:uppercase;">Goal</div><div style="font-size:16px;font-weight:800;">' + g.target + (g.unit?' '+g.unit:'') + '</div></div>' +
+          '<div style="background:#F9FAFB;border-radius:10px;padding:8px;"><div style="font-size:11px;color:#6B7280;font-weight:600;text-transform:uppercase;">Logged</div><div style="font-size:16px;font-weight:800;color:#16A34A;">' + Math.round(logged) + (g.unit?' '+g.unit:'') + '</div></div>' +
+          '<div style="background:#F9FAFB;border-radius:10px;padding:8px;"><div style="font-size:11px;color:#6B7280;font-weight:600;text-transform:uppercase;">% of Goal</div><div style="font-size:16px;font-weight:800;color:#EA580C;">' + pct + '%</div></div>' +
+        '</div>' +
+        '<div style="background:#F3F4F6;border-radius:20px;height:10px;overflow:hidden;' + (!g.autoFromProfile?'margin-bottom:10px;':'') + '">' +
+          '<div style="width:' + pct + '%;height:100%;border-radius:20px;background:linear-gradient(90deg,#16A34A,#EA580C);"></div>' +
+        '</div>' +
+        (g.autoFromProfile ? '' : buildGoalLogUI(g, i, contestId, myLogs)) +
+      '</div>';
+    }).join('');
+
+    const navHtml =
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;background:#fff;border-radius:14px;padding:12px 16px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">' +
+        '<button onclick="changeContestDay(-1)" style="background:#F0FDF4;border:none;border-radius:10px;padding:8px 14px;font-size:18px;cursor:pointer;color:#16A34A;">‹</button>' +
+        '<div style="text-align:center;">' +
+          '<div style="font-size:15px;font-weight:800;">' + dateLabel + '</div>' +
+          '<div style="font-size:12px;color:#6B7280;">' + totalPts + ' pts earned</div>' +
+        '</div>' +
+        '<button onclick="changeContestDay(1)" ' + (isToday?'disabled':'') + ' style="background:' + (isToday?'#F9FAFB':'#F0FDF4') + ';border:none;border-radius:10px;padding:8px 14px;font-size:18px;cursor:pointer;color:' + (isToday?'#D1D5DB':'#16A34A') + ';">›</button>' +
+      '</div>';
+
+    contentEl.innerHTML =
+      '<div style="padding-bottom:20px;">' +
+      navHtml +
+      '<div style="font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">My Progress</div>' +
+      goalCards +
+      '<div id="contest-challenge-lb"></div>' +
+      '</div>';
+
+    // Leaderboard
+    const { data: members } = await sb.from('contest_members').select('user_id').eq('contest_id', contestId);
+    const memberIds = (members||[]).map(m => m.user_id);
+    if (memberIds.length === 0) return;
+    const { data: allContestLogs } = await sb.from('contest_logs').select('*').eq('contest_id', contestId);
+    const { data: allDailyLogs } = await sb.from('daily_logs').select('*').in('user_id', memberIds).gte('log_date', contest.start_date);
+    const { data: allProfiles } = await sb.from('profiles').select('*').in('id', memberIds);
+    const medals = ['🥇','🥈','🥉'];
+
+    const scored = (allProfiles||[]).map(p => {
+      const pGoals = calcGoals(p);
+      const cLogs = (allContestLogs||[]).filter(l => l.user_id === p.id);
+      const dLogs = (allDailyLogs||[]).filter(l => l.user_id === p.id);
+      let score = 0;
+      (contest.goals||[]).forEach(g => {
+        const rg = resolveGoal(g);
+        let logged = 0;
+        if (g.autoFromProfile) {
+          dLogs.forEach(dl => {
+            if (g.type==='protein') logged += dl.protein||0;
+            else if (g.type==='water') logged += dl.water||0;
+            else if (g.type==='fat') logged += dl.fat||0;
+            else if (g.type==='carbs') logged += dl.carbs||0;
+          });
+          const target = g.type==='protein'?pGoals.protein:g.type==='water'?pGoals.water:g.type==='fat'?(pGoals.fat||70):(pGoals.carbs||200);
+          const pct = target > 0 ? (logged/target)*100 : 0;
+          const isFatCarbs = g.type==='fat'||g.type==='carbs';
+          if (isFatCarbs && pct > 100) score += Math.max(-10, -Math.round((pct-100)/10));
+          else { const t = [...tiers].sort((a,b)=>b.pct-a.pct).find(t=>pct>=t.pct); if (t) score += t.points; }
+        } else {
+          const ps = getPeriodStart(g.freqPeriod||'day');
+          const pl = cLogs.filter(l => l.goal_name===g.name && (!ps||l.log_date>=ps));
+          logged = pl.length > 0 ? Math.max(...pl.map(l=>l.amount||0)) : 0;
+          const target = g.freqNum || rg.target || 1;
+          const pct = (logged/target)*100;
+          const t = [...tiers].sort((a,b)=>b.pct-a.pct).find(t=>pct>=t.pct);
+          if (t) score += t.points;
+        }
+      });
+      return { id: p.id, name: p.name, score };
+    }).sort((a,b) => b.score - a.score);
+
+    const lbEl = document.getElementById('contest-challenge-lb');
+    if (lbEl) lbEl.innerHTML =
+      '<div style="background:#fff;border-radius:14px;padding:14px;margin-top:10px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">' +
+        '<div style="font-size:15px;font-weight:800;margin-bottom:12px;">🏆 Leaderboard</div>' +
+        scored.map((p,i) =>
+          '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #F3F4F6;' + (p.id===currentUser?'background:#F0FDF4;margin:0 -14px;padding:10px 14px;':'') + '">' +
+            '<div style="font-size:20px;min-width:28px;">' + (medals[i]||'#'+(i+1)) + '</div>' +
+            '<div style="flex:1;font-weight:700;font-size:14px;">' + p.name + (p.id===currentUser?' (you)':'') + '</div>' +
+            '<div style="font-size:16px;font-weight:800;color:' + (p.score<0?'#EF4444':'#16A34A') + ';">' + (p.score>=0?'+':'') + Math.round(p.score) + ' pts</div>' +
+          '</div>'
+        ).join('') +
+      '</div>';
+
+  } catch(e) {
+    contentEl.innerHTML = '<div style="padding:20px;text-align:center;color:#EF4444;font-size:14px;">Error loading contest:<br><strong>' + e.message + '</strong><br><small>' + (e.stack||'').slice(0,200) + '</small></div>';
+    console.error('renderContestChallenge error:', e);
   }
-
-  const today = getTodayKey();
-  const displayDate = contestViewingDate || today;
-  const isToday = displayDate === today;
-  const dateLabel = isToday ? 'Today' : new Date(displayDate + 'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
-  const goals = calcGoals(currentProfile);
-
-  // Resolve targets for preset goals from user profile
-  function resolveGoal(g) {
-    if (g.autoFromProfile) {
-      if (g.type === 'protein') return { ...g, target: goals.protein, unit: 'g' };
-      if (g.type === 'water') return { ...g, target: goals.water, unit: 'oz' };
-      if (g.type === 'fat') return { ...g, target: goals.fat || 70, unit: 'g' };
-      if (g.type === 'carbs') return { ...g, target: goals.carbs || 200, unit: 'g' };
-    }
-    // For custom checkbox goals, target = freqNum (times to complete per period)
-    if (g.freqNum && g.freqNum > 0) {
-      return { ...g, target: g.freqNum, unit: g.freqPeriod || 'day' };
-    }
-    return { ...g, target: g.target || 1, unit: g.unit || '' };
-  }
-
-  const resolvedGoals = (contest.goals||[]).map(resolveGoal);
-
-  const { data: myLogs } = await sb.from('contest_logs').select('*').eq('contest_id', contestId).eq('user_id', currentUser);
-  const myTotals = {};
-  (myLogs||[]).forEach(l => myTotals[l.goal_name] = (myTotals[l.goal_name]||0) + l.amount);
-
-  // Also get daily_logs for preset macro goals
-  const { data: dailyLog } = await sb.from('daily_logs').select('*').eq('user_id', currentUser).eq('log_date', displayDate).maybeSingle();
-
-  const tiers = contest.scoring_tiers || [{points:10,pct:100},{points:7,pct:90},{points:3,pct:75}];
-  let totalPts = 0;
-
-  const goalCards = resolvedGoals.map((g, i) => {
-    // For preset macro goals, pull from daily_log
-    let logged = 0;
-    if (g.autoFromProfile && dailyLog) {
-      if (g.type === 'protein') logged = dailyLog.protein || 0;
-      if (g.type === 'water') logged = dailyLog.water || 0;
-      if (g.type === 'fat') logged = dailyLog.fat || 0;
-      if (g.type === 'carbs') logged = dailyLog.carbs || 0;
-    } else if (!g.autoFromProfile) {
-      // For checkbox goals use period count
-      const freqPeriod2 = g.freqPeriod || 'day';
-      const periodStart2 = getPeriodStart(freqPeriod2);
-      const periodLogs2 = (myLogs||[]).filter(l =>
-        l.goal_name === g.name && (!periodStart2 || l.log_date >= periodStart2)
-      );
-      logged = periodLogs2.reduce((sum, l) => sum + (l.amount || 0), 0);
-      // Override target to freqNum for display, unit to 'times'
-      if (g.freqNum) g = { ...g, target: g.freqNum, unit: 'x' };
-    } else {
-      logged = myTotals[g.name] || 0;
-    }
-    const pct = g.target > 0 ? Math.min(100, Math.round(logged/g.target*100)) : 0;
-    const scorePct = g.target > 0 ? (logged/g.target)*100 : 0;
-    const matchedTier = tiers.sort((a,b) => b.pct-a.pct).find(t => scorePct >= t.pct);
-    const pts = matchedTier ? matchedTier.points : 0;
-    totalPts += pts;
-
-    return '<div style="background:#fff;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">' +
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
-        '<div style="font-size:15px;font-weight:700;">' + g.name + '</div>' +
-        '<div style="background:#F0FDF4;border-radius:20px;padding:4px 10px;font-size:13px;font-weight:800;color:#16A34A;">+' + pts + ' pts</div>' +
-      '</div>' +
-      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;text-align:center;">' +
-        '<div style="background:#F9FAFB;border-radius:10px;padding:8px;"><div style="font-size:11px;color:#6B7280;font-weight:600;text-transform:uppercase;">Goal</div><div style="font-size:16px;font-weight:800;">' + g.target + (g.unit?' '+g.unit:'') + '</div></div>' +
-        '<div style="background:#F9FAFB;border-radius:10px;padding:8px;"><div style="font-size:11px;color:#6B7280;font-weight:600;text-transform:uppercase;">Logged</div><div style="font-size:16px;font-weight:800;color:#16A34A;">' + Math.round(logged) + (g.unit?' '+g.unit:'') + '</div></div>' +
-        '<div style="background:#F9FAFB;border-radius:10px;padding:8px;"><div style="font-size:11px;color:#6B7280;font-weight:600;text-transform:uppercase;">% of Goal</div><div style="font-size:16px;font-weight:800;color:#EA580C;">' + pct + '%</div></div>' +
-      '</div>' +
-      '<div style="background:#F3F4F6;border-radius:20px;height:10px;overflow:hidden;margin-bottom:' + (g.autoFromProfile?'0':'10') + 'px;">' +
-        '<div style="width:' + pct + '%;height:100%;border-radius:20px;background:linear-gradient(90deg,#16A34A,#EA580C);"></div>' +
-      '</div>' +
-      (g.autoFromProfile ? '' : buildGoalLogUI(g, i, contestId, myLogs)) +
-    '</div>';
-  }).join('');
-
-  contentEl.innerHTML = '<div id="contest-inner-wrap" style="min-height:100%;padding-bottom:20px;">' +
-
-    // Date navigation
-    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;background:#fff;border-radius:14px;padding:12px 16px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">' +
-      '<button onclick="changeContestDay(-1)" style="background:#F0FDF4;border:none;border-radius:10px;padding:8px 14px;font-size:18px;cursor:pointer;color:#16A34A;">‹</button>' +
-      '<div style="text-align:center;">' +
-        '<div style="font-size:15px;font-weight:800;">' + dateLabel + '</div>' +
-        '<div style="font-size:12px;color:#6B7280;">' + totalPts + ' pts earned</div>' +
-      '</div>' +
-      '<button onclick="changeContestDay(1)" style="background:' + (isToday?'#F9FAFB':'#F0FDF4') + ';border:none;border-radius:10px;padding:8px 14px;font-size:18px;cursor:pointer;color:' + (isToday?'#D1D5DB':'#16A34A') + ';" ' + (isToday?'disabled':'') + '>›</button>' +
-    '</div>' +
-
-    '<div style="background:#fff;border-radius:14px;padding:12px 16px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,0.05);text-align:center;">' +
-      '<div style="font-size:13px;color:#6B7280;">Today points earned</div>' +
-      '<div style="font-size:28px;font-weight:900;color:#16A34A;">' + totalPts + ' pts</div>' +
-    '</div>' +
-    '<div style="font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">My Progress</div>' +
-    goalCards +
-    '<div id="contest-challenge-lb"></div>' +
-    '</div>';
-
-  // Load leaderboard
-  const { data: members } = await sb.from('contest_members').select('user_id').eq('contest_id', contestId);
-  const memberIds = (members||[]).map(m => m.user_id);
-  const { data: allLogs } = await sb.from('contest_logs').select('*').eq('contest_id', contestId);
-  const { data: profiles } = await sb.from('profiles').select('id,name').in('id', memberIds);
-  const medals = ['🥇','🥈','🥉'];
-
-  const scored = (profiles||[]).map(p => {
-    const logs = (allLogs||[]).filter(l => l.user_id === p.id);
-    const totals = {};
-    logs.forEach(l => totals[l.goal_name] = (totals[l.goal_name]||0) + l.amount);
-    let score = 0;
-    (contest.goals||[]).forEach(g => {
-      const logged = totals[g.name] || 0;
-      if (contest.scoring_method === 'points') {
-        const pct = g.target > 0 ? logged/g.target : 0;
-        if (pct >= 1) score += contest.points_hit||10;
-        else if (pct >= 0.9) score += contest.points_close||5;
-        else if (pct >= 0.75) score += contest.points_partial||2;
-      } else if (contest.scoring_method === 'percentage') {
-        score += g.target > 0 ? Math.min(100, Math.round(logged/g.target*100)) : 0;
-      } else { score += logged; }
-    });
-    return { ...p, score };
-  }).sort((a,b) => b.score - a.score);
-
-  const unit = contest.scoring_method === 'points' ? 'pts' : contest.scoring_method === 'percentage' ? '%' : '';
-  document.getElementById('contest-challenge-lb').innerHTML = `<div class="card">
-    <div style="font-size:15px;font-weight:800;margin-bottom:12px;">🏆 Leaderboard</div>
-    ${scored.map((p,i) => `
-      <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #F3F4F6;${p.id===currentUser?'background:#F0FDF4;margin:0 -16px;padding:10px 16px;':''}">
-        <div style="font-size:20px;min-width:28px;">${medals[i]||'#'+(i+1)}</div>
-        <div style="flex:1;font-weight:700;font-size:14px;">${p.name}${p.id===currentUser?' (you)':''}</div>
-        <div style="font-size:16px;font-weight:800;color:#16A34A;">${Math.round(p.score)}${unit}</div>
-      </div>`).join('')}
-  </div>`;
 }
 
 // ─── PROFILE ──────────────────────────────────────────────────────────────
