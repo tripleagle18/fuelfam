@@ -2821,8 +2821,9 @@ async function joinByCode() {
 async function showContestDetail(contestId) {
   currentContestId = contestId;
   showScreen('screen-contest-detail');
-  const { data: contest } = await sb.from('contests').select('*').eq('id', contestId).single();
-  if (!contest) return;
+  const { data: contest, error: cErr } = await sb.from('contests').select('*').eq('id', contestId).single();
+  if (cErr) { alert('Contest load error: ' + cErr.message); return; }
+  if (!contest) { alert('Contest not found'); return; }
   document.getElementById('detail-contest-name').textContent = contest.name;
   const start = new Date(contest.start_date + 'T12:00:00');
   const end = new Date(contest.end_date + 'T12:00:00');
@@ -2899,111 +2900,6 @@ async function showContestDetail(contestId) {
     adminDiv.style.display = 'none';
   }
 }
-
-
-function buildGoalLogUI(g, i, contestId, myLogs) {
-  const freqPeriod = g.freqPeriod || 'day';
-  const freqNum = g.freqNum || 1;
-
-  // Get current period start
-  function getPeriodKey() {
-    const now = new Date();
-    if (freqPeriod === 'day') return now.toISOString().slice(0,10);
-    if (freqPeriod === 'week') {
-      const day = now.getDay(), diff = now.getDate() - (day===0?6:day-1);
-      const mon = new Date(now); mon.setDate(diff);
-      return mon.toISOString().slice(0,10);
-    }
-    if (freqPeriod === 'month') return now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
-    return 'contest'; // whole contest
-  }
-
-  const periodKey = getPeriodKey();
-  const today = getTodayKey();
-  const periodLogs = (myLogs||[]).filter(l => {
-    if (!l.goal_name || l.goal_name !== g.name) return false;
-    if (freqPeriod === 'day') return l.log_date === today;
-    if (freqPeriod === 'week') return l.log_date >= periodKey;
-    if (freqPeriod === 'month') return l.log_date && l.log_date.startsWith(periodKey);
-    return true;
-  });
-  // Use max amount from any single log in the period (we store cumulative count per day)
-  const completedCount = periodLogs.length > 0 ? Math.max(...periodLogs.map(l => l.amount||0)) : 0;
-
-  // Build checkboxes
-  const checkboxes = Array.from({length: freqNum}, (_, idx) => {
-    const checked = idx < completedCount;
-    return '<div class="challenge-checkbox" data-cid="' + contestId + '" data-gname="' + g.name + '" data-idx="' + idx + '" data-total="' + freqNum + '" data-period="' + freqPeriod + '" data-count="' + completedCount + '" style="width:44px;height:44px;border-radius:10px;border:2px solid ' + (checked?'#16A34A':'#D1D5DB') + ';background:' + (checked?'#16A34A':'#fff') + ';display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:20px;">' +
-      (checked ? '✓' : '') +
-    '</div>';
-  }).join('');
-
-  return '<div style="margin-top:10px;">' +
-    '<div style="font-size:12px;color:#6B7280;font-weight:600;margin-bottom:8px;">' + completedCount + ' of ' + freqNum + ' completed this ' + freqPeriod + '</div>' +
-    '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">' +
-      checkboxes +
-      '<span style="font-size:13px;color:#6B7280;margin-left:4px;">per ' + freqPeriod + '</span>' +
-    '</div>' +
-  '</div>';
-}
-
-function handleCheckboxClick(el) {
-  toggleContestCheck(el.dataset.cid, el.dataset.gname, parseInt(el.dataset.idx), parseInt(el.dataset.total), el.dataset.period, parseInt(el.dataset.count));
-}
-
-async function toggleContestCheck(contestId, goalName, checkIdx, total, period, currentCount) {
-  let newCount;
-  if (checkIdx < currentCount) {
-    newCount = checkIdx; // uncheck - set to checkIdx (0 = fully unchecked)
-  } else {
-    newCount = checkIdx + 1; // check up to this box
-  }
-
-  const today = getTodayKey();
-  const periodStart = getPeriodStart(period) || today;
-
-  try {
-    // Delete ALL logs for this goal in the current period (not just today)
-    // This handles weekly goals where user may have checked on different days
-    const { data: existing } = await sb.from('contest_logs').select('id, log_date')
-      .eq('contest_id', contestId)
-      .eq('user_id', currentUser)
-      .eq('goal_name', goalName)
-      .gte('log_date', periodStart);
-
-    if (existing && existing.length > 0) {
-      for (const log of existing) {
-        await sb.from('contest_logs').delete().eq('id', log.id);
-      }
-    }
-
-    // Insert one record for today with the new cumulative count
-    if (newCount > 0) {
-      const { error: insertErr } = await sb.from('contest_logs').insert({
-        contest_id: contestId,
-        user_id: currentUser,
-        goal_name: goalName,
-        amount: newCount,
-        log_date: today
-      });
-      if (insertErr) { alert('Save error: ' + insertErr.message); return; }
-    }
-
-    await renderContestChallenge(contestId);
-  } catch(e) {
-    alert('Error: ' + e.message);
-  }
-}
-
-function logContestGoalFromBtn(btn) {
-  const row = btn.parentElement;
-  const contestId = row.dataset.contestid;
-  const goalName = row.dataset.goalname;
-  const unit = row.dataset.goalunit;
-  const idx = row.dataset.idx;
-  logContestGoal(contestId, goalName, idx, unit);
-}
-
 async function renderContestLeaderboard(contest) {
   const lbDiv = document.getElementById('detail-leaderboard');
   lbDiv.innerHTML = '<div class="loading"><span class="dot-spin"></span></div>';
