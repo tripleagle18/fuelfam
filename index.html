@@ -3344,7 +3344,18 @@ async function showContestDetail(contestId) {
 async function renderContestLeaderboard(contest) {
   const lbDiv = document.getElementById('detail-leaderboard');
   lbDiv.innerHTML = '<div class="loading"><span class="dot-spin"></span></div>';
-  
+
+  // If contest hasn't started yet, show zero for everyone
+  const today = getTodayKey();
+  if (contest.start_date > today) {
+    lbDiv.innerHTML = '<div style="background:#FEF3C7;border-radius:14px;padding:16px;text-align:center;">' +
+      '<div style="font-size:18px;margin-bottom:8px;">🗓️</div>' +
+      '<div style="font-weight:700;color:#92400E;">Contest starts ' + new Date(contest.start_date + 'T12:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric'}) + '</div>' +
+      '<div style="font-size:13px;color:#B45309;margin-top:4px;">Leaderboard will show once the contest begins!</div>' +
+      '</div>';
+    return;
+  }
+
   const { data: members } = await sb.from('contest_members').select('user_id').eq('contest_id', contest.id);
   const memberIds = (members||[]).map(m => m.user_id);
   if (!memberIds.length) { lbDiv.innerHTML = '<div class="empty-state">No members yet.</div>'; return; }
