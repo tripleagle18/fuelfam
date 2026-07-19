@@ -1851,7 +1851,7 @@ async function renderContestChallenge(contestId) {
       return { ...g, target: g.target || 1, unit: g.unit || '' };
     }
 
-    const resolvedGoals = (contest.goals||[]).map(resolveGoal);
+    const resolvedGoals = (contest.goals||[]).map(g => resolveGoal(g, goals));
     const { data: myLogs } = await sb.from('contest_logs').select('*').eq('contest_id', contestId).eq('user_id', currentUser);
     const { data: dailyLog } = await sb.from('daily_logs').select('*').eq('user_id', currentUser).eq('log_date', displayDate).maybeSingle();
     const tiers = contest.scoring_tiers || [{points:10,pct:100},{points:7,pct:90},{points:3,pct:75}];
