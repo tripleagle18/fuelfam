@@ -2799,8 +2799,8 @@ async function renderMyContests() {
 
 function handleContestCardClick(e) {
   const card = e.currentTarget;
-  const id = card.id.replace('contest-card-', '');
-  showContestDetail(id);
+  const id = card.dataset.cid || card.id.replace('contest-card-', '');
+  if (id) showContestDetail(id);
 }
 
 async function joinByCode() {
