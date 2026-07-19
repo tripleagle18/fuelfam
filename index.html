@@ -1104,22 +1104,26 @@ async function renderHome() {
 async function calcStreak() {
   try {
     const { data } = await sb.from('daily_logs')
-      .select('log_date,protein,water')
+      .select('log_date,protein,water,fat,carbs,foods')
       .eq('user_id', currentUser)
       .order('log_date', { ascending: false })
       .limit(30);
     if (!data || !data.length) return 0;
-    const goals = calcGoals(currentProfile);
     let streak = 0;
     for (let i = 0; i < 30; i++) {
       const d = new Date();
       d.setDate(d.getDate() - i);
-      // Use LOCAL date to match getTodayKey format
       const key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
       const log = data.find(l => l.log_date === key);
-      if (!log) { if (i === 0) continue; break; }
-      const pts = calcDayPoints(log.protein||0, log.water||0, goals);
-      if (pts > 0) streak++;
+      // Count streak if ANYTHING was logged that day
+      if (!log) {
+        if (i === 0) continue; // skip today if nothing logged yet
+        break;
+      }
+      const hasActivity = (log.protein||0) > 0 || (log.water||0) > 0 ||
+                          (log.fat||0) > 0 || (log.carbs||0) > 0 ||
+                          ((log.foods||[]).length > 0);
+      if (hasActivity) streak++;
       else if (i > 0) break;
     }
     return streak;
