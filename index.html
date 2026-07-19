@@ -2116,49 +2116,51 @@ async function renderActivityFeed() {
   const feed = document.getElementById('activity-feed');
   if (!feed) return;
   try {
-    // Get recent logs from all users (last 2 days)
-    const yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate()-1);
     const yKey = yesterday.getFullYear()+'-'+String(yesterday.getMonth()+1).padStart(2,'0')+'-'+String(yesterday.getDate()).padStart(2,'0');
-    const { data: recentLogs } = await sb.from('daily_logs').select('user_id,protein,water,fat,carbs,log_date,foods').gte('log_date', yKey).order('log_date',{ascending:false}).limit(20);
-    const { data: profiles } = await sb.from('profiles').select('id,name,weight,activity,goal,height_inches,sex,age');
-    if (!recentLogs || recentLogs.length === 0) {
-      feed.innerHTML = '<div style="background:#fff;border-radius:14px;padding:16px;text-align:center;color:#6B7280;font-size:13px;">No recent activity yet. Start logging!</div>';
-      return;
-    }
+    
+    const { data: recentLogs, error: logsErr } = await sb.from('daily_logs')
+      .select('user_id,protein,water,fat,carbs,log_date')
+      .gte('log_date', yKey).limit(20);
+    
+    if (logsErr) { feed.innerHTML = '<div style="padding:12px;color:#6B7280;font-size:13px;">No recent activity yet.</div>'; return; }
+    if (!recentLogs || recentLogs.length === 0) { feed.innerHTML = '<div style="padding:12px;color:#6B7280;font-size:13px;">No recent activity yet. Start logging!</div>'; return; }
+
+    const { data: profiles } = await sb.from('profiles').select('id,name,goal,weight,height_inches,sex,age,activity');
     const profileMap = {};
     (profiles||[]).forEach(p => profileMap[p.id] = p);
+
     const items = [];
-    (recentLogs||[]).forEach(log => {
+    recentLogs.forEach(log => {
       const p = profileMap[log.user_id];
       if (!p) return;
       const g = calcGoals(p);
       const isToday = log.log_date === getTodayKey();
       const dayLabel = isToday ? 'Today' : 'Yesterday';
-      const pPct = g.protein > 0 ? Math.round(log.protein/g.protein*100) : 0;
-      const wPct = g.water > 0 ? Math.round(log.water/g.water*100) : 0;
-      if (pPct >= 100) items.push({ name: p.name, msg: 'hit their protein goal! 🎯', pts: '+10 pts', color: '#16A34A', day: dayLabel, uid: log.user_id });
-      else if (pPct >= 75) items.push({ name: p.name, msg: 'logged ' + Math.round(log.protein) + 'g protein (' + pPct + '% of goal)', pts: '+5 pts', color: '#EA580C', day: dayLabel, uid: log.user_id });
-      if (wPct >= 100) items.push({ name: p.name, msg: 'crushed their water goal! 💧', pts: '+10 pts', color: '#2563EB', day: dayLabel, uid: log.user_id });
-      if ((log.foods||[]).length >= 3) items.push({ name: p.name, msg: 'logged ' + log.foods.length + ' meals today 🍽', pts: '', color: '#7C3AED', day: dayLabel, uid: log.user_id });
+      const pPct = g.protein > 0 ? Math.round((log.protein||0)/g.protein*100) : 0;
+      const wPct = g.water > 0 ? Math.round((log.water||0)/g.water*100) : 0;
+      if (pPct >= 100) items.push({ name: p.name, msg: 'hit their protein goal! 🎯', color: '#16A34A', day: dayLabel, pts: '+10 pts', uid: log.user_id });
+      else if (pPct >= 75) items.push({ name: p.name, msg: 'logged ' + Math.round(log.protein||0) + 'g protein (' + pPct + '% of goal)', color: '#EA580C', day: dayLabel, pts: '+5 pts', uid: log.user_id });
+      if (wPct >= 100) items.push({ name: p.name, msg: 'crushed their water goal! 💧', color: '#2563EB', day: dayLabel, pts: '+10 pts', uid: log.user_id });
     });
-    if (items.length === 0) {
-      feed.innerHTML = '<div style="background:#fff;border-radius:14px;padding:16px;text-align:center;color:#6B7280;font-size:13px;">Keep logging — activity will show here!</div>';
-      return;
-    }
+
+    if (items.length === 0) { feed.innerHTML = '<div style="padding:12px;color:#6B7280;font-size:13px;">No recent activity yet. Start logging!</div>'; return; }
+
     feed.innerHTML = items.slice(0,8).map(item =>
       '<div style="background:#fff;border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;box-shadow:0 1px 6px rgba(0,0,0,0.05);">' +
         '<div style="width:36px;height:36px;border-radius:50%;background:' + item.color + '20;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">' + avatarEmoji(item.name) + '</div>' +
         '<div style="flex:1;min-width:0;">' +
           '<div style="font-size:13px;"><strong>' + item.name + '</strong> ' + item.msg + '</div>' +
-          '<div style="font-size:11px;color:#9CA3AF;margin-top:2px;">' + item.day + (item.pts ? ' · <span style="color:' + item.color + ';font-weight:700;">' + item.pts + '</span>' : '') + '</div>' +
+          '<div style="font-size:11px;color:#9CA3AF;margin-top:2px;">' + item.day + ' · <span style="color:' + item.color + ';font-weight:700;">' + item.pts + '</span></div>' +
         '</div>' +
       '</div>'
     ).join('');
   } catch(e) {
-    const feed = document.getElementById('activity-feed');
-    if (feed) feed.innerHTML = '<div style="background:#fff;border-radius:14px;padding:16px;text-align:center;color:#6B7280;font-size:13px;">Could not load activity.</div>';
+    feed.innerHTML = '<div style="padding:12px;color:#6B7280;font-size:13px;">No recent activity yet.</div>';
   }
 }
+
 
 async function renderQuickStats() {
   try {
@@ -2699,19 +2701,25 @@ async function renderMyContests() {
   const list = document.getElementById('my-contests-list');
   if (!list) return;
   try {
-    const { data: memberships } = await sb.from('contest_members').select('contest_id, role').eq('user_id', currentUser);
-    if (!memberships || memberships.length === 0) {
+    const { data: memberships, error: memErr } = await sb.from('contest_members')
+      .select('contest_id, role').eq('user_id', currentUser);
+    
+    if (memErr || !memberships || memberships.length === 0) {
       list.innerHTML = '<div style="text-align:center;padding:20px;color:#6B7280;font-size:14px;">No contests yet!<br>Create one or join with a code below.</div>';
       return;
     }
     const ids = memberships.map(m => m.contest_id);
     const roleMap = {};
     memberships.forEach(m => roleMap[m.contest_id] = m.role);
-    const { data: contests } = await sb.from('contests').select('*').in('id', ids).order('created_at', { ascending: false });
-    if (!contests || contests.length === 0) {
+
+    const { data: contests, error: conErr } = await sb.from('contests')
+      .select('*').in('id', ids).order('created_at', { ascending: false });
+
+    if (conErr || !contests || contests.length === 0) {
       list.innerHTML = '<div style="text-align:center;padding:20px;color:#6B7280;">No contests found.</div>';
       return;
     }
+
     const now = new Date();
     list.innerHTML = contests.map(c => {
       const end = new Date(c.end_date + 'T12:00:00');
@@ -2722,8 +2730,7 @@ async function renderMyContests() {
       const goalChips = (c.goals||[]).map(g =>
         '<span style="background:#DCFCE7;color:#16A34A;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:600;">' + g.name + '</span>'
       ).join('');
-      const cid = c.id;
-      return '<div style="background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:10px;box-shadow:0 2px 10px rgba(0,0,0,0.06);border-left:4px solid ' + (isEnded?'#9CA3AF':'#16A34A') + ';cursor:pointer;" id="contest-card-' + cid + '" onclick="handleContestCardClick(event)">' +
+      return '<div data-cid="' + c.id + '" onclick="handleContestCardClick(event)" style="background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:10px;box-shadow:0 2px 10px rgba(0,0,0,0.06);border-left:4px solid ' + (isEnded?'#9CA3AF':'#16A34A') + ';cursor:pointer;">' +
         '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">' +
           '<div style="font-size:16px;font-weight:800;">' + c.name + '</div>' +
           (isAdmin ? '<span style="background:#DCFCE7;color:#16A34A;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;">Admin</span>' : '') +
@@ -2738,9 +2745,10 @@ async function renderMyContests() {
       '</div>';
     }).join('');
   } catch(e) {
-    list.innerHTML = '<div style="text-align:center;padding:20px;color:#EF4444;font-size:13px;">Error: ' + e.message + '</div>';
+    list.innerHTML = '<div style="text-align:center;padding:20px;color:#6B7280;">Could not load contests.</div>';
   }
 }
+
 
 function handleContestCardClick(e) {
   const card = e.currentTarget;
