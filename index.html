@@ -1897,6 +1897,20 @@ async function renderContestChallenge(contestId) {
     const today = getTodayKey();
     const displayDate = contestViewingDate || today;
     const isToday = displayDate === today;
+
+    // Check if contest has started yet
+    if (contest.start_date > today) {
+      const startDate = new Date(contest.start_date + 'T12:00:00');
+      const daysUntil = Math.ceil((startDate - new Date()) / (1000*60*60*24));
+      contentEl.innerHTML = '<div style="margin:20px;background:linear-gradient(135deg,#FEF3C7,#FDE68A);border-radius:16px;padding:20px;text-align:center;">' +
+        '<div style="font-size:40px;margin-bottom:12px;">🗓️</div>' +
+        '<div style="font-size:18px;font-weight:900;color:#92400E;margin-bottom:8px;">Contest not started yet!</div>' +
+        '<div style="font-size:14px;color:#B45309;margin-bottom:4px;">This contest starts on</div>' +
+        '<div style="font-size:22px;font-weight:800;color:#92400E;margin-bottom:8px;">' + startDate.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}) + '</div>' +
+        '<div style="font-size:13px;color:#B45309;">⏳ ' + daysUntil + ' day' + (daysUntil!==1?'s':'') + ' to go — get ready!</div>' +
+        '</div>';
+      return;
+    }
     const dateLabel = isToday ? 'Today' : new Date(displayDate + 'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
     const goals = calcGoals(currentProfile);
 
@@ -3338,6 +3352,7 @@ async function renderContestLeaderboard(contest) {
   const { data: profiles } = await sb.from('profiles').select('*').in('id', memberIds);
   const { data: contestLogs } = await sb.from('contest_logs').select('*').eq('contest_id', contest.id);
   const { data: dailyLogs } = await sb.from('daily_logs').select('*').in('user_id', memberIds).gte('log_date', contest.start_date);
+  // If contest hasn't started, show 0 pts for everyone
   const tiers = contest.scoring_tiers || [{points:10,pct:100},{points:7,pct:90},{points:3,pct:75}];
   const medals = ['🥇','🥈','🥉'];
 
