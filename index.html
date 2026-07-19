@@ -1440,21 +1440,34 @@ async function renderGlobalChallenge() {
 
   // Scoring for each macro
   const defaultTiers = [{points:10,pct:100},{points:7,pct:90},{points:5,pct:75},{points:2,pct:50}];
-  function getTierPts(logged, goal, canOverPenalize) {
+  function getTierPts(logged, goal, type) {
+    // type: 'protein', 'fat', 'carbs', 'water'
+    const diff = logged - goal;
     const pct = goal > 0 ? (logged/goal)*100 : 0;
-    // If over goal for Fat/Carbs, deduct points proportionally
-    if (canOverPenalize && pct > 100) {
-      const overPct = pct - 100;
-      const penalty = Math.round(overPct / 10); // -1 pt per 10% over
-      return { pts: Math.max(-10, -penalty), pct: Math.round(pct) };
+
+    if (type === 'protein') {
+      // Within 20g under = full points, over = full points (no penalty)
+      if (logged >= goal - 20) return { pts: defaultTiers[0].points, pct: Math.round(pct) };
     }
+    if (type === 'fat' || type === 'carbs') {
+      // Within 20g under = full points
+      if (logged >= goal - 20 && logged <= goal) return { pts: defaultTiers[0].points, pct: Math.round(pct) };
+      // Over by up to 30g = full points
+      if (diff > 0 && diff <= 30) return { pts: defaultTiers[0].points, pct: Math.round(pct) };
+      // Over by more than 30g = deduct points
+      if (diff > 30) {
+        const penalty = Math.round((diff - 30) / 10);
+        return { pts: Math.max(-10, -penalty), pct: Math.round(pct) };
+      }
+    }
+    // Default tier scoring
     const tier = defaultTiers.find(t => pct >= t.pct);
     return { pts: tier ? tier.points : 0, pct: Math.round(pct) };
   }
-  const proteinScore = getTierPts(protein, goals.protein);
-  const waterScore = getTierPts(water, goals.water);
-  const fatScore = getTierPts(fat, goals.fat || 1, true);
-  const carbScore = getTierPts(carbs, goals.carbs || 1, true);
+  const proteinScore = getTierPts(protein, goals.protein, 'protein');
+  const waterScore = getTierPts(water, goals.water, 'water');
+  const fatScore = getTierPts(fat, goals.fat || 1, 'fat');
+  const carbScore = getTierPts(carbs, goals.carbs || 1, 'carbs');
   const dayPts = proteinScore.pts + waterScore.pts + fatScore.pts + carbScore.pts;
 
   // Date nav label
@@ -1686,6 +1699,70 @@ function changeGlobalDay(delta) {
 }
 
 
+
+function handleCheckboxClick(el) {
+  toggleContestCheck(
+    el.dataset.cid,
+    el.dataset.gname,
+    parseInt(el.dataset.idx),
+    parseInt(el.dataset.total),
+    el.dataset.period,
+    parseInt(el.dataset.count)
+  );
+}
+
+async function toggleContestCheck(contestId, goalName, checkIdx, total, period, currentCount) {
+  let newCount;
+  if (checkIdx < currentCount) {
+    newCount = checkIdx;
+  } else {
+    newCount = checkIdx + 1;
+  }
+
+  const today = getTodayKey();
+  const periodStart = getPeriodStart(period) || today;
+
+  try {
+    // Delete ALL logs for this goal in current period first
+    const { data: existing } = await sb.from('contest_logs').select('id,log_date')
+      .eq('contest_id', contestId)
+      .eq('user_id', currentUser)
+      .eq('goal_name', goalName)
+      .gte('log_date', periodStart);
+
+    if (existing && existing.length > 0) {
+      for (const log of existing) {
+        await sb.from('contest_logs').delete().eq('id', log.id);
+      }
+    }
+
+    if (newCount > 0) {
+      const { error: insertErr } = await sb.from('contest_logs').insert({
+        contest_id: contestId,
+        user_id: currentUser,
+        goal_name: goalName,
+        amount: newCount,
+        log_date: today
+      });
+      if (insertErr) { alert('Save error: ' + insertErr.message); return; }
+    }
+
+    await renderContestChallenge(contestId);
+  } catch(e) {
+    alert('Error: ' + e.message);
+  }
+}
+
+function logContestGoalFromBtn(btn) {
+  const row = btn.closest('[data-contestid]');
+  if (!row) return;
+  logContestGoal(row.dataset.contestid, row.dataset.goalname, row.dataset.idx, row.dataset.goalunit);
+}
+
+function logContestGoalSafe(btn) {
+  logContestGoalFromBtn(btn);
+}
+
 function buildGoalLogUI(g, i, contestId, myLogs) {
   const freqPeriod = g.freqPeriod || 'day';
   const freqNum = g.freqNum || 1;
@@ -1789,8 +1866,16 @@ async function renderContestChallenge(contestId) {
       }
       const pct = g.target > 0 ? Math.min(100, Math.round(logged/g.target*100)) : 0;
       const scorePct = g.target > 0 ? (logged/g.target)*100 : 0;
-      const matchedTier = [...tiers].sort((a,b) => b.pct-a.pct).find(t => scorePct >= t.pct);
-      const pts = matchedTier ? matchedTier.points : 0;
+      let pts;
+      if (g.autoFromProfile) {
+        // Macro goals use tier scoring
+        const matchedTier = [...tiers].sort((a,b) => b.pct-a.pct).find(t => scorePct >= t.pct);
+        pts = matchedTier ? matchedTier.points : 0;
+      } else {
+        // Custom checkbox goals: all or nothing
+        const target = g.freqNum || g.target || 1;
+        pts = (logged >= target) ? (tiers[0]?.points || 10) : 0;
+      }
       totalPts += pts;
 
       const ptsColor = pts < 0 ? '#EF4444' : '#16A34A';
