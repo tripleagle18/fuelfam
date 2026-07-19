@@ -1805,12 +1805,16 @@ function buildGoalLogUI(g, i, contestId, myLogs) {
 }
 
 function getPeriodStart(period) {
+  // Use local date to match getTodayKey() format
   const now = new Date();
-  if (period === 'day') return now.toISOString().slice(0,10);
+  const localDate = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+  if (period === 'day') return localDate;
   if (period === 'week') {
-    const day = now.getDay(), diff = now.getDate() - (day===0?6:day-1);
-    const mon = new Date(now); mon.setDate(diff);
-    return mon.toISOString().slice(0,10);
+    const day = now.getDay();
+    const diff = now.getDate() - (day === 0 ? 6 : day - 1);
+    const mon = new Date(now);
+    mon.setDate(diff);
+    return mon.getFullYear() + '-' + String(mon.getMonth()+1).padStart(2,'0') + '-' + String(mon.getDate()).padStart(2,'0');
   }
   if (period === 'month') {
     return now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-01';
@@ -1853,6 +1857,12 @@ async function renderContestChallenge(contestId) {
 
     const resolvedGoals = (contest.goals||[]).map(g => resolveGoal(g, goals));
     const { data: myLogs } = await sb.from('contest_logs').select('*').eq('contest_id', contestId).eq('user_id', currentUser);
+    // TEMP DIAGNOSTIC - remove after debugging
+    if (myLogs && myLogs.length > 0) {
+      alert('myLogs found: ' + myLogs.length + ' records\n' + myLogs.map(l => l.goal_name + ' | ' + l.log_date + ' | amount:' + l.amount).join('\n'));
+    } else {
+      alert('myLogs is EMPTY - no contest logs found for this user/contest');
+    }
     const { data: dailyLog } = await sb.from('daily_logs').select('*').eq('user_id', currentUser).eq('log_date', displayDate).maybeSingle();
     const tiers = contest.scoring_tiers || [{points:10,pct:100},{points:7,pct:90},{points:3,pct:75}];
     let totalPts = 0;
@@ -1865,8 +1875,15 @@ async function renderContestChallenge(contestId) {
         else if (g.type === 'fat') logged = dailyLog.fat || 0;
         else if (g.type === 'carbs') logged = dailyLog.carbs || 0;
       } else if (!g.autoFromProfile) {
-        const ps = getPeriodStart(g.freqPeriod || 'day');
-        const pl = (myLogs||[]).filter(l => l.goal_name === g.name && (!ps || l.log_date >= ps));
+        // Use same filter as buildGoalLogUI for consistency
+        const freqPeriod = g.freqPeriod || 'day';
+        const today2 = getTodayKey();
+        const ps = getPeriodStart(freqPeriod);
+        const pl = (myLogs||[]).filter(l => {
+          if (l.goal_name !== g.name) return false;
+          if (freqPeriod === 'day') return l.log_date === today2;
+          return l.log_date >= ps;
+        });
         logged = pl.length > 0 ? Math.max(...pl.map(l => l.amount||0)) : 0;
         g = { ...g, target: g.freqNum || g.target || 1, unit: 'x' };
       }
