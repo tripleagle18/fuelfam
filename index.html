@@ -999,6 +999,53 @@ function changeViewDay(delta) {
   renderHome();
 }
 
+
+async function checkWeightBanner() {
+  const banner = document.getElementById('weight-checkin-banner');
+  if (!banner) return;
+  const wk = getWeekKey();
+  const { data } = await sb.from('weight_logs').select('id').eq('user_id', currentUser).gte('log_date', wk).maybeSingle();
+  banner.style.display = data ? 'none' : 'block';
+  if (!data) {
+    const sel = document.getElementById('checkin-activity');
+    if (sel && currentProfile.activity) sel.value = currentProfile.activity;
+  }
+}
+
+async function checkHeightBanner() {
+  const banner = document.getElementById('height-missing-banner');
+  if (!banner) return;
+  banner.style.display = (!currentProfile.height_inches) ? 'block' : 'none';
+}
+
+async function saveWeightCheckin() {
+  const w = parseFloat(document.getElementById('checkin-weight').value);
+  const activity = document.getElementById('checkin-activity')?.value || currentProfile.activity;
+  if (!w || w < 50 || w > 700) { alert('Please enter a valid weight'); return; }
+  await sb.from('weight_logs').insert({ user_id: currentUser, weight: w, log_date: getTodayKey() });
+  await sb.from('profiles').update({ weight: w, activity: activity }).eq('id', currentUser);
+  currentProfile.weight = w;
+  currentProfile.activity = activity;
+  document.getElementById('weight-checkin-banner').style.display = 'none';
+  const msg = document.createElement('div');
+  msg.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#16A34A;color:#fff;padding:12px 20px;border-radius:20px;font-weight:700;z-index:999;font-size:14px;';
+  msg.textContent = '✅ Goals updated!';
+  document.body.appendChild(msg);
+  setTimeout(() => msg.remove(), 2500);
+  renderHome();
+}
+
+async function saveHeightFromBanner() {
+  const feet = parseInt(document.getElementById('height-feet-input').value) || 0;
+  const inches = parseInt(document.getElementById('height-inches-input').value) || 0;
+  const heightInches = (feet * 12) + inches;
+  if (!heightInches || heightInches < 36) { alert('Please enter a valid height'); return; }
+  await sb.from('profiles').update({ height_inches: heightInches }).eq('id', currentUser);
+  currentProfile.height_inches = heightInches;
+  document.getElementById('height-missing-banner').style.display = 'none';
+  renderHome();
+}
+
 async function renderHome() {
   if (!currentUser) return;
 
