@@ -1701,16 +1701,25 @@ async function toggleContestCheck(contestId, goalName, checkIdx, total, period, 
   }
 
   const today = getTodayKey();
-  const periodStart = getPeriodStart(period) || today;
 
   try {
-    // Delete ALL logs for this goal in current period first
-    const { data: existing } = await sb.from('contest_logs').select('id,log_date')
+    // For daily: delete ALL records for this goal (one record per day max)
+    // For weekly/monthly: delete only records in current period
+    let query = sb.from('contest_logs').select('id')
       .eq('contest_id', contestId)
       .eq('user_id', currentUser)
-      .eq('goal_name', goalName)
-      .gte('log_date', periodStart);
+      .eq('goal_name', goalName);
 
+    if (period === 'day') {
+      // Only delete today's record
+      query = query.eq('log_date', today);
+    } else {
+      // Delete all records in current period
+      const periodStart = getPeriodStart(period) || today;
+      query = query.gte('log_date', periodStart);
+    }
+
+    const { data: existing } = await query;
     if (existing && existing.length > 0) {
       for (const log of existing) {
         await sb.from('contest_logs').delete().eq('id', log.id);
@@ -1857,12 +1866,6 @@ async function renderContestChallenge(contestId) {
 
     const resolvedGoals = (contest.goals||[]).map(g => resolveGoal(g, goals));
     const { data: myLogs } = await sb.from('contest_logs').select('*').eq('contest_id', contestId).eq('user_id', currentUser);
-    // TEMP DIAGNOSTIC - remove after debugging
-    if (myLogs && myLogs.length > 0) {
-      alert('myLogs found: ' + myLogs.length + ' records\n' + myLogs.map(l => l.goal_name + ' | ' + l.log_date + ' | amount:' + l.amount).join('\n'));
-    } else {
-      alert('myLogs is EMPTY - no contest logs found for this user/contest');
-    }
     const { data: dailyLog } = await sb.from('daily_logs').select('*').eq('user_id', currentUser).eq('log_date', displayDate).maybeSingle();
     const tiers = contest.scoring_tiers || [{points:10,pct:100},{points:7,pct:90},{points:3,pct:75}];
     let totalPts = 0;
