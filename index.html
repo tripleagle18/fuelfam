@@ -1002,21 +1002,24 @@ function changeViewDay(delta) {
 async function renderHome() {
   if (!currentUser) return;
 
-  // Update header
   const dateEl = document.getElementById('home-date-label');
   if (dateEl) dateEl.textContent = new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
   const avatarEl = document.getElementById('home-avatar-circle');
   if (avatarEl) avatarEl.textContent = avatarEmoji(currentProfile.name);
 
-  // Check banners
   checkWeightBanner();
   checkHeightBanner();
   checkJoinCodeInUrl();
 
-  // Load all sections
-  renderActivityFeed();
-  renderQuickStats();
-  renderMyContests();
+  try { await renderActivityFeed(); } catch(e) {
+    const f = document.getElementById('activity-feed');
+    if (f) f.innerHTML = '<div style="padding:12px;color:#6B7280;font-size:13px;">No recent activity yet.</div>';
+  }
+  try { await renderQuickStats(); } catch(e) { console.error('QuickStats error:', e); }
+  try { await renderMyContests(); } catch(e) {
+    const l = document.getElementById('my-contests-list');
+    if (l) l.innerHTML = '<div style="padding:12px;color:#EF4444;font-size:13px;">Error: ' + e.message + '</div>';
+  }
 }
 
 
