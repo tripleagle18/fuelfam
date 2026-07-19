@@ -2492,11 +2492,24 @@ function scrollCoachToBottom() {
 async function buildUserContext() {
   const goals = calcGoals(currentProfile);
   const wk = getWeekKey();
+  const today = getTodayKey();
   
   // Get week logs
   const { data: weekLogs } = await sb.from('daily_logs').select('*').eq('user_id', currentUser).gte('log_date', wk);
   
-  // Build week summary
+  // Today's log
+  const todayLog = (weekLogs||[]).find(l => l.log_date === today);
+  let todaySummary = 'Nothing logged yet today.';
+  if (todayLog) {
+    const foods = (todayLog.foods||[]);
+    todaySummary = 'Protein: ' + Math.round(todayLog.protein||0) + 'g / ' + goals.protein + 'g goal\n' +
+      'Fat: ' + Math.round(todayLog.fat||0) + 'g / ' + goals.fat + 'g goal\n' +
+      'Carbs: ' + Math.round(todayLog.carbs||0) + 'g / ' + goals.carbs + 'g goal\n' +
+      'Water: ' + Math.round(todayLog.water||0) + ' oz / ' + goals.water + ' oz goal\n' +
+      (foods.length > 0 ? 'Foods logged: ' + foods.map(f => f.name + ' (' + Math.round(f.protein||0) + 'g P, ' + Math.round(f.fat||0) + 'g F, ' + Math.round(f.carbs||0) + 'g C)').join(', ') : 'No specific foods logged yet');
+  }
+
+  // Week summary
   let weekSummary = '';
   if (!weekLogs || weekLogs.length === 0) {
     weekSummary = 'No logs this week yet.';
@@ -2512,14 +2525,13 @@ async function buildUserContext() {
       'Avg water: ' + avgWater + ' oz (goal: ' + goals.water + ' oz)';
   }
 
-  // Get contest summary
+  // Contest summary
   const { data: memberships } = await sb.from('contest_members').select('contest_id').eq('user_id', currentUser);
   let contestSummary = 'Not in any contests yet.';
   if (memberships && memberships.length > 0) {
     contestSummary = 'Active in ' + memberships.length + ' contest(s).';
   }
 
-  // Get streak
   const streak = await calcStreak();
 
   return {
@@ -2533,6 +2545,7 @@ async function buildUserContext() {
     carbs: goals.carbs,
     water: goals.water,
     streak: streak,
+    todaySummary: todaySummary,
     weekSummary: weekSummary,
     contestSummary: contestSummary
   };
