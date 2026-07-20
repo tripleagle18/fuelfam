@@ -2121,11 +2121,21 @@ async function renderContestChallenge(contestId) {
           const isFatCarbs = g.type==='fat'||g.type==='carbs';
           if (isFatCarbs && pct > 100) score += Math.max(-10, -Math.round((pct-100)/10));
           else { const t = [...goalTiers].sort((a,b)=>b.pct-a.pct).find(t=>pct>=t.pct); if (t) score += t.points; }
+        } else if (g.goalInputType === 'numeric') {
+          // Numeric: sum all logs, score by % of total target
+          const numTarget = g.target || 1;
+          logged = cLogs
+            .filter(l => l.goal_name === g.name)
+            .reduce((sum, l) => sum + (l.amount||0), 0);
+          const numPct = numTarget > 0 ? (logged / numTarget) * 100 : 0;
+          const t = [...goalTiers].sort((a,b)=>b.pct-a.pct).find(t=>numPct>=t.pct);
+          if (t) score += t.points;
         } else {
+          // Checkbox: score per period
           const ps = getPeriodStart(g.freqPeriod||'day');
           const pl = cLogs.filter(l => l.goal_name===g.name && (!ps||l.log_date>=ps));
           logged = pl.length > 0 ? Math.max(...pl.map(l=>l.amount||0)) : 0;
-          const target = g.freqNum || rg.target || 1;
+          const target = g.freqNum || 1;
           const pct = (logged/target)*100;
           const t = [...goalTiers].sort((a,b)=>b.pct-a.pct).find(t=>pct>=t.pct);
           if (t) score += t.points;
@@ -3644,12 +3654,21 @@ async function renderContestLeaderboard(contest) {
                             g.type==='fat' ? (dl.fat||0) : (dl.carbs||0);
           pts += calcMacroPts(g.type, dayLogged, target, goalTiers);
         });
+      } else if (g.goalInputType === 'numeric') {
+        // Numeric goal - sum all logs, score by % of total target
+        target = g.target || 1;
+        unit = g.unit || '';
+        logged = pContestLogs
+          .filter(l => l.goal_name === g.name)
+          .reduce((sum, l) => sum + (l.amount||0), 0);
+        const numPct = target > 0 ? (logged / target) * 100 : 0;
+        const matchedTier = [...goalTiers].sort((a,b) => b.pct - a.pct).find(t => numPct >= t.pct);
+        pts = matchedTier ? matchedTier.points : 0;
       } else {
-        // Custom checkbox goals - score per period
+        // Checkbox goal - score per period
         target = g.freqNum || 1;
         unit = 'x';
         const freqPeriod = g.freqPeriod || 'day';
-        // Get unique periods and score each
         const periodLogs = {};
         pContestLogs.filter(l => l.goal_name === g.name).forEach(l => {
           const ps = freqPeriod === 'day' ? l.log_date :
