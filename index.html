@@ -712,6 +712,7 @@
           <div style="background:#EFF6FF;border-radius:12px;padding:12px;text-align:center;margin-top:8px;">
             <div style="font-size:22px;font-weight:900;color:#2563EB;" id="res-water">—</div>
             <div style="font-size:11px;color:#6B7280;font-weight:700;text-transform:uppercase;">Water (oz)</div>
+            <div style="font-size:10px;color:#9CA3AF;margin-top:3px;">3.7L/day men · 2.7L/day women (USDA AI)</div>
           </div>
           <div style="font-size:11px;color:#9CA3AF;text-align:center;margin-top:8px;">Based on USDA DRI EER equation</div>
           <div style="background:#F9FAFB;border-radius:10px;padding:10px 12px;margin-top:10px;border-left:3px solid #EA580C;">
@@ -2978,26 +2979,26 @@ function updateCalculator() {
   const adjustInput = document.getElementById('calc-adjust-input');
   const adjustVal = adjustInput ? (parseFloat(adjustInput.value) || 0) : 0;
 
-  // Apply goal adjustment
+  // Apply goal adjustment - use AMDR low end (20% fat, 45% carbs) as suggestion
   let calories, proteinG, fatG, carbsG;
   if (goal === 'lose') {
     const deficit = adjustVal > 0 ? adjustVal : 500;
     calories = Math.round(dri - deficit);
-    proteinG = Math.round((calories * 0.35) / 4);
-    fatG = Math.round((calories * 0.25) / 9);
-    carbsG = Math.round((calories * 0.40) / 4);
+    proteinG = Math.round(kg * 1.7);         // 1.7g/kg
+    fatG = Math.round((calories * 0.20) / 9); // 20% = AMDR low end for fat
+    carbsG = Math.round((calories * 0.45) / 4); // 45% = AMDR low end for carbs
   } else if (goal === 'gain') {
     const surplus = adjustVal > 0 ? adjustVal : 300;
     calories = Math.round(dri + surplus);
-    proteinG = Math.round(kg * 2.2);
-    fatG = Math.round((calories * 0.25) / 9);
-    carbsG = Math.round((calories * 0.45) / 4);
+    proteinG = Math.round(kg * 2.2);          // 2.2g/kg for muscle
+    fatG = Math.round((calories * 0.20) / 9); // 20% = AMDR low end for fat
+    carbsG = Math.round((calories * 0.45) / 4); // 45% = AMDR low end for carbs
   } else {
     // maintain
     calories = Math.round(dri);
-    proteinG = Math.round(kg * 1.7);
-    fatG = Math.round((calories * 0.30) / 9);
-    carbsG = Math.round((calories * 0.40) / 4);
+    proteinG = Math.round(kg * 1.7);          // 1.7g/kg
+    fatG = Math.round((calories * 0.20) / 9); // 20% = AMDR low end for fat
+    carbsG = Math.round((calories * 0.45) / 4); // 45% = AMDR low end for carbs
   }
 
   calories = Math.max(1200, calories);
@@ -3022,6 +3023,7 @@ function updateCalculator() {
   document.getElementById('res-fat-range').textContent = 'AMDR range: ' + fatLow + '–' + fatHigh + 'g';
   document.getElementById('res-carbs').textContent = carbsG;
   document.getElementById('res-carbs-range').textContent = 'AMDR range: ' + carbsLow + '–' + carbsHigh + 'g';
+  document.getElementById('res-water').textContent = waterOz;
   document.getElementById('calc-results').style.display = 'block';
 
   // Store for use
