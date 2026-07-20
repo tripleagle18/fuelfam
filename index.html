@@ -2105,6 +2105,9 @@ async function renderContestChallenge(contestId) {
       let score = 0;
       (contest.goals||[]).forEach(g => {
         const rg = resolveGoal(g);
+        const goalTiers = g.tiers && g.tiers.length > 0 ? g.tiers :
+                          (contest.scoring_tiers && contest.scoring_tiers.length > 0 ? contest.scoring_tiers :
+                          [{points:10,pct:100},{points:7,pct:90},{points:3,pct:75}]);
         let logged = 0;
         if (g.autoFromProfile) {
           dLogs.forEach(dl => {
