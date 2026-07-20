@@ -745,20 +745,15 @@
       <button class="btn-outline" onclick="wizardBack(1)">← Back</button>
     </div>
 
-    <!-- Step 3: Scoring (replaces old goal details) -->
+    <!-- Step 3: Per-goal scoring -->
     <div class="wizard-step" id="wizard-step-2">
       <div class="wizard-header">
         <div class="wizard-emoji">⭐</div>
-        <div class="wizard-title">Scoring method</div>
-        <div class="wizard-sub">Define how points are awarded</div>
+        <div class="wizard-title">Set points per goal</div>
+        <div class="wizard-sub">How many points is each goal worth?</div>
       </div>
-      <div style="font-size:13px;color:var(--muted);margin-bottom:12px;">Add as many tiers as you want. Points are awarded when a contestant hits that % of their goal.</div>
-      <div id="scoring-tiers-list"></div>
-      <button onclick="addScoringTier()" style="width:100%;padding:10px;border:2px dashed #EA580C;background:transparent;color:#EA580C;border-radius:10px;font-weight:700;cursor:pointer;margin-bottom:16px;">+ Add scoring tier</button>
-      <div style="background:#F0FDF4;border-radius:12px;padding:12px;font-size:13px;color:var(--muted);">
-        💡 <strong>Example:</strong> 10 pts for 100% of goal, 7 pts for 90%, 3 pts for 75%
-      </div>
-      <button class="btn-main" style="margin-top:14px;" onclick="wizardNext(2)">Next →</button>
+      <div id="per-goal-scoring-list" style="margin-bottom:16px;"></div>
+      <button class="btn-main" onclick="wizardNext(2)">Next →</button>
       <button class="btn-outline" onclick="wizardBack(2)">← Back</button>
     </div>
 
@@ -1993,7 +1988,7 @@ async function renderContestChallenge(contestId) {
     const resolvedGoals = (contest.goals||[]).map(g => resolveGoal(g, goals));
     const { data: myLogs } = await sb.from('contest_logs').select('*').eq('contest_id', contestId).eq('user_id', currentUser);
     const { data: dailyLog } = await sb.from('daily_logs').select('*').eq('user_id', currentUser).eq('log_date', displayDate).maybeSingle();
-    const tiers = contest.scoring_tiers || [{points:10,pct:100},{points:7,pct:90},{points:3,pct:75}];
+    const defaultTiers = [{points:10,pct:100},{points:7,pct:90},{points:3,pct:75}]; // fallback
     let totalPts = 0;
 
     const goalCards = resolvedGoals.map((g, i) => {
@@ -2032,19 +2027,21 @@ async function renderContestChallenge(contestId) {
       }
       const pct = g.target > 0 ? Math.min(100, Math.round(logged/g.target*100)) : 0;
       const scorePct = g.target > 0 ? (logged/g.target)*100 : 0;
+      // Use per-goal tiers if set, otherwise fall back to contest tiers or default
+      const goalTiers = g.tiers && g.tiers.length > 0 ? g.tiers : (contest.scoring_tiers && contest.scoring_tiers.length > 0 ? contest.scoring_tiers : defaultTiers);
       let pts;
       if (g.autoFromProfile) {
-        pts = calcMacroPts(g.type, logged, g.target || 1, tiers);
+        pts = calcMacroPts(g.type, logged, g.target || 1, goalTiers);
       } else if (g.goalInputType === 'numeric') {
-        // Numeric: tier-based % scoring
         const numTarget = g.target || 1;
         const numPct = numTarget > 0 ? (logged / numTarget) * 100 : 0;
-        const matchedTier = [...tiers].sort((a,b) => b.pct - a.pct).find(t => numPct >= t.pct);
+        const matchedTier = [...goalTiers].sort((a,b) => b.pct - a.pct).find(t => numPct >= t.pct);
         pts = matchedTier ? matchedTier.points : 0;
       } else {
-        // Checkbox: all or nothing per period
+        // Checkbox: all or nothing
         const target = g.freqNum || g.target || 1;
-        pts = (logged >= target) ? (tiers[0]?.points || 10) : 0;
+        const maxPts = goalTiers[0]?.points || 10;
+        pts = (logged >= target) ? maxPts : 0;
       }
       totalPts += pts;
 
@@ -3059,25 +3056,36 @@ function wizardNext(step) {
     wizardState.allGoals = [...presets, ...customs];
     if (wizardState.allGoals.length === 0) { alert('Please add at least one goal'); return; }
 
-    // Init scoring tiers
-    if (wizardState.scoringTiers.length === 0) {
-      wizardState.scoringTiers = [
-        { points: 10, pct: 100 },
-        { points: 7, pct: 90 },
-        { points: 3, pct: 75 }
-      ];
-    }
-    buildScoringTiers();
+    // Build per-goal scoring UI
+    buildPerGoalScoring();
     goToWizardStep(2);
   } else if (step === 2) {
-    // Collect scoring tiers
-    const rows = [...document.querySelectorAll('.scoring-tier-row')];
-    wizardState.scoringTiers = rows.map(row => ({
-      points: parseInt(row.querySelector('.tier-points')?.value) || 0,
-      pct: parseInt(row.querySelector('.tier-pct')?.value) || 0
-    })).filter(t => t.points > 0 && t.pct > 0);
-    if (wizardState.scoringTiers.length === 0) { alert('Please add at least one scoring tier'); return; }
-    wizardState.scoringTiers.sort((a,b) => b.pct - a.pct);
+    // Collect per-goal tiers from UI
+    let valid = true;
+    wizardState.allGoals = wizardState.allGoals.map((g, gi) => {
+      const goalEl = document.getElementById('goal-scoring-' + gi);
+      if (!goalEl) return g;
+      
+      const isCheckbox = g.goalInputType === 'checkbox' || g.autoFromProfile === false && !g.goalInputType;
+      const isMacro = g.autoFromProfile;
+      
+      if (g.goalInputType === 'checkbox' && !g.autoFromProfile) {
+        // Checkbox: single point value
+        const pts = parseInt(goalEl.querySelector('.goal-pts-input')?.value) || 0;
+        if (pts <= 0) { valid = false; alert('Please set points for: ' + g.name); return g; }
+        return { ...g, tiers: [{ pct: 100, points: pts }] };
+      } else {
+        // Macro or numeric: tier rows
+        const tierRows = [...goalEl.querySelectorAll('.goal-tier-row')];
+        const tiers = tierRows.map(row => ({
+          pct: parseInt(row.querySelector('.goal-tier-pct')?.value) || 0,
+          points: parseInt(row.querySelector('.goal-tier-pts')?.value) || 0
+        })).filter(t => t.pct > 0 && t.points > 0);
+        if (tiers.length === 0) { valid = false; alert('Please add at least one scoring tier for: ' + g.name); return g; }
+        return { ...g, tiers: tiers.sort((a,b) => b.pct - a.pct) };
+      }
+    });
+    if (!valid) return;
     buildContestPreview();
     goToWizardStep('3b');
   }
@@ -3219,6 +3227,77 @@ function buildScoringTiers() {
 
 function removeScoringTier(btn) { btn.closest(".scoring-tier-row").remove(); }
 
+
+function buildPerGoalScoring() {
+  const list = document.getElementById('per-goal-scoring-list');
+  if (!list) return;
+  
+  list.innerHTML = wizardState.allGoals.map((g, gi) => {
+    const isCheckbox = g.goalInputType === 'checkbox' || (!g.autoFromProfile && !g.goalInputType);
+    const emoji = g.type==='protein'?'🥩':g.type==='water'?'💧':g.type==='fat'?'🧈':g.type==='carbs'?'🌾':g.type==='steps'?'👟':g.goalInputType==='numeric'?'🔢':'☑️';
+    const defaultTiers = g.tiers || [{pct:100,points:10},{pct:75,points:7},{pct:50,points:3}];
+    const defaultPts = g.tiers ? g.tiers[0].points : 10;
+
+    if (isCheckbox) {
+      // Checkbox: just one point value
+      return '<div id="goal-scoring-' + gi + '" style="background:#fff;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">' +
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">' +
+          '<span style="font-size:18px;">' + emoji + '</span>' +
+          '<div>' +
+            '<div style="font-size:15px;font-weight:800;">' + g.name + '</div>' +
+            '<div style="font-size:12px;color:#6B7280;">Checkbox · ' + (g.freqNum||1) + 'x per ' + (g.freqPeriod||'day') + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div style="display:flex;align-items:center;gap:10px;">' +
+          '<div style="font-size:13px;color:#6B7280;flex:1;">Points for completing:</div>' +
+          '<input type="number" class="inp goal-pts-input" value="' + defaultPts + '" min="1" style="width:80px;margin-bottom:0;text-align:center;font-size:18px;font-weight:800;">' +
+          '<div style="font-size:13px;color:#6B7280;">pts</div>' +
+        '</div>' +
+      '</div>';
+    } else {
+      // Macro or numeric: tier-based
+      const periodLabel = g.autoFromProfile ? 'per day' : (g.freqPeriod ? 'per ' + g.freqPeriod : 'total');
+      const tiersHtml = defaultTiers.map((t,ti) =>
+        '<div class="goal-tier-row" style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">' +
+          '<input type="number" class="inp goal-tier-pct" value="' + t.pct + '" min="1" max="100" style="width:64px;margin-bottom:0;text-align:center;font-weight:700;">' +
+          '<span style="font-size:13px;color:#6B7280;">% of goal =</span>' +
+          '<input type="number" class="inp goal-tier-pts" value="' + t.points + '" min="1" style="width:64px;margin-bottom:0;text-align:center;font-weight:700;">' +
+          '<span style="font-size:13px;color:#6B7280;">pts</span>' +
+          '<button onclick="removeGoalTierRow(this)" style="background:#FEE2E2;border:none;border-radius:6px;padding:4px 8px;color:#991B1B;cursor:pointer;font-size:12px;">✕</button>' +
+        '</div>'
+      ).join('');
+      return '<div id="goal-scoring-' + gi + '" style="background:#fff;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">' +
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">' +
+          '<span style="font-size:18px;">' + emoji + '</span>' +
+          '<div>' +
+            '<div style="font-size:15px;font-weight:800;">' + g.name + '</div>' +
+            '<div style="font-size:12px;color:#6B7280;">' + (g.autoFromProfile ? 'Auto from profile' : g.goalInputType==='numeric' ? g.target.toLocaleString() + ' ' + (g.unit||'') : '') + ' · ' + periodLabel + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div style="font-size:12px;font-weight:700;color:#6B7280;margin-bottom:8px;">SCORING TIERS</div>' +
+        '<div class="goal-tiers-container">' + tiersHtml + '</div>' +
+        '<button onclick="addGoalTier(this)" style="width:100%;padding:8px;border:2px dashed #EA580C;background:transparent;color:#EA580C;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;">+ Add tier</button>' +
+      '</div>';
+    }
+  }).join('');
+}
+
+function removeGoalTierRow(btn) { btn.closest(".goal-tier-row").remove(); }
+
+function addGoalTier(btn) {
+  const container = btn.previousElementSibling;
+  const row = document.createElement('div');
+  row.className = 'goal-tier-row';
+  row.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:8px;';
+  row.innerHTML =
+    '<input type="number" class="inp goal-tier-pct" placeholder="%" min="1" max="100" style="width:64px;margin-bottom:0;text-align:center;font-weight:700;">' +
+    '<span style="font-size:13px;color:#6B7280;">% of goal =</span>' +
+    '<input type="number" class="inp goal-tier-pts" placeholder="pts" min="1" style="width:64px;margin-bottom:0;text-align:center;font-weight:700;">' +
+    '<span style="font-size:13px;color:#6B7280;">pts</span>' +
+    '<button onclick="removeGoalTierRow(this)" style="background:#FEE2E2;border:none;border-radius:6px;padding:4px 8px;color:#991B1B;cursor:pointer;font-size:12px;">✕</button>';
+  container.appendChild(row);
+}
+
 function addScoringTier() {
   wizardState.scoringTiers.push({ points: 0, pct: 0 });
   buildScoringTiers();
@@ -3254,8 +3333,8 @@ async function createContest() {
       creator_id: currentUser,
       start_date: wizardState.startDate,
       end_date: wizardState.endDate,
-      scoring_method: 'tiers',
-      scoring_tiers: wizardState.scoringTiers,
+      scoring_method: 'per_goal',
+      scoring_tiers: [],
       join_code: joinCode,
       goals: wizardState.allGoals,
       status: 'active'
@@ -3523,7 +3602,7 @@ async function renderContestLeaderboard(contest) {
   const { data: contestLogs } = await sb.from('contest_logs').select('*').eq('contest_id', contest.id);
   const { data: dailyLogs } = await sb.from('daily_logs').select('*').in('user_id', memberIds).gte('log_date', contest.start_date);
   // If contest hasn't started, show 0 pts for everyone
-  const tiers = contest.scoring_tiers || [{points:10,pct:100},{points:7,pct:90},{points:3,pct:75}];
+  const contestDefaultTiers = [{points:10,pct:100},{points:7,pct:90},{points:3,pct:75}];
   const medals = ['🥇','🥈','🥉'];
 
   const scored = (profiles||[]).map(p => {
