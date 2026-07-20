@@ -695,15 +695,18 @@
             </div>
             <div style="background:#FFF7ED;border-radius:12px;padding:12px;text-align:center;">
               <div style="font-size:22px;font-weight:900;color:#EA580C;" id="res-protein">—</div>
-              <div style="font-size:11px;color:#6B7280;font-weight:700;text-transform:uppercase;">Protein (g)</div>
+              <div style="font-size:11px;color:#6B7280;font-weight:700;text-transform:uppercase;">Protein (g) *</div>
+              <div style="font-size:10px;color:#9CA3AF;margin-top:3px;" id="res-protein-range"></div>
             </div>
             <div style="background:#FEF3C7;border-radius:12px;padding:12px;text-align:center;">
               <div style="font-size:22px;font-weight:900;color:#D97706;" id="res-fat">—</div>
               <div style="font-size:11px;color:#6B7280;font-weight:700;text-transform:uppercase;">Fat (g)</div>
+              <div style="font-size:10px;color:#9CA3AF;margin-top:3px;" id="res-fat-range"></div>
             </div>
             <div style="background:#F5F3FF;border-radius:12px;padding:12px;text-align:center;">
               <div style="font-size:22px;font-weight:900;color:#7C3AED;" id="res-carbs">—</div>
               <div style="font-size:11px;color:#6B7280;font-weight:700;text-transform:uppercase;">Carbs (g)</div>
+              <div style="font-size:10px;color:#9CA3AF;margin-top:3px;" id="res-carbs-range"></div>
             </div>
           </div>
           <div style="background:#EFF6FF;border-radius:12px;padding:12px;text-align:center;margin-top:8px;">
@@ -711,6 +714,11 @@
             <div style="font-size:11px;color:#6B7280;font-weight:700;text-transform:uppercase;">Water (oz)</div>
           </div>
           <div style="font-size:11px;color:#9CA3AF;text-align:center;margin-top:8px;">Based on USDA DRI EER equation</div>
+          <div style="background:#F9FAFB;border-radius:10px;padding:10px 12px;margin-top:10px;border-left:3px solid #EA580C;">
+            <div style="font-size:11px;color:#6B7280;line-height:1.5;">
+              <span style="font-weight:700;color:#EA580C;">* Protein note:</span> The USDA DRI sets protein at 0.8g/kg body weight — the minimum needed to prevent deficiency in a sedentary person. We use <strong>1.7g/kg</strong> (lose/maintain) or <strong>2.2g/kg</strong> (build muscle) based on sports nutrition research from the American College of Sports Medicine and International Society of Sports Nutrition. For active people, higher protein preserves muscle during weight loss, supports recovery, and improves body composition. Both numbers fall within the USDA's broader AMDR range of 10–35% of calories.
+            </div>
+          </div>
         </div>
 
         <button onclick="useCalculatorMacros()" style="width:100%;padding:16px;background:linear-gradient(135deg,#16A34A,#EA580C);color:#fff;border:none;border-radius:14px;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 4px 14px rgba(22,163,74,0.3);">
@@ -2839,7 +2847,8 @@ const GOAL_TIPS = {
     emoji: '⚖️',
     title: 'Maintain Weight',
     tip: 'Your DRI calories keep you at your current weight. Macros are split 30% protein / 30% fat / 40% carbs — a balanced baseline supported by USDA guidelines. Focus on hitting your targets consistently and staying hydrated.',
-    adjustments: 'Calories: DRI as-is · Protein: 1.7g/kg · Fat: 30% of calories · Carbs: 40% of calories'
+    adjustments: 'Calories: DRI as-is · Protein: 1.7g/kg · Fat: 30% of calories · Carbs: 40% of calories',
+    showAdjust: false
   },
   lose: {
     color: '#EA580C',
@@ -2847,8 +2856,15 @@ const GOAL_TIPS = {
     border: '#FED7AA',
     emoji: '🔥',
     title: 'Lose Weight',
-    tip: 'A 500 cal/day deficit from your DRI targets ~1 lb of fat loss per week — the safest and most sustainable rate according to the 2013 Obesity Guidelines. Protein is bumped to 35% to preserve muscle during the deficit. Resistance training 2-3x/week dramatically improves results.',
-    adjustments: 'Calories: DRI - 500 · Protein: 35% of calories · Fat: 25% of calories · Carbs: 40% of calories'
+    tip: 'A calorie deficit from your DRI targets steady fat loss. The 2013 Obesity Guidelines recommend 500–750 cal/day. A 500 deficit targets ~1 lb/week (sustainable). A 750 deficit targets ~1.5 lbs/week (aggressive). Protein is bumped to 35% to preserve muscle. Resistance training 2-3x/week dramatically improves results.',
+    adjustments: 'Calories: DRI minus your deficit · Protein: 35% of calories · Fat: 25% of calories · Carbs: 40% of calories',
+    showAdjust: true,
+    adjustLabel: 'Daily calorie deficit',
+    adjustDefault: 500,
+    adjustMin: 200,
+    adjustMax: 1000,
+    adjustUnit: 'cal/day',
+    adjustHint: '500 = ~1 lb/week · 750 = ~1.5 lbs/week · 1000 = ~2 lbs/week (max recommended)'
   },
   gain: {
     color: '#7C3AED',
@@ -2856,8 +2872,15 @@ const GOAL_TIPS = {
     border: '#DDD6FE',
     emoji: '💪',
     title: 'Build Muscle / Gain',
-    tip: 'A modest 300 cal surplus above DRI provides enough energy for muscle growth without excessive fat gain. Carbs are elevated to 45% to fuel training and maximize glycogen storage. Protein at 2.2g/kg supports optimal muscle protein synthesis. Aim for progressive overload in your workouts.',
-    adjustments: 'Calories: DRI + 300 · Protein: 2.2g/kg body weight · Fat: 25% of calories · Carbs: 45% of calories'
+    tip: 'A calorie surplus above DRI gives your body energy to build muscle. A modest surplus minimizes fat gain. Carbs are elevated to 45% to fuel training. Protein at 2.2g/kg supports optimal muscle protein synthesis. Aim for progressive overload in your workouts.',
+    adjustments: 'Calories: DRI plus your surplus · Protein: 2.2g/kg body weight · Fat: 25% of calories · Carbs: 45% of calories',
+    showAdjust: true,
+    adjustLabel: 'Daily calorie surplus',
+    adjustDefault: 300,
+    adjustMin: 100,
+    adjustMax: 600,
+    adjustUnit: 'cal/day',
+    adjustHint: '200–300 = lean gains (less fat) · 400–500 = faster gains (more fat possible)'
   }
 };
 
@@ -2903,13 +2926,32 @@ function updateCalculator() {
     tipBox.style.display = 'block';
     tipBox.style.background = tip.bg;
     tipBox.style.border = '1.5px solid ' + tip.border;
+
+    let adjustHtml = '';
+    if (tip.showAdjust) {
+      const currentVal = parseFloat(document.getElementById('calc-adjust-input')?.value) || tip.adjustDefault;
+      adjustHtml =
+        '<div style="background:rgba(0,0,0,0.05);border-radius:10px;padding:10px 12px;margin-top:10px;">' +
+          '<div style="font-size:11px;font-weight:700;color:#6B7280;margin-bottom:6px;text-transform:uppercase;">' + tip.adjustLabel + '</div>' +
+          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">' +
+            '<input type="number" id="calc-adjust-input" value="' + tip.adjustDefault + '" min="' + tip.adjustMin + '" max="' + tip.adjustMax + '" ' +
+              'oninput="updateCalculator()" ' +
+              'style="width:90px;padding:8px 10px;border:2px solid ' + tip.color + ';border-radius:8px;font-size:18px;font-weight:800;text-align:center;color:' + tip.color + ';background:#fff;">' +
+            '<span style="font-size:13px;color:#6B7280;font-weight:600;">' + tip.adjustUnit + '</span>' +
+          '</div>' +
+          '<div style="font-size:11px;color:#6B7280;">' + tip.adjustHint + '</div>' +
+        '</div>';
+    } else {
+      adjustHtml = '<div style="background:rgba(0,0,0,0.05);border-radius:8px;padding:8px;margin-top:8px;font-size:11px;color:#6B7280;font-weight:600;">' + tip.adjustments + '</div>';
+    }
+
     tipBox.innerHTML =
       '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">' +
         '<span style="font-size:20px;">' + tip.emoji + '</span>' +
         '<div style="font-size:14px;font-weight:800;color:' + tip.color + ';">' + tip.title + '</div>' +
       '</div>' +
-      '<div style="color:#374151;margin-bottom:8px;">' + tip.tip + '</div>' +
-      '<div style="background:rgba(0,0,0,0.05);border-radius:8px;padding:8px;font-size:11px;color:#6B7280;font-weight:600;">' + tip.adjustments + '</div>';
+      '<div style="color:#374151;margin-bottom:4px;font-size:13px;line-height:1.5;">' + tip.tip + '</div>' +
+      adjustHtml;
   }
 
   // Need all inputs to calculate
@@ -2932,15 +2974,21 @@ function updateCalculator() {
     dri = 354 - (6.91 * age) + PA * (9.36 * kg + 726 * heightM);
   }
 
+  // Get adjustment value from input if present
+  const adjustInput = document.getElementById('calc-adjust-input');
+  const adjustVal = adjustInput ? (parseFloat(adjustInput.value) || 0) : 0;
+
   // Apply goal adjustment
   let calories, proteinG, fatG, carbsG;
   if (goal === 'lose') {
-    calories = Math.round(dri - 500);
+    const deficit = adjustVal > 0 ? adjustVal : 500;
+    calories = Math.round(dri - deficit);
     proteinG = Math.round((calories * 0.35) / 4);
     fatG = Math.round((calories * 0.25) / 9);
     carbsG = Math.round((calories * 0.40) / 4);
   } else if (goal === 'gain') {
-    calories = Math.round(dri + 300);
+    const surplus = adjustVal > 0 ? adjustVal : 300;
+    calories = Math.round(dri + surplus);
     proteinG = Math.round(kg * 2.2);
     fatG = Math.round((calories * 0.25) / 9);
     carbsG = Math.round((calories * 0.45) / 4);
@@ -2955,12 +3003,25 @@ function updateCalculator() {
   calories = Math.max(1200, calories);
   const waterOz = Math.round((sex === 'male' ? 3.7 : 2.7) * 33.814);
 
+  // AMDR ranges (based on DRI calories, not goal-adjusted)
+  // Fat: 20-35% of DRI calories / 9
+  const fatLow = Math.round((dri * 0.20) / 9);
+  const fatHigh = Math.round((dri * 0.35) / 9);
+  // Carbs: 45-65% of DRI calories / 4
+  const carbsLow = Math.round((dri * 0.45) / 4);
+  const carbsHigh = Math.round((dri * 0.65) / 4);
+  // Protein: 10-35% of DRI calories / 4
+  const proteinLow = Math.round((dri * 0.10) / 4);
+  const proteinHigh = Math.round((dri * 0.35) / 4);
+
   // Display results
   document.getElementById('res-calories').textContent = calories.toLocaleString();
   document.getElementById('res-protein').textContent = proteinG;
+  document.getElementById('res-protein-range').textContent = 'AMDR range: ' + proteinLow + '–' + proteinHigh + 'g · Optimal active: ' + proteinG + 'g';
   document.getElementById('res-fat').textContent = fatG;
+  document.getElementById('res-fat-range').textContent = 'AMDR range: ' + fatLow + '–' + fatHigh + 'g';
   document.getElementById('res-carbs').textContent = carbsG;
-  document.getElementById('res-water').textContent = waterOz;
+  document.getElementById('res-carbs-range').textContent = 'AMDR range: ' + carbsLow + '–' + carbsHigh + 'g';
   document.getElementById('calc-results').style.display = 'block';
 
   // Store for use
