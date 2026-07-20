@@ -2117,14 +2117,14 @@ async function renderContestChallenge(contestId) {
           const pct = target > 0 ? (logged/target)*100 : 0;
           const isFatCarbs = g.type==='fat'||g.type==='carbs';
           if (isFatCarbs && pct > 100) score += Math.max(-10, -Math.round((pct-100)/10));
-          else { const t = [...tiers].sort((a,b)=>b.pct-a.pct).find(t=>pct>=t.pct); if (t) score += t.points; }
+          else { const t = [...goalTiers].sort((a,b)=>b.pct-a.pct).find(t=>pct>=t.pct); if (t) score += t.points; }
         } else {
           const ps = getPeriodStart(g.freqPeriod||'day');
           const pl = cLogs.filter(l => l.goal_name===g.name && (!ps||l.log_date>=ps));
           logged = pl.length > 0 ? Math.max(...pl.map(l=>l.amount||0)) : 0;
           const target = g.freqNum || rg.target || 1;
           const pct = (logged/target)*100;
-          const t = [...tiers].sort((a,b)=>b.pct-a.pct).find(t=>pct>=t.pct);
+          const t = [...goalTiers].sort((a,b)=>b.pct-a.pct).find(t=>pct>=t.pct);
           if (t) score += t.points;
         }
       });
