@@ -3413,7 +3413,8 @@ async function renderMyContests() {
             const logged = totals[g.name] || 0;
             const target = g.freqNum || 1;
             const pct = (logged/target)*100;
-            const tier = [...tiers].sort((a,b)=>b.pct-a.pct).find(t=>pct>=t.pct);
+            const gTiers2 = g.tiers && g.tiers.length > 0 ? g.tiers : (c.scoring_tiers && c.scoring_tiers.length > 0 ? c.scoring_tiers : [{points:10,pct:100},{points:7,pct:90},{points:3,pct:75}]);
+            const tier = [...gTiers2].sort((a,b)=>b.pct-a.pct).find(t=>pct>=t.pct);
             if (tier) score += tier.points;
           }
         });
@@ -3613,6 +3614,8 @@ async function renderContestLeaderboard(contest) {
     const goalDetails = [];
 
     (contest.goals||[]).forEach(g => {
+      const goalTiers = g.tiers && g.tiers.length > 0 ? g.tiers :
+                        (contest.scoring_tiers && contest.scoring_tiers.length > 0 ? contest.scoring_tiers : detailDefaultTiers);
       let logged = 0;
       let target = 1;
       let unit = '';
@@ -3636,7 +3639,7 @@ async function renderContestLeaderboard(contest) {
           const dayLogged = g.type==='protein' ? (dl.protein||0) :
                             g.type==='water' ? (dl.water||0) :
                             g.type==='fat' ? (dl.fat||0) : (dl.carbs||0);
-          pts += calcMacroPts(g.type, dayLogged, target, tiers);
+          pts += calcMacroPts(g.type, dayLogged, target, goalTiers);
         });
       } else {
         // Custom checkbox goals - score per period
@@ -3652,7 +3655,7 @@ async function renderContestLeaderboard(contest) {
           periodLogs[ps] = Math.max(periodLogs[ps]||0, l.amount||0);
         });
         Object.values(periodLogs).forEach(amount => {
-          if (amount >= target) pts += tiers[0]?.points || 10;
+          if (amount >= target) pts += goalTiers[0]?.points || 10;
         });
         logged = Object.values(periodLogs).reduce((s,a) => s+a, 0);
       }
