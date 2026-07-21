@@ -2480,14 +2480,27 @@ async function renderContestChallenge(contestId) {
           const t = [...goalTiers].sort((a,b)=>b.pct-a.pct).find(t=>numPct>=t.pct);
           if (t) { gPts = t.points; score += gPts; }
         } else {
-          // Checkbox: score per period
-          const ps = getPeriodStart(g.freqPeriod||'day');
-          const pl = cLogs.filter(l => l.goal_name===g.name && (!ps||l.log_date>=ps));
-          logged = pl.length > 0 ? Math.max(...pl.map(l=>l.amount||0)) : 0;
-          const target = g.freqNum || 1;
-          const pct = (logged/target)*100;
-          const t = [...goalTiers].sort((a,b)=>b.pct-a.pct).find(t=>pct>=t.pct);
-          if (t) score += t.points;
+          // Checkbox: score each unique period separately
+          const freqP = g.freqPeriod || 'day';
+          const cbTarget = g.freqNum || 1;
+          const cbLogs = cLogs.filter(l => l.goal_name === g.name);
+          if (freqP === 'contest') {
+            logged = cbLogs.length > 0 ? Math.max(...cbLogs.map(l=>l.amount||0)) : 0;
+            if (logged >= cbTarget) gPts = goalTiers[0]?.points || 10;
+          } else {
+            const pMap = {};
+            cbLogs.forEach(l => {
+              let key = l.log_date;
+              if (freqP === 'week') {
+                const d=new Date(l.log_date+'T12:00:00'),dy=d.getDay(),df=d.getDate()-(dy===0?6:dy-1),mn=new Date(d);
+                mn.setDate(df); key=mn.getFullYear()+'-'+String(mn.getMonth()+1).padStart(2,'0')+'-'+String(mn.getDate()).padStart(2,'0');
+              } else if (freqP === 'month') { key = l.log_date.slice(0,7); }
+              pMap[key] = Math.max(pMap[key]||0, l.amount||0);
+            });
+            Object.values(pMap).forEach(amt => { if (amt >= cbTarget) gPts += goalTiers[0]?.points || 10; });
+            logged = Object.values(pMap).reduce((s,a)=>s+a,0);
+          }
+          score += gPts;
         }
       });
       return { id: p.id, name: p.name, score };
@@ -4002,20 +4015,27 @@ async function renderMyContests() {
       const contestLogs = (allContestLogs||[]).filter(l => l.contest_id === c.id);
       const scores = contestMembers.map(m => {
         const userLogs = contestLogs.filter(l => l.user_id === m.user_id);
-        const totals = {};
-        userLogs.forEach(l => {
-          const ps = getPeriodStart(l.freqPeriod || 'day');
-          totals[l.goal_name] = Math.max(totals[l.goal_name]||0, l.amount||0);
-        });
         let score = 0;
         (c.goals||[]).forEach(g => {
           if (!g.autoFromProfile) {
-            const logged = totals[g.name] || 0;
-            const target = g.freqNum || 1;
-            const pct = (logged/target)*100;
-            const gTiers2 = g.tiers && g.tiers.length > 0 ? g.tiers : (c.scoring_tiers && c.scoring_tiers.length > 0 ? c.scoring_tiers : [{points:10,pct:100},{points:7,pct:90},{points:3,pct:75}]);
-            const tier = [...gTiers2].sort((a,b)=>b.pct-a.pct).find(t=>pct>=t.pct);
-            if (tier) score += tier.points;
+            const freqP3 = g.freqPeriod || 'day';
+            const tgt3 = g.freqNum || 1;
+            const gLogs3 = userLogs.filter(l => l.goal_name === g.name);
+            if (freqP3 === 'contest') {
+              const mx = gLogs3.length > 0 ? Math.max(...gLogs3.map(l=>l.amount||0)) : 0;
+              if (mx >= tgt3) score += (g.tiers?.[0]?.points || 10);
+            } else {
+              const pm3 = {};
+              gLogs3.forEach(l => {
+                let k = l.log_date;
+                if (freqP3 === 'week') {
+                  const d=new Date(l.log_date+'T12:00:00'),dy=d.getDay(),df=d.getDate()-(dy===0?6:dy-1),mn=new Date(d);
+                  mn.setDate(df); k=mn.getFullYear()+'-'+String(mn.getMonth()+1).padStart(2,'0')+'-'+String(mn.getDate()).padStart(2,'0');
+                } else if (freqP3 === 'month') { k = l.log_date.slice(0,7); }
+                pm3[k] = Math.max(pm3[k]||0, l.amount||0);
+              });
+              Object.values(pm3).forEach(a => { if (a >= tgt3) score += (g.tiers?.[0]?.points || 10); });
+            }
           }
         });
         return { userId: m.user_id, score };
