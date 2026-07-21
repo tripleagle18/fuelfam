@@ -2224,17 +2224,19 @@ async function renderContestChallenge(contestId) {
                           [{points:10,pct:100},{points:7,pct:90},{points:3,pct:75}]);
         let logged = 0;
         if (g.autoFromProfile) {
+          // Score each day individually using calcMacroPts
           dLogs.forEach(dl => {
-            if (g.type==='protein') logged += dl.protein||0;
-            else if (g.type==='water') logged += dl.water||0;
-            else if (g.type==='fat') logged += dl.fat||0;
-            else if (g.type==='carbs') logged += dl.carbs||0;
+            const dayLogged = g.type==='protein' ? (dl.protein||0) :
+                              g.type==='water' ? (dl.water||0) :
+                              g.type==='fat' ? (dl.fat||0) :
+                              g.type==='carbs' ? (dl.carbs||0) : 0;
+            const target = g.type==='protein' ? pGoals.protein :
+                           g.type==='water' ? pGoals.water :
+                           g.type==='fat' ? pGoals.fat :
+                           g.type==='carbs' ? pGoals.carbs : 1;
+            score += calcMacroPts(g.type, dayLogged, target, goalTiers);
+            logged += dayLogged;
           });
-          const target = g.type==='protein'?pGoals.protein:g.type==='water'?pGoals.water:g.type==='fat'?(pGoals.fat||70):(pGoals.carbs||200);
-          const pct = target > 0 ? (logged/target)*100 : 0;
-          const isFatCarbs = g.type==='fat'||g.type==='carbs';
-          if (isFatCarbs && pct > 100) score += Math.max(-10, -Math.round((pct-100)/10));
-          else { const t = [...goalTiers].sort((a,b)=>b.pct-a.pct).find(t=>pct>=t.pct); if (t) score += t.points; }
         } else if (g.goalInputType === 'numeric') {
           // Numeric: sum all logs, score by % of total target
           const numTarget = g.target || 1;
@@ -3884,24 +3886,11 @@ async function showContestDetail(contestId) {
     <div style="font-size:12px;color:var(--muted);margin-top:8px;">Scoring: ${contest.scoring_method}${contest.scoring_method==='points'?` · Hit=${contest.points_hit}pts · Close=${contest.points_close}pts · Partial=${contest.points_partial}pts`:''}</div>
   </div>`;
 
-  // Render log section
+  // Render log section - hidden, logging is done in Challenges tab
   const logDiv = document.getElementById('detail-log-section');
-  logDiv.innerHTML = `<div class="card">
-    <div style="font-size:15px;font-weight:700;margin-bottom:10px;">Log Progress</div>
-    ${(contest.goals||[]).map((g,i) => `
-      <div style="margin-bottom:10px;">
-        <div class="field-label">${g.name} (${g.unit})</div>
-        <div style="display:flex;gap:8px;">
-          <input class="inp" id="contest-log-${i}" type="number" placeholder="Enter amount..." style="flex:1;margin-bottom:0;">
-          <button onclick="logContestGoal('${contestId}','${g.name}',${i},'${g.unit}')" style="padding:10px 14px;background:#16A34A;color:#fff;border:none;border-radius:10px;font-weight:700;cursor:pointer;">Log</button>
-        </div>
-      </div>`).join('')}
-  </div>`;
+  if (logDiv) logDiv.style.display = 'none';
 
-  // Render leaderboard
-  await renderContestLeaderboard(contest);
-
-  // Admin panel
+  // Admin section
   const adminDiv = document.getElementById('detail-admin-section');
   if (isAdmin) {
     adminDiv.style.display = 'block';
@@ -3913,25 +3902,16 @@ async function showContestDetail(contestId) {
       <div class="invite-box">
         <div style="font-size:13px;font-weight:700;margin-bottom:4px;">Join Code</div>
         <div class="join-code-display">${contest.join_code}</div>
-        <button onclick="copyJoinCode('${contest.join_code}')" style="width:100%;padding:10px;background:#16A34A;color:#fff;border:none;border-radius:10px;font-weight:700;cursor:pointer;margin-bottom:8px;">📋 Copy join code</button>
+        <button onclick="copyJoinCode('${contest.join_code}')" style="width:100%;padding:10px;background:#16A34A;color:#fff;border:none;border-radius:10px;font-weight:700;cursor:pointer;margin-top:8px;">📋 Copy Join Code</button>
       </div>
-      <div class="invite-box" style="margin-top:10px;">
-        <div style="font-size:13px;font-weight:700;margin-bottom:8px;">📧 Invite by email</div>
-        <input class="inp" id="invite-email" placeholder="friend@email.com" type="email" style="margin-bottom:8px;">
-        <button onclick="sendContestInvite('${contestId}','${contest.name}','${contest.join_code}')" style="width:100%;padding:10px;background:linear-gradient(135deg,#16A34A,#EA580C);color:#fff;border:none;border-radius:10px;font-weight:700;cursor:pointer;">Send Invite Email</button>
+      <div style="margin-top:12px;">
+        <div style="font-size:13px;font-weight:700;margin-bottom:8px;">Members (${memberIds.length})</div>
+        ${(profiles||[]).map(p => `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #F3F4F6;font-size:14px;">
+          <span>${p.name} (@${p.username})</span>
+        </div>`).join('')}
       </div>
-      <div style="margin-top:14px;">
-        <div style="font-size:13px;font-weight:700;margin-bottom:8px;">Members (${profiles?.length||0})</div>
-        ${(profiles||[]).map(p => `
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #F3F4F6;">
-            <div>
-              <div style="font-weight:600;">${p.name}</div>
-              <div style="font-size:12px;color:var(--muted);">@${p.username}</div>
-            </div>
-            ${p.id !== currentUser ? `<button onclick="removeMemberFromContest('${contestId}','${p.id}','${p.name}')" style="background:#FEE2E2;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;color:#991B1B;cursor:pointer;">Remove</button>` : '<span style="font-size:12px;color:#16A34A;font-weight:700;">You (Admin)</span>'}
-          </div>`).join('')}
-      </div>
-      <button onclick="endContest('${contestId}')" style="width:100%;margin-top:14px;padding:12px;background:#FEE2E2;color:#991B1B;border:none;border-radius:10px;font-weight:700;cursor:pointer;">End Contest Early</button><button onclick="deleteContest('${contestId}','${contest.name}')" style="width:100%;margin-top:8px;padding:12px;background:#7F1D1D;color:#fff;border:none;border-radius:10px;font-weight:700;cursor:pointer;">🗑️ Delete Contest Forever</button>
+      <button onclick="endContest('${contestId}')" style="width:100%;padding:12px;background:#FEF3C7;color:#D97706;border:none;border-radius:10px;font-weight:700;cursor:pointer;margin-top:12px;">🏁 End Contest</button>
+      <button onclick="deleteContest('${contestId}')" style="width:100%;padding:12px;background:#FEE2E2;color:#DC2626;border:none;border-radius:10px;font-weight:700;cursor:pointer;margin-top:8px;">🗑️ Delete Contest Forever</button>
     </div>`;
   } else {
     adminDiv.style.display = 'none';
