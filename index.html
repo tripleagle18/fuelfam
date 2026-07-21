@@ -1935,6 +1935,225 @@ function calcMacroPts(type, logged, goal, tiers) {
 }
 
 
+
+// ─── MEMBER PROGRESS VIEW ────────────────────────────────────────────────────
+let viewingMemberId = null;
+let viewingMemberName = null;
+let viewingMemberContest = null;
+let memberViewingDate = null;
+
+function showMemberProgress(userId, name, contestId) {
+  if (userId === currentUser) return; // Don't show for self
+  viewingMemberId = userId;
+  viewingMemberName = name;
+  viewingMemberContest = contestId;
+  memberViewingDate = null; // reset to today
+  document.getElementById('member-progress-title').textContent = name + "'s Progress";
+  document.getElementById('member-progress-subtitle').textContent = 'Tap ← to return to the challenge';
+  document.getElementById('member-privacy-banner').textContent = "👁️ Viewing " + name + "'s progress — some details are private";
+  showScreen('screen-member-progress');
+  renderMemberProgress();
+}
+
+function closeMemberProgress() {
+  showScreen('screen-main');
+  showTab('tab-challenges', document.querySelector('.nav-item:nth-child(2)'));
+}
+
+function changeMemberDay(delta) {
+  const today = getTodayKey();
+  const base = memberViewingDate || today;
+  const d = new Date(base + 'T12:00:00');
+  d.setDate(d.getDate() + delta);
+  const newDate = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  if (newDate > today) return;
+  memberViewingDate = newDate === today ? null : newDate;
+  renderMemberProgress();
+}
+
+async function renderMemberProgress() {
+  const contentEl = document.getElementById('member-progress-content');
+  contentEl.innerHTML = '<div class="loading"><span class="dot-spin"></span></div>';
+
+  try {
+    const contestId = viewingMemberContest;
+    const userId = viewingMemberId;
+    const today = getTodayKey();
+    const displayDate = memberViewingDate || today;
+    const isToday = displayDate === today;
+    const dateLabel = isToday ? 'Today' : new Date(displayDate + 'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
+
+    // Fetch contest
+    let contest = userContestsForChallenges.find(c => c.id === contestId);
+    if (!contest) {
+      const { data: fetched } = await sb.from('contests').select('*').eq('id', contestId).maybeSingle();
+      if (!fetched) { contentEl.innerHTML = '<div style="padding:20px;text-align:center;color:#6B7280;">Contest not found.</div>'; return; }
+      contest = fetched;
+    }
+
+    // Check contest started
+    if (contest.start_date > today) {
+      contentEl.innerHTML = '<div style="margin:20px;background:#FEF3C7;border-radius:16px;padding:20px;text-align:center;">' +
+        '<div style="font-size:40px;margin-bottom:12px;">🗓️</div>' +
+        '<div style="font-size:18px;font-weight:900;color:#92400E;">Contest not started yet!</div>' +
+        '<div style="font-size:14px;color:#B45309;margin-top:8px;">Starts ' + new Date(contest.start_date + 'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}) + '</div>' +
+        '</div>';
+      return;
+    }
+
+    // Fetch member's profile
+    const { data: memberProfile } = await sb.from('profiles').select('*').eq('id', userId).maybeSingle();
+    if (!memberProfile) { contentEl.innerHTML = '<div style="padding:20px;text-align:center;color:#6B7280;">Member not found.</div>'; return; }
+
+    const memberGoals = calcGoals(memberProfile);
+
+    // Fetch their logs for this date
+    const { data: memberDailyLog } = await sb.from('daily_logs').select('*').eq('user_id', userId).eq('log_date', displayDate).maybeSingle();
+    const { data: memberContestLogs } = await sb.from('contest_logs').select('*').eq('contest_id', contestId).eq('user_id', userId);
+
+    const tiers = contest.scoring_tiers || [{points:10,pct:100},{points:7,pct:90},{points:3,pct:75}];
+
+    function resolveGoalForMember(g) {
+      if (g.autoFromProfile) {
+        if (g.type === 'protein') return { ...g, target: memberGoals.protein, unit: 'g' };
+        if (g.type === 'water') return { ...g, target: memberGoals.water, unit: 'oz' };
+        if (g.type === 'fat') return { ...g, target: memberGoals.fat, unit: 'g' };
+        if (g.type === 'carbs') return { ...g, target: memberGoals.carbs, unit: 'g' };
+      }
+      if (g.goalInputType === 'numeric') return { ...g, target: g.target || 1, unit: g.unit || '' };
+      return { ...g, target: g.freqNum || 1, unit: 'x' };
+    }
+
+    const resolvedGoals = (contest.goals||[]).map(resolveGoalForMember);
+    let totalPts = 0;
+
+    const goalCards = resolvedGoals.map((g, i) => {
+      let logged = 0;
+      if (g.autoFromProfile && memberDailyLog) {
+        if (g.type === 'protein') logged = memberDailyLog.protein || 0;
+        else if (g.type === 'water') logged = memberDailyLog.water || 0;
+        else if (g.type === 'fat') logged = memberDailyLog.fat || 0;
+        else if (g.type === 'carbs') logged = memberDailyLog.carbs || 0;
+      } else if (!g.autoFromProfile) {
+        if (g.goalInputType === 'numeric') {
+          const numPeriod = g.freqPeriod || 'contest';
+          const numPs = getPeriodStart(numPeriod);
+          const numPl = (memberContestLogs||[]).filter(l => {
+            if (l.goal_name !== g.name) return false;
+            if (numPeriod === 'contest') return true;
+            if (numPeriod === 'day') return l.log_date === displayDate;
+            return l.log_date >= numPs;
+          });
+          logged = numPl.reduce((sum, l) => sum + (l.amount||0), 0);
+        } else {
+          const freqPeriod = g.freqPeriod || 'day';
+          const ps = getPeriodStart(freqPeriod);
+          const pl = (memberContestLogs||[]).filter(l => {
+            if (l.goal_name !== g.name) return false;
+            if (freqPeriod === 'day') return l.log_date === displayDate;
+            return l.log_date >= ps;
+          });
+          logged = pl.length > 0 ? Math.max(...pl.map(l => l.amount||0)) : 0;
+          g = { ...g, target: g.freqNum || g.target || 1, unit: 'x' };
+        }
+      }
+
+      const pct = g.target > 0 ? Math.min(100, Math.round(logged/g.target*100)) : 0;
+      const goalTiers = g.tiers && g.tiers.length > 0 ? g.tiers : tiers;
+      let pts;
+      if (g.autoFromProfile) {
+        pts = calcMacroPts(g.type, logged, g.target || 1, goalTiers);
+      } else if (g.goalInputType === 'numeric') {
+        const scorePct = g.target > 0 ? (logged/g.target)*100 : 0;
+        const mt = [...goalTiers].sort((a,b)=>b.pct-a.pct).find(t=>scorePct>=t.pct);
+        pts = mt ? mt.points : 0;
+      } else {
+        pts = (logged >= (g.freqNum||g.target||1)) ? (goalTiers[0]?.points||10) : 0;
+      }
+      totalPts += pts;
+
+      const ptsColor = pts < 0 ? '#EF4444' : '#16A34A';
+      const ptsBg = pts < 0 ? '#FEE2E2' : '#F0FDF4';
+      const barColor = 'linear-gradient(90deg,#16A34A,#EA580C)';
+
+      if (g.autoFromProfile) {
+        // PRIVACY: hide logged amount and personal goal — show only % and pts
+        return '<div style="background:#fff;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">' +
+            '<div style="font-size:15px;font-weight:700;">' + g.name + '</div>' +
+            '<div style="background:' + ptsBg + ';border-radius:20px;padding:4px 10px;font-size:13px;font-weight:800;color:' + ptsColor + ';">' + (pts>=0?'+':'') + pts + ' pts</div>' +
+          '</div>' +
+          '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">' +
+            '<div style="background:#F3F4F6;border-radius:20px;height:12px;flex:1;overflow:hidden;">' +
+              '<div style="width:' + pct + '%;height:100%;border-radius:20px;background:' + barColor + ';"></div>' +
+            '</div>' +
+            '<div style="font-size:14px;font-weight:800;color:#EA580C;min-width:42px;text-align:right;">' + pct + '%</div>' +
+          '</div>' +
+          '<div style="font-size:11px;color:#9CA3AF;">🔒 Personal nutrition details are private</div>' +
+        '</div>';
+      } else {
+        // Custom goals — show everything, but checkboxes view-only
+        const isNumeric = g.goalInputType === 'numeric';
+        const displayLogged = isNumeric ? logged.toLocaleString() : Math.round(logged);
+        const displayTarget = isNumeric ? Number(g.target).toLocaleString() : g.target;
+
+        let customExtra = '';
+        if (isNumeric) {
+          customExtra = '<div style="font-size:12px;color:#6B7280;margin-top:6px;">' + displayLogged + ' ' + (g.unit||'') + ' logged toward ' + displayTarget + ' ' + (g.unit||'') + ' goal</div>';
+        } else {
+          // View-only checkboxes
+          const freqNum = g.freqNum || g.target || 1;
+          const completedCount = logged;
+          const boxes = Array.from({length: freqNum}, (_, ci) => {
+            const checked = ci < completedCount;
+            return '<div style="width:40px;height:40px;border-radius:10px;border:2px solid ' + (checked?'#16A34A':'#D1D5DB') + ';background:' + (checked?'#16A34A':'#fff') + ';display:flex;align-items:center;justify-content:center;font-size:18px;">' +
+              (checked ? '✓' : '') + '</div>';
+          }).join('');
+          customExtra = '<div style="margin-top:10px;">' +
+            '<div style="font-size:12px;color:#6B7280;margin-bottom:6px;">' + completedCount + ' of ' + freqNum + ' completed this ' + (g.freqPeriod||'day') + '</div>' +
+            '<div style="display:flex;gap:8px;flex-wrap:wrap;">' + boxes + '</div>' +
+          '</div>';
+        }
+
+        return '<div style="background:#fff;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
+            '<div style="font-size:15px;font-weight:700;">' + g.name + '</div>' +
+            '<div style="background:' + ptsBg + ';border-radius:20px;padding:4px 10px;font-size:13px;font-weight:800;color:' + ptsColor + ';">' + (pts>=0?'+':'') + pts + ' pts</div>' +
+          '</div>' +
+          '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;text-align:center;">' +
+            '<div style="background:#F9FAFB;border-radius:10px;padding:8px;"><div style="font-size:11px;color:#6B7280;font-weight:600;text-transform:uppercase;">Goal</div><div style="font-size:14px;font-weight:800;">' + displayTarget + ' ' + (g.unit||'') + '</div></div>' +
+            '<div style="background:#F9FAFB;border-radius:10px;padding:8px;"><div style="font-size:11px;color:#6B7280;font-weight:600;text-transform:uppercase;">Logged</div><div style="font-size:14px;font-weight:800;color:#16A34A;">' + displayLogged + ' ' + (g.unit||'') + '</div></div>' +
+            '<div style="background:#F9FAFB;border-radius:10px;padding:8px;"><div style="font-size:11px;color:#6B7280;font-weight:600;text-transform:uppercase;">% of Goal</div><div style="font-size:14px;font-weight:800;color:#EA580C;">' + pct + '%</div></div>' +
+          '</div>' +
+          '<div style="background:#F3F4F6;border-radius:20px;height:10px;overflow:hidden;margin-bottom:' + (customExtra?'6':'0') + 'px;">' +
+            '<div style="width:' + pct + '%;height:100%;border-radius:20px;background:' + barColor + ';"></div>' +
+          '</div>' +
+          customExtra +
+        '</div>';
+      }
+    }).join('');
+
+    // Date nav
+    const navHtml =
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;background:#fff;border-radius:14px;padding:12px 16px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">' +
+        '<button onclick="changeMemberDay(-1)" style="background:#F0FDF4;border:none;border-radius:10px;padding:8px 14px;font-size:18px;cursor:pointer;color:#16A34A;">‹</button>' +
+        '<div style="text-align:center;">' +
+          '<div style="font-size:15px;font-weight:800;">' + dateLabel + '</div>' +
+          '<div style="font-size:12px;color:#6B7280;">' + totalPts + ' pts earned</div>' +
+        '</div>' +
+        '<button onclick="changeMemberDay(1)" ' + (isToday?'disabled':'') + ' style="background:' + (isToday?'#F9FAFB':'#F0FDF4') + ';border:none;border-radius:10px;padding:8px 14px;font-size:18px;cursor:pointer;color:' + (isToday?'#D1D5DB':'#16A34A') + ';">›</button>' +
+      '</div>';
+
+    contentEl.innerHTML = navHtml +
+      '<div style="font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Progress</div>' +
+      goalCards;
+
+  } catch(e) {
+    contentEl.innerHTML = '<div style="padding:20px;text-align:center;color:#EF4444;">Error: ' + e.message + '</div>';
+    console.error('renderMemberProgress error:', e);
+  }
+}
+
 function toggleLbBreakdown(id) {
   const el = document.getElementById(id);
   if (!el) return;
@@ -2280,26 +2499,17 @@ async function renderContestChallenge(contestId) {
     if (lbEl) lbEl.innerHTML =
       '<div style="background:#fff;border-radius:14px;padding:14px;margin-top:10px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">' +
         '<div style="font-size:15px;font-weight:800;margin-bottom:12px;">🏆 Leaderboard</div>' +
-        '<div style="font-size:11px;color:#9CA3AF;margin-bottom:8px;">Tap a name to see point breakdown</div>' +
+        '<div style="font-size:11px;color:#9CA3AF;margin-bottom:8px;">Tap a name to see their daily progress</div>' +
         scored.map((p,i) => {
-          const breakdownId = 'lb-breakdown-' + i;
           const isMe = p.id === currentUser;
-          const detailRows = (p.goalDetails||[]).map(g =>
-            '<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid #F9FAFB;">' +
-              '<span style="color:#6B7280;">' + g.name + '</span>' +
-              '<span style="font-weight:700;color:' + (g.pts>0?'#16A34A':g.pts<0?'#EF4444':'#9CA3AF') + ';">' + (g.pts>=0?'+':'') + Math.round(g.pts) + ' pts</span>' +
-            '</div>'
-          ).join('');
-          return '<div style="border-bottom:1px solid #F3F4F6;">' +
-            '<div data-bid="' + breakdownId + '" onclick="toggleLbBreakdown(this.dataset.bid)" style="display:flex;align-items:center;gap:10px;padding:10px 0;cursor:pointer;' + (isMe?'background:#F0FDF4;margin:0 -14px;padding:10px 14px;':'') + '">' +
-              '<div style="font-size:20px;min-width:28px;">' + (medals[i]||'#'+(i+1)) + '</div>' +
-              '<div style="flex:1;font-weight:700;font-size:14px;">' + p.name + (isMe?' (you)':'') + '</div>' +
-              '<div style="font-size:16px;font-weight:800;color:' + (p.score<0?'#EF4444':'#16A34A') + ';margin-right:6px;">' + (p.score>=0?'+':'') + Math.round(p.score) + ' pts</div>' +
-              '<div style="font-size:12px;color:#9CA3AF;">▼</div>' +
-            '</div>' +
-            '<div id="' + breakdownId + '" style="display:none;background:#F9FAFB;border-radius:10px;padding:10px 12px;margin:0 0 8px;' + (isMe?'margin:0 -14px 8px;padding:10px 26px;':'') + '">' +
-              detailRows +
-            '</div>' +
+          const rowStyle = 'display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid #F3F4F6;' + (isMe?'background:#F0FDF4;margin:0 -14px;padding:12px 14px;':'');
+          const clickAttr = isMe ? '' : 'data-uid="' + p.id + '" data-uname="' + p.name + '" data-cid="' + contestId + '" onclick="showMemberProgress(this.dataset.uid, this.dataset.uname, this.dataset.cid)" style="' + rowStyle + 'cursor:pointer;"';
+          const noClickAttr = 'style="' + rowStyle + '"';
+          return '<div ' + (isMe ? noClickAttr : clickAttr) + '>' +
+            '<div style="font-size:20px;min-width:28px;">' + (medals[i]||'#'+(i+1)) + '</div>' +
+            '<div style="flex:1;font-weight:700;font-size:14px;">' + p.name + (isMe?' (you)':'') + '</div>' +
+            '<div style="font-size:16px;font-weight:800;color:' + (p.score<0?'#EF4444':'#16A34A') + ';">' + (p.score>=0?'+':'') + Math.round(p.score) + ' pts</div>' +
+            (isMe ? '' : '<div style="font-size:12px;color:#9CA3AF;">›</div>') +
           '</div>';
         }).join('') +
       '</div>';
@@ -4197,6 +4407,30 @@ function checkJoinCodeInUrl() {
         <input type="text" id="coach-input" placeholder="Ask your AI coach anything..." style="flex:1;padding:10px 14px;border:1.5px solid #E5E7EB;border-radius:20px;font-size:14px;outline:none;" onkeydown="if(event.key==='Enter')sendCoachMessage()">
         <button onclick="sendCoachMessage()" style="background:linear-gradient(135deg,#7C3AED,#2563EB);border:none;border-radius:50%;width:40px;height:40px;color:#fff;font-size:18px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;">➤</button>
       </div>
+    </div>
+  </div>
+
+
+  <!-- MEMBER PROGRESS SCREEN -->
+  <div id="screen-member-progress" class="screen" style="padding:0;overflow-y:auto;padding-bottom:40px;">
+    <!-- Big prominent back button + header -->
+    <div style="background:linear-gradient(135deg,#16A34A,#EA580C);padding:max(env(safe-area-inset-top),44px) 20px 20px;">
+      <button onclick="closeMemberProgress()" style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.25);border:2px solid rgba(255,255,255,0.6);border-radius:14px;padding:10px 18px;color:#fff;font-size:16px;font-weight:800;cursor:pointer;margin-bottom:14px;width:100%;">
+        ← Back to Challenge
+      </button>
+      <div style="font-size:20px;font-weight:900;color:#fff;" id="member-progress-title">Progress</div>
+      <div style="font-size:12px;color:rgba(255,255,255,0.8);margin-top:2px;" id="member-progress-subtitle"></div>
+    </div>
+
+    <!-- Privacy banner -->
+    <div style="background:#FEF3C7;border-left:4px solid #D97706;padding:10px 16px;display:flex;align-items:center;gap:8px;">
+      <span style="font-size:16px;">👁️</span>
+      <div style="font-size:13px;color:#92400E;font-weight:600;" id="member-privacy-banner">Viewing another member's progress</div>
+    </div>
+
+    <!-- Content -->
+    <div id="member-progress-content" style="padding:16px;">
+      <div class="loading"><span class="dot-spin"></span></div>
     </div>
   </div>
 
