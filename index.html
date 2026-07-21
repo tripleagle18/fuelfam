@@ -1934,6 +1934,17 @@ function calcMacroPts(type, logged, goal, tiers) {
   return matched ? matched.points : 0;
 }
 
+
+function toggleLbBreakdown(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const isOpen = el.style.display !== 'none';
+  // Close all others first
+  document.querySelectorAll('[id^="lb-breakdown-"]').forEach(e => e.style.display = 'none');
+  // Toggle this one
+  el.style.display = isOpen ? 'none' : 'block';
+}
+
 function buildGoalLogUI(g, i, contestId, myLogs) {
   const today = getTodayKey();
 
@@ -2217,12 +2228,14 @@ async function renderContestChallenge(contestId) {
       const cLogs = (allContestLogs||[]).filter(l => l.user_id === p.id);
       const dLogs = (allDailyLogs||[]).filter(l => l.user_id === p.id);
       let score = 0;
+      const goalDetails = [];
       (contest.goals||[]).forEach(g => {
         const rg = resolveGoal(g);
         const goalTiers = g.tiers && g.tiers.length > 0 ? g.tiers :
                           (contest.scoring_tiers && contest.scoring_tiers.length > 0 ? contest.scoring_tiers :
                           [{points:10,pct:100},{points:7,pct:90},{points:3,pct:75}]);
         let logged = 0;
+        let gPts = 0;
         if (g.autoFromProfile) {
           // Score each day individually using calcMacroPts
           dLogs.forEach(dl => {
@@ -2234,9 +2247,10 @@ async function renderContestChallenge(contestId) {
                            g.type==='water' ? pGoals.water :
                            g.type==='fat' ? pGoals.fat :
                            g.type==='carbs' ? pGoals.carbs : 1;
-            score += calcMacroPts(g.type, dayLogged, target, goalTiers);
+            gPts += calcMacroPts(g.type, dayLogged, target, goalTiers);
             logged += dayLogged;
           });
+          score += gPts;
         } else if (g.goalInputType === 'numeric') {
           // Numeric: sum all logs, score by % of total target
           const numTarget = g.target || 1;
@@ -2245,7 +2259,7 @@ async function renderContestChallenge(contestId) {
             .reduce((sum, l) => sum + (l.amount||0), 0);
           const numPct = numTarget > 0 ? (logged / numTarget) * 100 : 0;
           const t = [...goalTiers].sort((a,b)=>b.pct-a.pct).find(t=>numPct>=t.pct);
-          if (t) score += t.points;
+          if (t) { gPts = t.points; score += gPts; }
         } else {
           // Checkbox: score per period
           const ps = getPeriodStart(g.freqPeriod||'day');
@@ -2261,16 +2275,33 @@ async function renderContestChallenge(contestId) {
     }).sort((a,b) => b.score - a.score);
 
     const lbEl = document.getElementById('contest-challenge-lb');
+    // Store scored data globally so breakdown toggle can access it
+    window._contestScored = scored;
     if (lbEl) lbEl.innerHTML =
       '<div style="background:#fff;border-radius:14px;padding:14px;margin-top:10px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">' +
         '<div style="font-size:15px;font-weight:800;margin-bottom:12px;">🏆 Leaderboard</div>' +
-        scored.map((p,i) =>
-          '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #F3F4F6;' + (p.id===currentUser?'background:#F0FDF4;margin:0 -14px;padding:10px 14px;':'') + '">' +
-            '<div style="font-size:20px;min-width:28px;">' + (medals[i]||'#'+(i+1)) + '</div>' +
-            '<div style="flex:1;font-weight:700;font-size:14px;">' + p.name + (p.id===currentUser?' (you)':'') + '</div>' +
-            '<div style="font-size:16px;font-weight:800;color:' + (p.score<0?'#EF4444':'#16A34A') + ';">' + (p.score>=0?'+':'') + Math.round(p.score) + ' pts</div>' +
-          '</div>'
-        ).join('') +
+        '<div style="font-size:11px;color:#9CA3AF;margin-bottom:8px;">Tap a name to see point breakdown</div>' +
+        scored.map((p,i) => {
+          const breakdownId = 'lb-breakdown-' + i;
+          const isMe = p.id === currentUser;
+          const detailRows = (p.goalDetails||[]).map(g =>
+            '<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid #F9FAFB;">' +
+              '<span style="color:#6B7280;">' + g.name + '</span>' +
+              '<span style="font-weight:700;color:' + (g.pts>0?'#16A34A':g.pts<0?'#EF4444':'#9CA3AF') + ';">' + (g.pts>=0?'+':'') + Math.round(g.pts) + ' pts</span>' +
+            '</div>'
+          ).join('');
+          return '<div style="border-bottom:1px solid #F3F4F6;">' +
+            '<div data-bid="' + breakdownId + '" onclick="toggleLbBreakdown(this.dataset.bid)" style="display:flex;align-items:center;gap:10px;padding:10px 0;cursor:pointer;' + (isMe?'background:#F0FDF4;margin:0 -14px;padding:10px 14px;':'') + '">' +
+              '<div style="font-size:20px;min-width:28px;">' + (medals[i]||'#'+(i+1)) + '</div>' +
+              '<div style="flex:1;font-weight:700;font-size:14px;">' + p.name + (isMe?' (you)':'') + '</div>' +
+              '<div style="font-size:16px;font-weight:800;color:' + (p.score<0?'#EF4444':'#16A34A') + ';margin-right:6px;">' + (p.score>=0?'+':'') + Math.round(p.score) + ' pts</div>' +
+              '<div style="font-size:12px;color:#9CA3AF;">▼</div>' +
+            '</div>' +
+            '<div id="' + breakdownId + '" style="display:none;background:#F9FAFB;border-radius:10px;padding:10px 12px;margin:0 0 8px;' + (isMe?'margin:0 -14px 8px;padding:10px 26px;':'') + '">' +
+              detailRows +
+            '</div>' +
+          '</div>';
+        }).join('') +
       '</div>';
 
   } catch(e) {
