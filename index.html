@@ -953,7 +953,7 @@ function getWeekKey() {
   const n = new Date(), day = n.getDay();
   const diff = n.getDate() - (day === 0 ? 6 : day - 1);
   const m = new Date(n); m.setDate(diff);
-  return m.toISOString().slice(0, 10);
+  return m.getFullYear() + '-' + String(m.getMonth()+1).padStart(2,'0') + '-' + String(m.getDate()).padStart(2,'0');
 }
 function getTodayKey() {
   const d = new Date();
@@ -2726,11 +2726,12 @@ async function buildUserContext() {
   const wk = getWeekKey();
   const today = getTodayKey();
   
-  // Get week logs
+  // Get week logs AND today's log separately to be safe
   const { data: weekLogs } = await sb.from('daily_logs').select('*').eq('user_id', currentUser).gte('log_date', wk);
+  const { data: todayLogDirect } = await sb.from('daily_logs').select('*').eq('user_id', currentUser).eq('log_date', today).maybeSingle();
   
-  // Today's log
-  const todayLog = (weekLogs||[]).find(l => l.log_date === today);
+  // Use direct today fetch as primary, fallback to weekLogs
+  const todayLog = todayLogDirect || (weekLogs||[]).find(l => l.log_date === today);
   let todaySummary = 'Nothing logged yet today.';
   if (todayLog) {
     const foods = (todayLog.foods||[]);
