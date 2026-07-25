@@ -537,6 +537,24 @@
         <div id="food-search-results" style="display:none;max-height:320px;overflow-y:auto;margin-top:10px;border:1px solid #E5E7EB;border-radius:12px;"></div>
       </div>
 
+      <!-- My Food History -->
+      <div class="log-method">
+        <div class="method-header" onclick="toggleMethod('history-content')" style="cursor:pointer;">
+          <div class="method-icon" style="background:#F0FDF4;color:#16A34A;"><i class="ti ti-history"></i></div>
+          <div>
+            <div class="method-title">My Food History</div>
+            <div class="method-sub">Search foods you have logged before</div>
+          </div>
+        </div>
+        <div id="history-content" style="display:none;margin-top:12px;">
+          <div style="display:flex;gap:8px;margin-bottom:8px;">
+            <input class="inp" id="history-search-input" placeholder="Search your past foods..." style="flex:1;margin-bottom:0;" oninput="searchFoodHistory()">
+            <button onclick="searchFoodHistory()" style="padding:12px 16px;background:#16A34A;color:#fff;border:none;border-radius:var(--radius-sm);font-weight:700;cursor:pointer;">Search</button>
+          </div>
+          <div id="history-results" style="max-height:320px;overflow-y:auto;"></div>
+        </div>
+      </div>
+
       <div class="log-method">
         <div class="method-header">
           <div class="method-icon" style="background:#FEF3C7;color:#D97706"><i class="ti ti-message-circle"></i></div>
@@ -547,7 +565,8 @@
           <input type="text" id="chat-input" placeholder="e.g. I ate a turkey sandwich..." onkeydown="if(event.key===&#39;Enter&#39;)sendChat()">
           <button class="chat-send-btn" onclick="sendChat()" aria-label="Send"><i class="ti ti-send" style="font-size:18px"></i></button>
         </div>
-        <button class="chat-add-btn" id="chat-add-btn" onclick="addChatFood()">Add to my log ✓</button>
+        <div id="chat-food-breakdown" style="display:none;margin-bottom:10px;"></div>
+      <button class="chat-add-btn" id="chat-add-btn" onclick="addChatFood()">Add to my log ✓</button>
       </div>
 
       <!-- Water logging -->
@@ -3323,6 +3342,105 @@ async function useCalculatorMacros() {
   setTimeout(() => msg.remove(), 3000);
 }
 
+
+// ─── FOOD HISTORY ────────────────────────────────────────────────────────────
+
+async function searchFoodHistory() {
+  const query = document.getElementById('history-search-input')?.value?.trim().toLowerCase();
+  const resultsEl = document.getElementById('history-results');
+  if (!resultsEl) return;
+
+  if (!query || query.length < 2) {
+    resultsEl.innerHTML = '<div style="padding:10px;color:#9CA3AF;font-size:13px;text-align:center;">Type at least 2 characters to search</div>';
+    return;
+  }
+
+  resultsEl.innerHTML = '<div style="padding:10px;color:#9CA3AF;font-size:13px;text-align:center;">Searching...</div>';
+
+  try {
+    // Fetch user's food logs from last 90 days
+    const since = new Date();
+    since.setDate(since.getDate() - 90);
+    const sinceKey = since.getFullYear() + '-' + String(since.getMonth()+1).padStart(2,'0') + '-' + String(since.getDate()).padStart(2,'0');
+
+    const { data: logs } = await sb.from('daily_logs')
+      .select('foods, log_date')
+      .eq('user_id', currentUser)
+      .gte('log_date', sinceKey)
+      .order('log_date', { ascending: false });
+
+    if (!logs || logs.length === 0) {
+      resultsEl.innerHTML = '<div style="padding:10px;color:#9CA3AF;font-size:13px;text-align:center;">No food history yet. Start logging!</div>';
+      return;
+    }
+
+    // Build a map of food name -> most recent entry
+    const foodMap = {};
+    logs.forEach(log => {
+      (log.foods || []).forEach(food => {
+        if (!food.name) return;
+        const key = food.name.toLowerCase();
+        if (!foodMap[key] || log.log_date > foodMap[key].log_date) {
+          foodMap[key] = { ...food, log_date: log.log_date };
+        }
+      });
+    });
+
+    // Filter by query
+    const matches = Object.values(foodMap).filter(f =>
+      f.name.toLowerCase().includes(query)
+    ).sort((a,b) => b.log_date.localeCompare(a.log_date)).slice(0, 15);
+
+    if (matches.length === 0) {
+      resultsEl.innerHTML = '<div style="padding:10px;color:#9CA3AF;font-size:13px;text-align:center;">No matches in your history</div>';
+      return;
+    }
+
+    resultsEl.innerHTML = matches.map((f, i) => {
+      const id = 'hist-' + i;
+      return '<div style="border-bottom:1px solid #F3F4F6;padding:10px 0;">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
+          '<div style="font-weight:700;font-size:14px;">' + f.name + '</div>' +
+          '<div style="font-size:11px;color:#9CA3AF;">Last used: ' + new Date(f.log_date + 'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}) + '</div>' +
+        '</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px;">' +
+          '<div><div style="font-size:10px;color:#6B7280;font-weight:600;margin-bottom:2px;">PROTEIN</div>' +
+            '<input type="number" id="' + id + '-p" value="' + (f.protein||0) + '" style="width:100%;border:1.5px solid #16A34A;border-radius:8px;padding:6px;font-size:13px;font-weight:700;color:#16A34A;text-align:center;"></div>' +
+          '<div><div style="font-size:10px;color:#6B7280;font-weight:600;margin-bottom:2px;">FAT</div>' +
+            '<input type="number" id="' + id + '-f" value="' + (f.fat||0) + '" style="width:100%;border:1.5px solid #D97706;border-radius:8px;padding:6px;font-size:13px;font-weight:700;color:#D97706;text-align:center;"></div>' +
+          '<div><div style="font-size:10px;color:#6B7280;font-weight:600;margin-bottom:2px;">CARBS</div>' +
+            '<input type="number" id="' + id + '-c" value="' + (f.carbs||0) + '" style="width:100%;border:1.5px solid #7C3AED;border-radius:8px;padding:6px;font-size:13px;font-weight:700;color:#7C3AED;text-align:center;"></div>' +
+        '</div>' +
+        '<button data-id="' + id + '" data-name="' + f.name.replace(/"/g, '&quot;') + '" onclick="addHistoryFood(this)" ' +
+          'style="width:100%;padding:10px;background:#16A34A;color:#fff;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:14px;">' +
+          '➕ Add to Log' +
+        '</button>' +
+      '</div>';
+    }).join('');
+
+  } catch(e) {
+    resultsEl.innerHTML = '<div style="padding:10px;color:#EF4444;font-size:13px;">Error: ' + e.message + '</div>';
+  }
+}
+
+async function addHistoryFood(btn) {
+  const id = btn.dataset.id;
+  const name = btn.dataset.name;
+  const protein = parseFloat(document.getElementById(id + '-p')?.value) || 0;
+  const fat = parseFloat(document.getElementById(id + '-f')?.value) || 0;
+  const carbs = parseFloat(document.getElementById(id + '-c')?.value) || 0;
+
+  await addFoodToLog(name, protein, fat, carbs);
+
+  // Show success feedback
+  btn.textContent = '✅ Added!';
+  btn.style.background = '#059669';
+  setTimeout(() => {
+    btn.textContent = '➕ Add to Log';
+    btn.style.background = '#16A34A';
+  }, 2000);
+}
+
 function doLogout() { currentUser = null; currentProfile = null; pendingAiFood = null; pendingBarcodeFood = null; clearSession(); stopScanner(); showScreen('screen-splash'); }
 
 
@@ -3368,14 +3486,18 @@ async function sendChat() {
     chatHistory.push({ role: 'assistant', content: aiText });
 
     // Check if AI has given a final estimate
-    const estimateMatch = aiText.match(/PROTEIN_ESTIMATE:\s*(\d+)g\s*-\s*(.+)/);
+    // Parse MACRO_ESTIMATE: [protein]g protein, [fat]g fat, [carbs]g carbs - [food name]
+    const estimateMatch = aiText.match(/MACRO_ESTIMATE:\s*(\d+)g protein,?\s*(\d+)g fat,?\s*(\d+)g carbs\s*-\s*(.+)/i);
     if (estimateMatch) {
       const protein = parseInt(estimateMatch[1]);
-      const foodName = estimateMatch[2].trim();
-      pendingChatFood = { name: foodName, protein };
-      // Show message without the tag line
-      const displayText = aiText.replace(/PROTEIN_ESTIMATE:[^\n]+/, '').trim();
-      addChatBubble(displayText + '\n\n🎯 Estimated protein: ' + protein + 'g for ' + foodName, 'ai');
+      const fat = parseInt(estimateMatch[2]);
+      const carbs = parseInt(estimateMatch[3]);
+      const foodName = estimateMatch[4].trim();
+      pendingChatFood = { name: foodName, protein, fat, carbs };
+      const displayText = aiText.replace(/MACRO_ESTIMATE:[^\n]+/i, '').trim();
+      addChatBubble(displayText, 'ai');
+      // Show editable breakdown like photo analyzer
+      showChatFoodBreakdown([pendingChatFood]);
       document.getElementById('chat-add-btn').style.display = 'block';
       document.getElementById('chat-input-row').style.display = 'none';
     } else {
@@ -3387,12 +3509,51 @@ async function sendChat() {
   }
 }
 
-function addChatFood() {
-  if (!pendingChatFood) return;
-  addFoodToLog(pendingChatFood.name, pendingChatFood.protein, pendingChatFood.fat||0, pendingChatFood.carbs||0);
+
+let pendingChatFoods = [];
+
+function showChatFoodBreakdown(foods) {
+  pendingChatFoods = foods;
+  const wrap = document.getElementById('chat-food-breakdown');
+  if (!wrap) return;
+  wrap.style.display = 'block';
+  wrap.innerHTML = `
+    <div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">Adjust if needed:</div>
+    ${foods.map((f,i) => `
+      <div style="background:#F9FAFB;border-radius:10px;padding:10px;margin-bottom:8px;">
+        <div style="display:flex;gap:8px;margin-bottom:6px;">
+          <input value="${f.name}" onchange="pendingChatFoods[${i}].name=this.value"
+            style="flex:1;border:1.5px solid #E5E7EB;border-radius:8px;padding:8px;font-size:14px;background:#fff;">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
+          <div><div style="font-size:10px;color:var(--muted);font-weight:600;margin-bottom:2px;">PROTEIN</div>
+          <input type="number" value="${f.protein||0}" onchange="pendingChatFoods[${i}].protein=parseFloat(this.value)||0"
+            style="width:100%;border:1.5px solid #16A34A;border-radius:8px;padding:6px;font-size:14px;font-weight:700;color:#16A34A;text-align:center;background:#fff;"></div>
+          <div><div style="font-size:10px;color:var(--muted);font-weight:600;margin-bottom:2px;">FAT</div>
+          <input type="number" value="${f.fat||0}" onchange="pendingChatFoods[${i}].fat=parseFloat(this.value)||0"
+            style="width:100%;border:1.5px solid #D97706;border-radius:8px;padding:6px;font-size:14px;font-weight:700;color:#D97706;text-align:center;background:#fff;"></div>
+          <div><div style="font-size:10px;color:var(--muted);font-weight:600;margin-bottom:2px;">CARBS</div>
+          <input type="number" value="${f.carbs||0}" onchange="pendingChatFoods[${i}].carbs=parseFloat(this.value)||0"
+            style="width:100%;border:1.5px solid #7C3AED;border-radius:8px;padding:6px;font-size:14px;font-weight:700;color:#7C3AED;text-align:center;background:#fff;"></div>
+        </div>
+      </div>`).join('')}
+    <div style="text-align:right;font-size:14px;font-weight:800;color:#16A34A;margin-top:4px;">
+      Protein: ${foods.reduce((a,f)=>a+(parseFloat(f.protein)||0),0)}g · Fat: ${foods.reduce((a,f)=>a+(parseFloat(f.fat)||0),0)}g · Carbs: ${foods.reduce((a,f)=>a+(parseFloat(f.carbs)||0),0)}g
+    </div>`;
+}
+
+async function addChatFood() {
+  const foods = pendingChatFoods.length > 0 ? pendingChatFoods : (pendingChatFood ? [pendingChatFood] : []);
+  if (!foods.length) return;
+  for (const food of foods) {
+    if (food.name) await addFoodToLog(food.name, food.protein||0, food.fat||0, food.carbs||0);
+  }
   // Reset chat
   chatHistory = [];
   pendingChatFood = null;
+  pendingChatFoods = [];
+  const breakdown = document.getElementById('chat-food-breakdown');
+  if (breakdown) { breakdown.style.display = 'none'; breakdown.innerHTML = ''; }
   document.getElementById('chat-wrap').innerHTML = '';
   document.getElementById('chat-wrap').classList.remove('open');
   document.getElementById('chat-input').placeholder = 'e.g. I ate a turkey sandwich...';
