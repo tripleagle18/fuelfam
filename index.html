@@ -539,14 +539,14 @@
 
       <!-- My Food History -->
       <div class="log-method">
-        <div class="method-header" onclick="toggleMethod('history-content')" style="cursor:pointer;">
+        <div class="method-header">
           <div class="method-icon" style="background:#F0FDF4;color:#16A34A;"><i class="ti ti-history"></i></div>
           <div>
             <div class="method-title">My Food History</div>
             <div class="method-sub">Search foods you have logged before</div>
           </div>
         </div>
-        <div id="history-content" style="display:none;margin-top:12px;">
+        <div id="history-content" style="margin-top:12px;">
           <div style="display:flex;gap:8px;margin-bottom:8px;">
             <input class="inp" id="history-search-input" placeholder="Search your past foods..." style="flex:1;margin-bottom:0;" oninput="searchFoodHistory()">
             <button onclick="searchFoodHistory()" style="padding:12px 16px;background:#16A34A;color:#fff;border:none;border-radius:var(--radius-sm);font-weight:700;cursor:pointer;">Search</button>
