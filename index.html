@@ -4418,7 +4418,7 @@ async function renderContestLeaderboard(contest) {
         const periodLogs = {};
         pContestLogs.filter(l => l.goal_name === g.name).forEach(l => {
           const ps = freqPeriod === 'day' ? l.log_date :
-                     freqPeriod === 'week' ? 'w' + l.log_date.slice(0,7) :
+                     freqPeriod === 'week' ? (() => { const d=new Date(l.log_date+'T12:00:00'),dy=d.getDay(),df=d.getDate()-(dy===0?6:dy-1),mn=new Date(d); mn.setDate(df); return mn.getFullYear()+'-'+String(mn.getMonth()+1).padStart(2,'0')+'-'+String(mn.getDate()).padStart(2,'0'); })() :
                      freqPeriod === 'month' ? l.log_date.slice(0,7) : 'all';
           periodLogs[ps] = Math.max(periodLogs[ps]||0, l.amount||0);
         });
