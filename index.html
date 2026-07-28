@@ -2185,19 +2185,62 @@ function toggleLbBreakdown(id) {
   el.style.display = isOpen ? 'none' : 'block';
 }
 
-function buildGoalLogUI(g, i, contestId, myLogs) {
+function buildGoalLogUI(g, i, contestId, myLogs, contest) {
   const today = getTodayKey();
 
   // NUMERIC goal - log entry for the currently viewed date
   if (g.goalInputType === 'numeric') {
     const viewDate = contestViewingDate || getTodayKey();
-    // Find existing log for THIS specific date
     const todayLog = (myLogs||[]).find(l => l.goal_name === g.name && l.log_date === viewDate);
     const todayAmount = todayLog ? todayLog.amount : 0;
     const dateLabel2 = viewDate === getTodayKey() ? 'today' : 'this day';
-    
+
+    // Pace tracker - only for contest-period numeric goals with dates available
+    let paceHtml = '';
+    if (g.freqPeriod === 'contest' && contest && contest.start_date && contest.end_date) {
+      const startD = new Date(contest.start_date + 'T12:00:00');
+      const endD = new Date(contest.end_date + 'T12:00:00');
+      const todayD = new Date(getTodayKey() + 'T12:00:00');
+      const totalDays = Math.max(1, Math.round((endD - startD) / 86400000));
+      const daysElapsed = Math.max(1, Math.round((todayD - startD) / 86400000) + 1);
+      const daysLeft = Math.max(0, Math.round((endD - todayD) / 86400000));
+      const target = g.target || 1;
+
+      // Total logged so far (all time for this contest)
+      const totalLogged = (myLogs||[]).filter(l => l.goal_name === g.name).reduce((s,l) => s+(l.amount||0), 0);
+
+      // On-pace target: what you should have by today
+      const onPaceTarget = Math.round((target / totalDays) * daysElapsed);
+      const deficit = onPaceTarget - totalLogged;
+      const isOnPace = totalLogged >= onPaceTarget;
+
+      // Steps/day needed to finish from here
+      const stepsPerDayToFinish = daysLeft > 0 ? Math.round((target - totalLogged) / daysLeft) : 0;
+      const dailyPace = Math.round(target / totalDays);
+
+      const paceColor = isOnPace ? '#16A34A' : '#EA580C';
+      const paceEmoji = isOnPace ? '✅' : '⚠️';
+      const paceMsg = isOnPace
+        ? 'You are on pace! ' + Math.round(totalLogged - onPaceTarget).toLocaleString() + ' ' + (g.unit||'') + ' ahead of schedule'
+        : Math.abs(deficit).toLocaleString() + ' ' + (g.unit||'') + ' behind pace';
+
+      paceHtml =
+        '<div style="background:#F8FAFC;border-radius:10px;padding:10px 12px;margin-top:10px;border-left:3px solid ' + paceColor + ';">' +
+          '<div style="font-size:12px;font-weight:800;color:' + paceColor + ';margin-bottom:6px;">' + paceEmoji + ' Pace Tracker</div>' +
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">' +
+            '<div style="font-size:11px;color:#6B7280;">Should have by today:<br><strong style="color:#1E1B4B;font-size:13px;">' + onPaceTarget.toLocaleString() + ' ' + (g.unit||'') + '</strong></div>' +
+            '<div style="font-size:11px;color:#6B7280;">Daily pace needed:<br><strong style="color:#1E1B4B;font-size:13px;">' + dailyPace.toLocaleString() + ' ' + (g.unit||'') + '/day</strong></div>' +
+          '</div>' +
+          '<div style="font-size:11px;color:' + paceColor + ';font-weight:600;margin-bottom:4px;">' + paceMsg + '</div>' +
+          (daysLeft > 0 && totalLogged < target
+            ? '<div style="font-size:11px;color:#6B7280;">To finish: <strong style="color:#EA580C;">' + stepsPerDayToFinish.toLocaleString() + ' ' + (g.unit||'') + '/day</strong> for the next ' + daysLeft + ' day' + (daysLeft !== 1 ? 's' : '') + '</div>'
+            : totalLogged >= target ? '<div style="font-size:11px;color:#16A34A;font-weight:700;">🎉 Goal complete!</div>' : '') +
+        '</div>';
+    }
+
     return '<div style="margin-top:10px;">' +
-      '<div style="font-size:12px;color:#6B7280;font-weight:600;margin-bottom:8px;">' +
+      paceHtml +
+      '<div style="font-size:12px;color:#6B7280;font-weight:600;margin-bottom:8px;margin-top:10px;">' +
         'Log your ' + (g.unit||'amount') + ' for ' + dateLabel2 + ':' +
       '</div>' +
       '<div style="display:flex;gap:8px;">' +
@@ -2432,7 +2475,7 @@ async function renderContestChallenge(contestId) {
         '<div style="background:#F3F4F6;border-radius:20px;height:10px;overflow:hidden;' + (!g.autoFromProfile?'margin-bottom:10px;':'') + '">' +
           '<div style="width:' + pct + '%;height:100%;border-radius:20px;background:linear-gradient(90deg,#16A34A,#EA580C);"></div>' +
         '</div>' +
-        (g.autoFromProfile ? '' : buildGoalLogUI(g, i, contestId, myLogs)) +
+        (g.autoFromProfile ? '' : buildGoalLogUI(g, i, contestId, myLogs, contest)) +
       '</div>';
     }).join('');
 
