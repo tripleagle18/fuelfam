@@ -453,6 +453,14 @@
         </button>
       </div>
 
+      <!-- Daily check-in open button (shows when check-in available but dismissed) -->
+      <div id="checkin-open-btn" style="display:none;margin:12px 16px 0;">
+        <button onclick="document.getElementById('daily-checkin-banner').style.display='block';document.getElementById('checkin-open-btn').style.display='none';"
+          style="width:100%;padding:12px 16px;background:linear-gradient(135deg,#1E1B4B,#2563EB);color:#fff;border:none;border-radius:14px;font-weight:700;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+          🌅 Complete Today's Health Check-in <span style="font-size:12px;opacity:0.8;">(up to +12 pts)</span>
+        </button>
+      </div>
+
       <!-- Height missing banner -->
       <div id="height-missing-banner" style="display:none;margin:12px 16px 0;background:linear-gradient(135deg,#2563EB,#7C3AED);border-radius:16px;padding:14px 16px;color:#fff;">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
@@ -1279,6 +1287,7 @@ async function renderHome() {
     const l = document.getElementById('my-contests-list');
     if (l) l.innerHTML = '<div style="padding:12px;color:#EF4444;font-size:13px;">Error: ' + e.message + '</div>';
   }
+  checkDailyCheckin();
 }
 
 
@@ -3261,8 +3270,11 @@ async function checkDailyCheckin() {
   // After 5pm MST, don't show
   if (hour >= 17) {
     document.getElementById('daily-checkin-banner').style.display = 'none';
+    document.getElementById('checkin-open-btn').style.display = 'none';
     return;
   }
+  // Show the open button on home screen
+  document.getElementById('checkin-open-btn').style.display = 'block';
 
   // Check if already completed today
   const { data: log } = await sb.from('daily_logs').select('checkin_sleep,checkin_eating,checkin_strength')
@@ -3325,8 +3337,8 @@ function highlightCheckinBtn(btn) {
 }
 
 function skipDailyCheckin() {
-  sessionStorage.setItem('checkin-skipped-' + getTodayKey(), '1');
   document.getElementById('daily-checkin-banner').style.display = 'none';
+  document.getElementById('checkin-open-btn').style.display = 'block';
 }
 
 async function submitDailyCheckin() {
