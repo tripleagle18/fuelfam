@@ -2106,8 +2106,7 @@ async function renderMemberProgress() {
     let totalPts = 0;
 
     // Add daily check-in bonus pts to today's total
-    const checkinDayLogs = (allContestLogs||[]).filter(l =>
-      l.user_id === currentUser &&
+    const checkinDayLogs = (memberContestLogs||[]).filter(l =>
       l.goal_name === '__daily_checkin__' &&
       l.log_date === displayDate
     );
@@ -2466,8 +2465,7 @@ async function renderContestChallenge(contestId) {
     let totalPts = 0;
 
     // Add daily check-in bonus pts to today's total
-    const checkinDayLogs = (allContestLogs||[]).filter(l =>
-      l.user_id === currentUser &&
+    const checkinDayLogs = (myLogs||[]).filter(l =>
       l.goal_name === '__daily_checkin__' &&
       l.log_date === displayDate
     );
