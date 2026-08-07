@@ -2105,6 +2105,15 @@ async function renderMemberProgress() {
     const resolvedGoals = (contest.goals||[]).map(resolveGoalForMember);
     let totalPts = 0;
 
+    // Add daily check-in bonus pts to today's total
+    const checkinDayLogs = (allContestLogs||[]).filter(l =>
+      l.user_id === currentUser &&
+      l.goal_name === '__daily_checkin__' &&
+      l.log_date === displayDate
+    );
+    const checkinDayPts = checkinDayLogs.reduce((s, l) => s + (l.amount||0), 0);
+    totalPts += checkinDayPts;
+
     const goalCards = resolvedGoals.map((g, i) => {
       let logged = 0;
       if (g.autoFromProfile && memberDailyLog) {
@@ -2455,6 +2464,15 @@ async function renderContestChallenge(contestId) {
     const { data: dailyLog } = await sb.from('daily_logs').select('*').eq('user_id', currentUser).eq('log_date', displayDate).maybeSingle();
     const defaultTiers = [{points:10,pct:100},{points:7,pct:90},{points:3,pct:75}]; // fallback
     let totalPts = 0;
+
+    // Add daily check-in bonus pts to today's total
+    const checkinDayLogs = (allContestLogs||[]).filter(l =>
+      l.user_id === currentUser &&
+      l.goal_name === '__daily_checkin__' &&
+      l.log_date === displayDate
+    );
+    const checkinDayPts = checkinDayLogs.reduce((s, l) => s + (l.amount||0), 0);
+    totalPts += checkinDayPts;
 
     const goalCards = resolvedGoals.map((g, i) => {
       let logged = 0;
@@ -3990,7 +4008,7 @@ async function sendPhotoChat() {
 function handlePhotoChatResponse(text) {
   photoChatHistory.push({ role: 'assistant', content: text });
   // Check for food breakdown JSON
-  const jsonMatch = text.match(/FOOD_BREAKDOWN_JSON:\s*([\s\S]*?)(?:\n\n|$)/);
+  const jsonMatch = text.match(/FOOD_BREAKDOWN_JSON:\s*(\[\s*[\s\S]*?\])/m);
   if (jsonMatch) {
     try {
       const foods = JSON.parse(jsonMatch[1].trim());
