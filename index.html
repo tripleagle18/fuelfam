@@ -405,61 +405,9 @@
         <button onclick="saveWeightCheckin()" style="width:100%;padding:12px;background:#fff;color:#16A34A;border:none;border-radius:10px;font-weight:800;font-size:15px;cursor:pointer;">Update my goals ✓</button>
       </div>
 
-      <!-- Daily Health Check-in Banner -->
-      <div id="daily-checkin-banner" style="display:none;margin:12px 16px 0;background:linear-gradient(135deg,#1E1B4B,#2563EB);border-radius:16px;padding:16px;color:#fff;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-          <div style="display:flex;align-items:center;gap:10px;">
-            <span style="font-size:24px;">🌅</span>
-            <div>
-              <div style="font-size:16px;font-weight:800;">Daily Health Check-in</div>
-              <div style="font-size:12px;opacity:0.8;">Answer by 5pm MT · Up to 12 bonus pts</div>
-            </div>
-          </div>
-          <button onclick="skipDailyCheckin()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer;">Later</button>
-        </div>
 
-        <!-- Q1: Sleep -->
-        <div style="background:rgba(255,255,255,0.1);border-radius:12px;padding:12px;margin-bottom:10px;">
-          <div style="font-size:14px;font-weight:700;margin-bottom:4px;">Did you get 7–9 hours of sleep last night?</div>
-          <div style="font-size:11px;opacity:0.75;margin-bottom:10px;line-height:1.4;">The AHA recognized healthy sleep as a key component of cardiovascular health in its Life's Essential 8 framework. Adults should aim for 7–9 hours of sleep per night.</div>
-          <div style="display:flex;gap:8px;">
-            <button class="checkin-btn" data-q="sleep" data-val="yes" onclick="selectCheckinAnswer(this)" style="flex:1;padding:10px;background:rgba(255,255,255,0.15);border:2px solid rgba(255,255,255,0.3);border-radius:10px;color:#fff;font-weight:700;font-size:15px;cursor:pointer;">✅ Yes <span style="font-size:11px;opacity:0.8;">(+5 pts)</span></button>
-            <button class="checkin-btn" data-q="sleep" data-val="no" onclick="selectCheckinAnswer(this)" style="flex:1;padding:10px;background:rgba(255,255,255,0.15);border:2px solid rgba(255,255,255,0.3);border-radius:10px;color:#fff;font-weight:700;font-size:15px;cursor:pointer;">❌ No</button>
-          </div>
-        </div>
-
-        <!-- Q2: Eating before bed -->
-        <div style="background:rgba(255,255,255,0.1);border-radius:12px;padding:12px;margin-bottom:10px;">
-          <div style="font-size:14px;font-weight:700;margin-bottom:4px;">Did you stop eating 1.5–2 hours before falling asleep?</div>
-          <div style="font-size:11px;opacity:0.75;margin-bottom:10px;line-height:1.4;">An NEJM review on sleep health recommends avoiding meals close to bedtime, aiming to eat 1.5 to 2 hours before sleep.</div>
-          <div style="display:flex;gap:8px;">
-            <button class="checkin-btn" data-q="eating" data-val="yes" onclick="selectCheckinAnswer(this)" style="flex:1;padding:10px;background:rgba(255,255,255,0.15);border:2px solid rgba(255,255,255,0.3);border-radius:10px;color:#fff;font-weight:700;font-size:15px;cursor:pointer;">✅ Yes <span style="font-size:11px;opacity:0.8;">(+5 pts)</span></button>
-            <button class="checkin-btn" data-q="eating" data-val="no" onclick="selectCheckinAnswer(this)" style="flex:1;padding:10px;background:rgba(255,255,255,0.15);border:2px solid rgba(255,255,255,0.3);border-radius:10px;color:#fff;font-weight:700;font-size:15px;cursor:pointer;">❌ No</button>
-          </div>
-        </div>
-
-        <!-- Q3: Strength training -->
-        <div style="background:rgba(255,255,255,0.1);border-radius:12px;padding:12px;margin-bottom:12px;">
-          <div style="font-size:14px;font-weight:700;margin-bottom:4px;">Did you do any strength training yesterday?</div>
-          <div style="font-size:11px;opacity:0.75;margin-bottom:10px;line-height:1.4;">Adults who participate in resistance training have approximately 15% lower risk of all-cause mortality and 17% lower risk of CVD compared with those who do no resistance training.</div>
-          <div style="display:flex;gap:8px;">
-            <button class="checkin-btn" data-q="strength" data-val="yes" onclick="selectCheckinAnswer(this)" style="flex:1;padding:10px;background:rgba(255,255,255,0.15);border:2px solid rgba(255,255,255,0.3);border-radius:10px;color:#fff;font-weight:700;font-size:15px;cursor:pointer;">✅ Yes <span style="font-size:11px;opacity:0.8;">(+2 pts)</span></button>
-            <button class="checkin-btn" data-q="strength" data-val="no" onclick="selectCheckinAnswer(this)" style="flex:1;padding:10px;background:rgba(255,255,255,0.15);border:2px solid rgba(255,255,255,0.3);border-radius:10px;color:#fff;font-weight:700;font-size:15px;cursor:pointer;">❌ No</button>
-          </div>
-        </div>
-
-        <button onclick="submitDailyCheckin()" id="checkin-submit-btn" style="width:100%;padding:14px;background:#fff;color:#1E1B4B;border:none;border-radius:12px;font-weight:900;font-size:16px;cursor:pointer;">
-          Submit Check-in ✓
-        </button>
-      </div>
-
-      <!-- Daily check-in open button (shows when check-in available but dismissed) -->
-      <div id="checkin-open-btn" style="display:none;margin:12px 16px 0;">
-        <button onclick="document.getElementById('daily-checkin-banner').style.display='block';document.getElementById('checkin-open-btn').style.display='none';"
-          style="width:100%;padding:12px 16px;background:linear-gradient(135deg,#1E1B4B,#2563EB);color:#fff;border:none;border-radius:14px;font-weight:700;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
-          🌅 Complete Today's Health Check-in <span style="font-size:12px;opacity:0.8;">(up to +12 pts)</span>
-        </button>
-      </div>
+      <!-- Custom Goal Check-ins banner -->
+      <div id="goal-checkin-banner" style="display:none;margin:12px 16px 0;"></div>
 
       <!-- Height missing banner -->
       <div id="height-missing-banner" style="display:none;margin:12px 16px 0;background:linear-gradient(135deg,#2563EB,#7C3AED);border-radius:16px;padding:14px 16px;color:#fff;">
@@ -682,7 +630,7 @@
       <div id="challenge-tabs-scroll" style="display:flex;gap:10px;padding:0 16px 16px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;">
         <div onclick="selectChallengeTab('global')" id="ctab-global"
           style="flex-shrink:0;padding:8px 18px;border-radius:20px;font-size:14px;font-weight:700;cursor:pointer;background:#fff;color:#16A34A;white-space:nowrap;">
-          ⚡ Global
+          📓 Food Journal
         </div>
       </div>
     </div>
@@ -1287,7 +1235,7 @@ async function renderHome() {
     const l = document.getElementById('my-contests-list');
     if (l) l.innerHTML = '<div style="padding:12px;color:#EF4444;font-size:13px;">Error: ' + e.message + '</div>';
   }
-  checkDailyCheckin();
+  renderGoalCheckinBanner();
 }
 
 
@@ -1604,7 +1552,7 @@ async function loadChallengesTab() {
   // Build scroll tabs
   scroll.innerHTML = `<div onclick="selectChallengeTab('global')" id="ctab-global"
     style="flex-shrink:0;padding:8px 18px;border-radius:20px;font-size:14px;font-weight:700;cursor:pointer;background:#fff;color:#16A34A;white-space:nowrap;">
-    ⚡ Global
+    📓 Food Journal
   </div>` + contests.map(c =>
     `<div onclick="selectChallengeTab('${c.id}')" id="ctab-${c.id}"
       style="flex-shrink:0;padding:8px 18px;border-radius:20px;font-size:14px;font-weight:700;cursor:pointer;background:rgba(255,255,255,0.25);color:#fff;white-space:nowrap;">
@@ -1645,23 +1593,22 @@ async function selectChallengeTab(tabId) {
 
   setupCheckboxDelegation();
   if (tabId === 'global') {
-    await renderGlobalChallenge();
+    await renderFoodJournal();
   } else {
     contestViewingDate = null;
     await renderContestChallenge(tabId);
   }
 }
 
-let globalViewingDate = null;
+let journalViewingDate = null;
 let contestViewingDate = null;
 
-async function renderGlobalChallenge() {
+async function renderFoodJournal() {
   const contentEl = document.getElementById('challenge-content');
   contentEl.innerHTML = '<div class="loading"><span class="dot-spin"></span></div>';
   const today = getTodayKey();
-  const displayDate = globalViewingDate || today;
+  const displayDate = journalViewingDate || today;
   const isToday = displayDate === today;
-  const wk = getWeekKey();
   const goals = calcGoals(currentProfile);
 
   const { data: myLog } = await sb.from('daily_logs').select('*').eq('user_id', currentUser).eq('log_date', displayDate).maybeSingle();
@@ -1671,48 +1618,15 @@ async function renderGlobalChallenge() {
   const carbs = myLog?.carbs || 0;
   const foods = myLog?.foods || [];
 
-  // Scoring for each macro
-  const defaultTiers = [{points:10,pct:100},{points:7,pct:90},{points:5,pct:75},{points:2,pct:50}];
-  function getTierPts(logged, goal, type) {
-    const pct = goal > 0 ? (logged/goal)*100 : 0;
-    const pts = calcMacroPts(type, logged, goal, defaultTiers);
-    return { pts, pct: Math.round(pct) };
-  }
-  const proteinScore = getTierPts(protein, goals.protein, 'protein');
-  const waterScore = getTierPts(water, goals.water, 'water');
-  const fatScore = getTierPts(fat, goals.fat || 1, 'fat');
-  const carbScore = getTierPts(carbs, goals.carbs || 1, 'carbs');
-  const dayPts = proteinScore.pts + waterScore.pts + fatScore.pts + carbScore.pts;
-
   // Date nav label
   const dateLabel = isToday ? 'Today' : new Date(displayDate + 'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
 
-  // Get all users for leaderboard
-  const { data: allProfiles } = await sb.from('profiles').select('id,name,weight,age,activity,goal,height_inches,sex');
-  const { data: weekLogs } = await sb.from('daily_logs').select('*').gte('log_date', wk);
-  const { data: dayLogs } = await sb.from('daily_logs').select('*').eq('log_date', displayDate);
-
-  const ranked = (allProfiles||[]).map(p => {
-    const g = calcGoals(p);
-    const logs = (weekLogs||[]).filter(l => l.user_id === p.id);
-    let pts = 0;
-    logs.forEach(l => {
-      pts += getTierPts(l.protein||0, g.protein).pts;
-      pts += getTierPts(l.water||0, g.water).pts;
-    });
-    const dayLog = (dayLogs||[]).find(l => l.user_id === p.id) || {};
-    return { ...p, pts, dayLog, goals: g };
-  }).sort((a,b) => b.pts - a.pts);
-  const medals = ['🥇','🥈','🥉'];
-
-  function macroRow(emoji, label, logged, goal, score, color, gradient, unit) {
+  function macroRow(emoji, label, logged, goal, color, gradient, unit) {
     unit = unit || 'g';
-    const barPct = Math.min(100, Math.round(logged/goal*100));
+    const pct = goal > 0 ? Math.round(logged/goal*100) : 0;
+    const barPct = Math.min(100, pct);
     return '<div style="background:#fff;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">' +
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
-        '<div style="font-size:15px;font-weight:700;">' + emoji + ' ' + label + '</div>' +
-        '<div style="background:' + (score.pts < 0 ? '#FEE2E2' : '#F0FDF4') + ';border-radius:20px;padding:4px 10px;font-size:13px;font-weight:800;color:' + (score.pts < 0 ? '#991B1B' : '#16A34A') + ';">' + (score.pts >= 0 ? '+' : '') + score.pts + ' pts</div>' +
-      '</div>' +
+      '<div style="font-size:15px;font-weight:700;margin-bottom:8px;">' + emoji + ' ' + label + '</div>' +
       '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;text-align:center;">' +
         '<div style="background:#F9FAFB;border-radius:10px;padding:8px;">' +
           '<div style="font-size:11px;color:#6B7280;font-weight:600;text-transform:uppercase;">Goal</div>' +
@@ -1724,7 +1638,7 @@ async function renderGlobalChallenge() {
         '</div>' +
         '<div style="background:#F9FAFB;border-radius:10px;padding:8px;">' +
           '<div style="font-size:11px;color:#6B7280;font-weight:600;text-transform:uppercase;">% of Goal</div>' +
-          '<div style="font-size:16px;font-weight:800;color:' + color + ';">' + score.pct + '%</div>' +
+          '<div style="font-size:16px;font-weight:800;color:' + color + ';">' + pct + '%</div>' +
         '</div>' +
       '</div>' +
       '<div style="background:#F3F4F6;border-radius:20px;height:10px;overflow:hidden;">' +
@@ -1735,20 +1649,19 @@ async function renderGlobalChallenge() {
 
   contentEl.innerHTML =
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;background:#fff;border-radius:14px;padding:12px 16px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">' +
-      '<button onclick="changeGlobalDay(-1)" style="background:#F0FDF4;border:none;border-radius:10px;padding:8px 14px;font-size:18px;cursor:pointer;color:#16A34A;">‹</button>' +
+      '<button onclick="changeJournalDay(-1)" style="background:#F0FDF4;border:none;border-radius:10px;padding:8px 14px;font-size:18px;cursor:pointer;color:#16A34A;">‹</button>' +
       '<div style="text-align:center;">' +
         '<div style="font-size:15px;font-weight:800;">' + dateLabel + '</div>' +
-        '<div style="font-size:12px;color:#6B7280;">' + dayPts + ' pts earned</div>' +
       '</div>' +
-      '<button onclick="changeGlobalDay(1)" style="background:' + (isToday?'#F9FAFB':'#F0FDF4') + ';border:none;border-radius:10px;padding:8px 14px;font-size:18px;cursor:pointer;color:' + (isToday?'#D1D5DB':'#16A34A') + ';" ' + (isToday?'disabled':'') + '>›</button>' +
+      '<button onclick="changeJournalDay(1)" style="background:' + (isToday?'#F9FAFB':'#F0FDF4') + ';border:none;border-radius:10px;padding:8px 14px;font-size:18px;cursor:pointer;color:' + (isToday?'#D1D5DB':'#16A34A') + ';" ' + (isToday?'disabled':'') + '>›</button>' +
     '</div>' +
 
     // Macro cards
-    '<div style="margin-bottom:4px;font-size:13px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:0.5px;">Progress</div>' +
-    macroRow('🥩','Protein', protein, goals.protein, proteinScore, '#16A34A', 'linear-gradient(90deg,#16A34A,#EA580C)') +
-    macroRow('🧈','Fat', fat, goals.fat||70, fatScore, '#D97706', 'linear-gradient(90deg,#D97706,#F59E0B)') +
-    macroRow('🌾','Carbs', carbs, goals.carbs||200, carbScore, '#7C3AED', 'linear-gradient(90deg,#7C3AED,#A78BFA)') +
-    macroRow('💧','Water (oz)', water, goals.water, waterScore, '#2563EB', 'linear-gradient(90deg,#2563EB,#38BDF8)', 'oz') +
+    '<div style="margin-bottom:4px;font-size:13px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:0.5px;">Today\'s Nutrition</div>' +
+    macroRow('🥩','Protein', protein, goals.protein, '#16A34A', 'linear-gradient(90deg,#16A34A,#EA580C)') +
+    macroRow('🧈','Fat', fat, goals.fat||70, '#D97706', 'linear-gradient(90deg,#D97706,#F59E0B)') +
+    macroRow('🌾','Carbs', carbs, goals.carbs||200, '#7C3AED', 'linear-gradient(90deg,#7C3AED,#A78BFA)') +
+    macroRow('💧','Water (oz)', water, goals.water, '#2563EB', 'linear-gradient(90deg,#2563EB,#38BDF8)', 'oz') +
 
     // Food log with edit/delete
     '<div style="background:#fff;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">' +
@@ -1780,34 +1693,16 @@ async function renderGlobalChallenge() {
     '</div>' +
 
     // Quick log buttons (today only)
-    (isToday ? '<div style="display:flex;gap:10px;margin-bottom:14px;">' +
+    (isToday ? '<div style="display:flex;gap:10px;">' +
       '<button onclick="goToLogTab()" style="flex:1;padding:14px;background:#DCFCE7;color:#16A34A;border:none;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer;">+ Log Food</button>' +
       '<button onclick="openWaterModal()" style="flex:1;padding:14px;background:#DBEAFE;color:#2563EB;border:none;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer;">💧 Log Water</button>' +
-    '</div>' : '') +
-
-    // Leaderboard for this day
-    '<div style="background:#fff;border-radius:14px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">' +
-      '<div style="font-size:15px;font-weight:800;margin-bottom:4px;">⚡ ' + (isToday?'Week':'Day') + ' Leaderboard</div>' +
-      '<div style="font-size:12px;color:#6B7280;margin-bottom:12px;">' + (isToday ? 'Week of ' + formatDateLabel(wk) + ' · Resets Monday' : dateLabel) + '</div>' +
-      ranked.map((p,i) => {
-        const dLog = p.dayLog || {};
-        const dPts = getTierPts(dLog.protein||0,p.goals.protein).pts + getTierPts(dLog.water||0,p.goals.water).pts;
-        return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #F3F4F6;' + (p.id===currentUser?'background:#F0FDF4;margin:0 -14px;padding:10px 14px;':'') + '">' +
-          '<div style="font-size:20px;min-width:28px;">' + (medals[i]||'#'+(i+1)) + '</div>' +
-          '<div style="flex:1;">' +
-            '<div style="font-weight:700;font-size:14px;">' + p.name + (p.id===currentUser?' (you)':'') + '</div>' +
-            '<div style="font-size:11px;color:#6B7280;">' + (isToday ? p.pts + ' week pts' : dPts + ' pts this day') + '</div>' +
-          '</div>' +
-          '<div style="font-size:16px;font-weight:800;color:#16A34A;">' + (isToday ? p.pts : dPts) + ' pts</div>' +
-        '</div>';
-      }).join('') +
-    '</div>';
+    '</div>' : '');
 }
 
 
 // ─── CHALLENGE DAY EDITING ────────────────────────────────────────────────
 async function editFoodInChallenge(index) {
-  const displayDate = globalViewingDate || getTodayKey();
+  const displayDate = journalViewingDate || getTodayKey();
   const { data: log } = await sb.from('daily_logs').select('*').eq('user_id', currentUser).eq('log_date', displayDate).maybeSingle();
   if (!log) return;
   const foods = log.foods || [];
@@ -1838,7 +1733,7 @@ async function editFoodInChallenge(index) {
 }
 
 async function saveFoodEditChallenge(index) {
-  const displayDate = globalViewingDate || getTodayKey();
+  const displayDate = journalViewingDate || getTodayKey();
   const newProtein = parseFloat(document.getElementById('edit-challenge-protein').value) || 0;
   const newFat = parseFloat(document.getElementById('edit-challenge-fat').value) || 0;
   const newCarbs = parseFloat(document.getElementById('edit-challenge-carbs').value) || 0;
@@ -1857,12 +1752,12 @@ async function saveFoodEditChallenge(index) {
     carbs: Math.max(0, (log.carbs||0) + carbsDiff)
   }).eq('id', log.id);
   closeEditModal();
-  renderGlobalChallenge();
+  renderFoodJournal();
 }
 
 async function deleteFoodInChallenge(index) {
   if (!confirm('Delete this food item?')) return;
-  const displayDate = globalViewingDate || getTodayKey();
+  const displayDate = journalViewingDate || getTodayKey();
   const { data: log } = await sb.from('daily_logs').select('*').eq('user_id', currentUser).eq('log_date', displayDate).maybeSingle();
   if (!log) return;
   const foods = log.foods || [];
@@ -1873,19 +1768,19 @@ async function deleteFoodInChallenge(index) {
     fat: Math.max(0, (log.fat||0) - (removed.fat||0)),
     carbs: Math.max(0, (log.carbs||0) - (removed.carbs||0))
   }).eq('id', log.id);
-  renderGlobalChallenge();
+  renderFoodJournal();
 }
 
 async function updateWaterInChallenge() {
   const oz = parseFloat(document.getElementById('challenge-water-edit')?.value) || 0;
-  const displayDate = globalViewingDate || getTodayKey();
+  const displayDate = journalViewingDate || getTodayKey();
   const { data: log } = await sb.from('daily_logs').select('*').eq('user_id', currentUser).eq('log_date', displayDate).maybeSingle();
   if (log) {
     await sb.from('daily_logs').update({ water: oz }).eq('id', log.id);
   } else {
     await sb.from('daily_logs').insert({ user_id: currentUser, log_date: displayDate, protein: 0, water: oz, fat: 0, carbs: 0, foods: [] });
   }
-  renderGlobalChallenge();
+  renderFoodJournal();
 }
 
 function closeEditModal() { const m = document.getElementById('food-edit-modal'); if (m) m.remove(); }
@@ -1901,15 +1796,15 @@ function changeContestDay(delta) {
   renderContestChallenge(currentContestId);
 }
 
-function changeGlobalDay(delta) {
+function changeJournalDay(delta) {
   const today = getTodayKey();
-  const base = globalViewingDate || today;
+  const base = journalViewingDate || today;
   const d = new Date(base + 'T12:00:00');
   d.setDate(d.getDate() + delta);
   const newDate = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
   if (newDate > today) return;
-  globalViewingDate = newDate === today ? null : newDate;
-  renderGlobalChallenge();
+  journalViewingDate = newDate === today ? null : newDate;
+  renderFoodJournal();
 }
 
 
@@ -2133,13 +2028,9 @@ async function renderMemberProgress() {
           logged = numPl.reduce((sum, l) => sum + (l.amount||0), 0);
         } else {
           const freqPeriod = g.freqPeriod || 'day';
-          const ps = getPeriodStart(freqPeriod);
-          const pl = (memberContestLogs||[]).filter(l => {
-            if (l.goal_name !== g.name) return false;
-            if (freqPeriod === 'day') return l.log_date === displayDate;
-            return l.log_date >= ps;
-          });
-          logged = pl.length > 0 ? Math.max(...pl.map(l => l.amount||0)) : 0;
+          const periodKey = getPeriodKeyForDate(displayDate, freqPeriod, contest);
+          const rec = (memberContestLogs||[]).find(l => l.goal_name === g.name && l.log_date === periodKey);
+          logged = rec ? (rec.amount||0) : 0;
           g = { ...g, target: g.freqNum || g.target || 1, unit: 'x' };
         }
       }
@@ -2316,38 +2207,45 @@ function buildGoalLogUI(g, i, contestId, myLogs, contest) {
     '</div>';
   }
 
-  // CHECKBOX goal - existing logic
+  // CHECKBOX goal - periodic questionnaire model
   const freqPeriod = g.freqPeriod || 'day';
   const freqNum = g.freqNum || 1;
-  const periodStart = getPeriodStart(freqPeriod) || today;
+  const goalTiersForPts = g.tiers && g.tiers.length > 0 ? g.tiers : (contest && contest.scoring_tiers && contest.scoring_tiers.length > 0 ? contest.scoring_tiers : [{points:10,pct:100}]);
+  const ptsForGoal = goalTiersForPts[0]?.points || 10;
+  const goalLogs = (myLogs||[]).filter(l => l.goal_name === g.name);
 
-  const periodLogs = (myLogs||[]).filter(l => {
-    if (l.goal_name !== g.name) return false;
-    if (freqPeriod === 'day') return l.log_date === today;
-    return l.log_date >= periodStart;
-  });
-  const completedCount = periodLogs.length > 0 ? Math.max(...periodLogs.map(l => l.amount||0)) : 0;
+  // Is there a pending, unanswered check-in for this goal right now?
+  const pendingInfo = computePendingPeriod(freqPeriod, contest);
+  const alreadyAnswered = pendingInfo && goalLogs.some(l => l.log_date === pendingInfo.periodKey);
 
-  const checkboxes = Array.from({length: freqNum}, (_, idx) => {
-    const checked = idx < completedCount;
-    return '<div class="challenge-checkbox"' +
-      ' data-cid="' + contestId + '"' +
-      ' data-gname="' + g.name + '"' +
-      ' data-idx="' + idx + '"' +
-      ' data-total="' + freqNum + '"' +
-      ' data-period="' + freqPeriod + '"' +
-      ' data-count="' + completedCount + '"' +
-      ' style="width:44px;height:44px;border-radius:10px;border:2px solid ' + (checked?'#16A34A':'#D1D5DB') + ';background:' + (checked?'#16A34A':'#fff') + ';display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:20px;">' +
-      (checked ? '✓' : '') +
+  if (pendingInfo && !alreadyAnswered) {
+    const inputId = 'glg-count-' + contestId + '-' + i;
+    const safeName = g.name.replace(/'/g, "\\'");
+    return '<div style="margin-top:10px;background:#FFFBEB;border:1.5px solid #FDE68A;border-radius:12px;padding:12px;">' +
+      '<div style="font-size:12px;font-weight:700;color:#92400E;margin-bottom:8px;">🌅 Check-in ready: ' + pendingInfo.periodLabel + ' — answer by 5pm MT</div>' +
+      (freqNum <= 1
+        ? '<div style="display:flex;gap:8px;">' +
+            '<button onclick="submitCustomCheckin(\'' + contestId + '\',\'' + safeName + '\',\'' + pendingInfo.periodKey + '\',' + freqNum + ',' + ptsForGoal + ',1)" style="flex:1;padding:10px;background:#16A34A;color:#fff;border:none;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;">✅ Yes (+' + ptsForGoal + ' pts)</button>' +
+            '<button onclick="submitCustomCheckin(\'' + contestId + '\',\'' + safeName + '\',\'' + pendingInfo.periodKey + '\',' + freqNum + ',' + ptsForGoal + ',0)" style="flex:1;padding:10px;background:#F3F4F6;color:#6B7280;border:none;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;">❌ No</button>' +
+          '</div>'
+        : '<div style="display:flex;gap:8px;align-items:center;">' +
+            '<input type="number" id="' + inputId + '" min="0" max="' + freqNum + '" placeholder="0-' + freqNum + '" style="width:70px;padding:8px;border-radius:8px;border:1.5px solid #D97706;font-size:15px;font-weight:700;text-align:center;">' +
+            '<span style="font-size:12px;color:#92400E;">of ' + freqNum + '</span>' +
+            '<button onclick="submitCustomCheckin(\'' + contestId + '\',\'' + safeName + '\',\'' + pendingInfo.periodKey + '\',' + freqNum + ',' + ptsForGoal + ',parseInt(document.getElementById(\'' + inputId + '\').value)||0)" style="margin-left:auto;padding:8px 16px;background:#D97706;color:#fff;border:none;border-radius:8px;font-weight:800;font-size:13px;cursor:pointer;">Save</button>' +
+          '</div>'
+      ) +
     '</div>';
-  }).join('');
+  }
 
-  return '<div style="margin-top:10px;">' +
-    '<div style="font-size:12px;color:#6B7280;font-weight:600;margin-bottom:8px;">' + completedCount + ' of ' + freqNum + ' completed this ' + freqPeriod + '</div>' +
-    '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">' +
-      checkboxes +
-      '<span style="font-size:13px;color:#6B7280;margin-left:4px;">per ' + freqPeriod + '</span>' +
-    '</div>' +
+  // No pending check-in right now — show the most recent recorded result, read-only
+  const lastLog = goalLogs.length > 0 ? goalLogs.reduce((a,b) => a.log_date > b.log_date ? a : b) : null;
+  if (!lastLog) {
+    return '<div style="margin-top:10px;font-size:12px;color:#9CA3AF;font-style:italic;">No check-ins yet — you\'ll be asked to confirm after each ' + freqPeriod + ' ends.</div>';
+  }
+  const completed = (lastLog.amount||0) >= freqNum;
+  return '<div style="margin-top:10px;font-size:12px;color:' + (completed?'#16A34A':'#9CA3AF') + ';font-weight:600;">' +
+    (completed ? '✅ Completed' : '❌ Missed') + ' — ' + (freqNum > 1 ? (lastLog.amount||0) + ' of ' + freqNum + ' — ' : '') +
+    'period starting ' + lastLog.log_date +
   '</div>';
 }
 
@@ -2405,6 +2303,154 @@ function getPeriodStart(period) {
     return now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-01';
   }
   return null; // whole contest
+}
+
+function fmtDate(dt) {
+  return dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0') + '-' + String(dt.getDate()).padStart(2,'0');
+}
+
+// Given a date string and a goal's frequency, returns the period "key" (period start date) it falls into
+function getPeriodKeyForDate(dateStr, freqPeriod, contest) {
+  if (freqPeriod === 'day') return dateStr;
+  const d = new Date(dateStr + 'T12:00:00');
+  if (freqPeriod === 'week') {
+    const dow = d.getDay();
+    const diff = d.getDate() - (dow === 0 ? 6 : dow - 1);
+    const mon = new Date(d); mon.setDate(diff);
+    return fmtDate(mon);
+  }
+  if (freqPeriod === 'month') return dateStr.slice(0,7) + '-01';
+  if (freqPeriod === 'contest') return (contest && contest.end_date) || dateStr;
+  return dateStr;
+}
+
+// Finds the most recently-completed period for a goal, if it's still within its answer window
+// (available until 5pm MT the day after the period ends). Returns null if nothing is pending.
+function computePendingPeriod(freqPeriod, contest) {
+  const hour = getMSTHour();
+  if (hour >= 17) return null; // past today's 5pm MT deadline
+  const now = new Date();
+
+  if (freqPeriod === 'day') {
+    const y = new Date(now); y.setDate(y.getDate() - 1);
+    return { periodKey: fmtDate(y), periodLabel: 'yesterday, ' + y.toLocaleDateString('en-US',{month:'short',day:'numeric'}) };
+  }
+  if (freqPeriod === 'week') {
+    if (now.getDay() !== 1) return null; // only pending on Monday
+    const lastWeekStart = new Date(now); lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+    const lastWeekEnd = new Date(now); lastWeekEnd.setDate(lastWeekEnd.getDate() - 1);
+    return { periodKey: fmtDate(lastWeekStart), periodLabel: 'last week (' + lastWeekStart.toLocaleDateString('en-US',{month:'short',day:'numeric'}) + '–' + lastWeekEnd.toLocaleDateString('en-US',{month:'short',day:'numeric'}) + ')' };
+  }
+  if (freqPeriod === 'month') {
+    if (now.getDate() !== 1) return null; // only pending on the 1st
+    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    return { periodKey: fmtDate(lastMonth), periodLabel: lastMonth.toLocaleDateString('en-US',{month:'long',year:'numeric'}) };
+  }
+  if (freqPeriod === 'contest') {
+    if (!contest || !contest.end_date) return null;
+    const endD = new Date(contest.end_date + 'T12:00:00');
+    const dayAfter = new Date(endD); dayAfter.setDate(dayAfter.getDate() + 1);
+    if (fmtDate(dayAfter) !== getTodayKey()) return null; // only pending the day after the contest ends
+    return { periodKey: contest.end_date, periodLabel: 'the contest' };
+  }
+  return null;
+}
+
+// Gathers all unanswered custom-goal check-ins across every contest the user belongs to
+async function getPendingCustomCheckins() {
+  if (!currentUser) return [];
+  const today = getTodayKey();
+  const { data: memberships } = await sb.from('contest_members').select('contest_id').eq('user_id', currentUser);
+  const ids = (memberships||[]).map(m => m.contest_id);
+  if (ids.length === 0) return [];
+  const { data: contests } = await sb.from('contests').select('*').in('id', ids);
+  const pending = [];
+  for (const c of (contests||[])) {
+    if (!c || c.start_date > today) continue;
+    const customGoals = (c.goals||[]).filter(g => g.goalInputType === 'checkbox' && !g.autoFromProfile);
+    for (const g of customGoals) {
+      const freqPeriod = g.freqPeriod || 'day';
+      const info = computePendingPeriod(freqPeriod, c);
+      if (!info) continue;
+      if (info.periodKey < c.start_date) continue; // period predates contest start
+      const { data: existing } = await sb.from('contest_logs').select('id')
+        .eq('contest_id', c.id).eq('user_id', currentUser)
+        .eq('goal_name', g.name).eq('log_date', info.periodKey).maybeSingle();
+      if (existing) continue; // already answered
+      const points = (g.tiers && g.tiers[0] && g.tiers[0].points) || (c.scoring_tiers && c.scoring_tiers[0] && c.scoring_tiers[0].points) || 10;
+      pending.push({
+        contestId: c.id, contestName: c.name, goalName: g.name,
+        freqNum: g.freqNum || 1, freqPeriod, points,
+        periodKey: info.periodKey, periodLabel: info.periodLabel
+      });
+    }
+  }
+  return pending;
+}
+
+async function renderGoalCheckinBanner() {
+  const el = document.getElementById('goal-checkin-banner');
+  if (!el || !currentUser) return;
+  let pending = [];
+  try { pending = await getPendingCustomCheckins(); } catch(e) { console.error('Checkin banner error:', e); }
+  if (pending.length === 0) { el.style.display = 'none'; el.innerHTML = ''; return; }
+
+  el.style.display = 'block';
+  el.innerHTML =
+    '<div style="background:linear-gradient(135deg,#16A34A,#EA580C);border-radius:16px;padding:16px;color:#fff;">' +
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">' +
+        '<span style="font-size:24px;">🎯</span>' +
+        '<div>' +
+          '<div style="font-size:16px;font-weight:800;">Goal Check-ins</div>' +
+          '<div style="font-size:12px;opacity:0.85;">Answer by 5pm MT or they expire</div>' +
+        '</div>' +
+      '</div>' +
+      pending.map((p,i) => {
+        const inputId = 'gc-count-' + i;
+        const safeName = p.goalName.replace(/'/g, "\\'");
+        return '<div style="background:rgba(255,255,255,0.12);border-radius:12px;padding:12px;margin-bottom:10px;">' +
+          '<div style="font-size:13px;font-weight:700;margin-bottom:2px;">' + p.goalName + '</div>' +
+          '<div style="font-size:11px;opacity:0.8;margin-bottom:10px;">' + p.contestName + ' · ' + p.periodLabel + '</div>' +
+          (p.freqNum <= 1
+            ? '<div style="display:flex;gap:8px;">' +
+                '<button onclick="submitCustomCheckin(\'' + p.contestId + '\',\'' + safeName + '\',\'' + p.periodKey + '\',' + p.freqNum + ',' + p.points + ',1)" style="flex:1;padding:10px;background:rgba(255,255,255,0.18);border:2px solid rgba(255,255,255,0.35);border-radius:10px;color:#fff;font-weight:700;font-size:14px;cursor:pointer;">✅ Yes (+' + p.points + ' pts)</button>' +
+                '<button onclick="submitCustomCheckin(\'' + p.contestId + '\',\'' + safeName + '\',\'' + p.periodKey + '\',' + p.freqNum + ',' + p.points + ',0)" style="flex:1;padding:10px;background:rgba(255,255,255,0.18);border:2px solid rgba(255,255,255,0.35);border-radius:10px;color:#fff;font-weight:700;font-size:14px;cursor:pointer;">❌ No</button>' +
+              '</div>'
+            : '<div style="display:flex;gap:8px;align-items:center;">' +
+                '<input type="number" id="' + inputId + '" min="0" max="' + p.freqNum + '" placeholder="0-' + p.freqNum + '" style="width:70px;padding:8px;border-radius:8px;border:none;font-size:15px;font-weight:700;text-align:center;color:#1E1B4B;">' +
+                '<span style="font-size:12px;opacity:0.85;">of ' + p.freqNum + '</span>' +
+                '<button onclick="submitCustomCheckin(\'' + p.contestId + '\',\'' + safeName + '\',\'' + p.periodKey + '\',' + p.freqNum + ',' + p.points + ',parseInt(document.getElementById(\'' + inputId + '\').value)||0)" style="margin-left:auto;padding:8px 16px;background:#fff;color:#16A34A;border:none;border-radius:8px;font-weight:800;font-size:13px;cursor:pointer;">Save</button>' +
+              '</div>'
+          ) +
+        '</div>';
+      }).join('') +
+    '</div>';
+}
+
+async function submitCustomCheckin(contestId, goalName, periodKey, freqNum, points, value) {
+  try {
+    await sb.from('contest_logs').delete()
+      .eq('contest_id', contestId).eq('user_id', currentUser)
+      .eq('goal_name', goalName).eq('log_date', periodKey);
+    await sb.from('contest_logs').insert({
+      contest_id: contestId, user_id: currentUser, goal_name: goalName,
+      amount: value, log_date: periodKey
+    });
+
+    const earned = value >= freqNum ? points : 0;
+    const toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#1E1B4B;color:#fff;padding:14px 24px;border-radius:20px;font-weight:800;z-index:999;font-size:15px;box-shadow:0 4px 20px rgba(0,0,0,0.3);text-align:center;';
+    toast.innerHTML = (earned > 0 ? '✅ Check-in saved!<br><span style="font-size:13px;font-weight:500;">+' + earned + ' pts</span>' : '📝 Check-in saved');
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2500);
+
+    await renderGoalCheckinBanner();
+    if (currentContestId === contestId && document.getElementById('challenge-content') && selectedChallengeTab === contestId) {
+      await renderContestChallenge(contestId);
+    }
+  } catch(e) {
+    alert('Error: ' + e.message);
+  }
 }
 
 async function renderContestChallenge(contestId) {
@@ -2493,16 +2539,11 @@ async function renderContestChallenge(contestId) {
           logged = numPl.reduce((sum, l) => sum + (l.amount||0), 0);
           // target and unit already set correctly by resolveGoal
         } else {
-          // Checkbox: use period filter
+          // Checkbox: periodic questionnaire — look up the answer for the period containing displayDate
           const freqPeriod = g.freqPeriod || 'day';
-          const today2 = getTodayKey();
-          const ps = getPeriodStart(freqPeriod);
-          const pl = (myLogs||[]).filter(l => {
-            if (l.goal_name !== g.name) return false;
-            if (freqPeriod === 'day') return l.log_date === today2;
-            return l.log_date >= ps;
-          });
-          logged = pl.length > 0 ? Math.max(...pl.map(l => l.amount||0)) : 0;
+          const periodKey = getPeriodKeyForDate(displayDate, freqPeriod, contest);
+          const rec = (myLogs||[]).find(l => l.goal_name === g.name && l.log_date === periodKey);
+          logged = rec ? (rec.amount||0) : 0;
           g = { ...g, target: g.freqNum || g.target || 1, unit: 'x' };
         }
       }
@@ -3257,9 +3298,8 @@ function showCoachButton() {
 
 
 
-// ─── DAILY HEALTH CHECK-IN ──────────────────────────────────────────────────
+// ─── TIMEZONE HELPERS (used by Goal Check-ins) ──────────────────────────────
 
-let checkinAnswers = { sleep: null, eating: null, strength: null };
 
 function getMSTHour() {
   // Get current hour in MST/MDT (UTC-7 in summer, UTC-6 in winter)
@@ -3278,176 +3318,6 @@ function isDaylightSavingTime(date) {
   return date.getTimezoneOffset() < Math.max(jan.getTimezoneOffset(), jul.getTimezoneOffset());
 }
 
-async function checkDailyCheckin() {
-  if (!currentUser) return;
-  const today = getTodayKey();
-  const hour = getMSTHour();
-
-  // After 5pm MST, don't show
-  if (hour >= 17) {
-    document.getElementById('daily-checkin-banner').style.display = 'none';
-    document.getElementById('checkin-open-btn').style.display = 'none';
-    return;
-  }
-  // Show the open button on home screen
-  document.getElementById('checkin-open-btn').style.display = 'block';
-
-  // Check if already completed today
-  const { data: log } = await sb.from('daily_logs').select('checkin_sleep,checkin_eating,checkin_strength')
-    .eq('user_id', currentUser).eq('log_date', today).maybeSingle();
-
-  if (log && (log.checkin_sleep !== null || log.checkin_eating !== null || log.checkin_strength !== null)) {
-    // Already completed today
-    document.getElementById('daily-checkin-banner').style.display = 'none';
-    return;
-  }
-
-  // Check if user skipped (stored in sessionStorage so they can come back within same session)
-  const skipped = sessionStorage.getItem('checkin-skipped-' + today);
-  if (skipped) {
-    document.getElementById('daily-checkin-banner').style.display = 'none';
-    return;
-  }
-
-  // Restore any previously selected answers from session
-  const saved = sessionStorage.getItem('checkin-answers-' + today);
-  if (saved) {
-    try {
-      checkinAnswers = JSON.parse(saved);
-      // Restore button states
-      Object.entries(checkinAnswers).forEach(([q, val]) => {
-        if (val) {
-          const btn = document.querySelector('.checkin-btn[data-q="' + q + '"][data-val="' + val + '"]');
-          if (btn) highlightCheckinBtn(btn);
-        }
-      });
-    } catch(e) {}
-  }
-
-  document.getElementById('daily-checkin-banner').style.display = 'block';
-}
-
-function selectCheckinAnswer(btn) {
-  const q = btn.dataset.q;
-  const val = btn.dataset.val;
-
-  // Deselect sibling
-  document.querySelectorAll('.checkin-btn[data-q="' + q + '"]').forEach(b => {
-    b.style.background = 'rgba(255,255,255,0.15)';
-    b.style.border = '2px solid rgba(255,255,255,0.3)';
-    b.style.fontWeight = '700';
-  });
-
-  // Select this one
-  highlightCheckinBtn(btn);
-  checkinAnswers[q] = val;
-
-  // Save to session in case they skip and come back
-  sessionStorage.setItem('checkin-answers-' + getTodayKey(), JSON.stringify(checkinAnswers));
-}
-
-function highlightCheckinBtn(btn) {
-  btn.style.background = btn.dataset.val === 'yes' ? 'rgba(22,163,74,0.5)' : 'rgba(239,68,68,0.3)';
-  btn.style.border = '2px solid #fff';
-  btn.style.fontWeight = '900';
-}
-
-function skipDailyCheckin() {
-  document.getElementById('daily-checkin-banner').style.display = 'none';
-  document.getElementById('checkin-open-btn').style.display = 'block';
-}
-
-async function submitDailyCheckin() {
-  const { sleep, eating, strength } = checkinAnswers;
-  if (sleep === null || eating === null || strength === null) {
-    alert('Please answer all 3 questions before submitting.');
-    return;
-  }
-
-  const btn = document.getElementById('checkin-submit-btn');
-  btn.textContent = 'Saving...';
-  btn.disabled = true;
-
-  const today = getTodayKey();
-  const sleepPts = sleep === 'yes' ? 5 : 0;
-  const eatingPts = eating === 'yes' ? 5 : 0;
-  const strengthPts = strength === 'yes' ? 2 : 0;
-  const totalPts = sleepPts + eatingPts + strengthPts;
-
-  try {
-    // Save to daily_logs (upsert)
-    const { data: existing } = await sb.from('daily_logs').select('id,protein,water,fat,carbs,foods')
-      .eq('user_id', currentUser).eq('log_date', today).maybeSingle();
-
-    if (existing) {
-      await sb.from('daily_logs').update({
-        checkin_sleep: sleep === 'yes',
-        checkin_eating: eating === 'yes',
-        checkin_strength: strength === 'yes',
-        checkin_pts: totalPts
-      }).eq('id', existing.id);
-    } else {
-      await sb.from('daily_logs').insert({
-        user_id: currentUser,
-        log_date: today,
-        protein: 0, water: 0, fat: 0, carbs: 0, foods: [],
-        checkin_sleep: sleep === 'yes',
-        checkin_eating: eating === 'yes',
-        checkin_strength: strength === 'yes',
-        checkin_pts: totalPts
-      });
-    }
-
-    // Award points in ALL active contests
-    const { data: memberships } = await sb.from('contest_members').select('contest_id').eq('user_id', currentUser);
-    if (memberships && memberships.length > 0) {
-      for (const m of memberships) {
-        // Check contest is active
-        const { data: contest } = await sb.from('contests').select('start_date,end_date').eq('id', m.contest_id).maybeSingle();
-        if (!contest) continue;
-        if (contest.end_date < today || contest.start_date > today) continue;
-
-        // Log checkin points as a special contest_log entry
-        // Delete existing checkin log for today first
-        await sb.from('contest_logs').delete()
-          .eq('contest_id', m.contest_id)
-          .eq('user_id', currentUser)
-          .eq('goal_name', '__daily_checkin__')
-          .eq('log_date', today);
-
-        if (totalPts > 0) {
-          await sb.from('contest_logs').insert({
-            contest_id: m.contest_id,
-            user_id: currentUser,
-            goal_name: '__daily_checkin__',
-            amount: totalPts,
-            log_date: today
-          });
-        }
-      }
-    }
-
-    // Hide banner and show success
-    document.getElementById('daily-checkin-banner').style.display = 'none';
-    checkinAnswers = { sleep: null, eating: null, strength: null };
-    sessionStorage.removeItem('checkin-answers-' + today);
-    sessionStorage.removeItem('checkin-skipped-' + today);
-
-    // Show toast
-    const toast = document.createElement('div');
-    toast.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#1E1B4B;color:#fff;padding:14px 24px;border-radius:20px;font-weight:800;z-index:999;font-size:15px;box-shadow:0 4px 20px rgba(0,0,0,0.3);text-align:center;';
-    toast.innerHTML = '🌅 Check-in complete!<br><span style="font-size:13px;font-weight:500;">+' + totalPts + ' pts added to your contests</span>';
-    document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 4000);
-
-    renderHome();
-
-  } catch(e) {
-    alert('Error saving check-in: ' + e.message);
-    btn.textContent = 'Submit Check-in ✓';
-    btn.disabled = false;
-  }
-}
 
 // ─── DRI CALCULATOR ──────────────────────────────────────────────────────────
 
@@ -4274,6 +4144,7 @@ function addCustomGoalField() {
           '<option value="contest">Contest (total)</option>' +
         '</select>' +
       '</div>' +
+      '<div style="font-size:11px;color:#9CA3AF;margin-top:6px;line-height:1.4;">After each period ends, everyone gets a check-in prompt asking if they completed it — answer by 5pm MT the next day or it\'s marked missed.</div>' +
     '</div>' +
 
     '<div class="numeric-options" style="display:none;">' +
@@ -4354,7 +4225,7 @@ function buildPerGoalScoring() {
           '<span style="font-size:18px;">' + emoji + '</span>' +
           '<div>' +
             '<div style="font-size:15px;font-weight:800;">' + g.name + '</div>' +
-            '<div style="font-size:12px;color:#6B7280;">Checkbox · ' + (g.freqNum||1) + 'x per ' + (g.freqPeriod||'day') + '</div>' +
+            '<div style="font-size:12px;color:#6B7280;">Check-in · ' + (g.freqNum||1) + 'x per ' + (g.freqPeriod||'day') + '</div>' +
           '</div>' +
         '</div>' +
         '<div style="display:flex;align-items:center;gap:10px;">' +
