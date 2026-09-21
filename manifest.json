@@ -1,7 +1,7 @@
 {
-  "name": "ChallengePac",
-  "short_name": "ChallengePac",
-  "description": "Compete, track, and win together",
+  "name": "Food Tracker",
+  "short_name": "Food Tracker",
+  "description": "Track your food, water, and macros",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#F0FDF4",
